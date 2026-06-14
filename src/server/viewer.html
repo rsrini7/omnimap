@@ -35,6 +35,67 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
   font-size: 13px; font-weight: 600; color: #fff;
   font-family: var(--mono);
 }
+
+/* Search */
+#search-box {
+  position: relative;
+  padding: 0 12px 10px;
+}
+#search-input {
+  width: 100%; height: 28px;
+  background: #0d0d0d; border: 1px solid #222; border-radius: 5px;
+  color: #ccc; font-size: 11.5px; font-family: var(--font);
+  padding: 0 8px 0 26px;
+  outline: none; transition: border-color .15s;
+}
+#search-input:focus { border-color: #555; }
+#search-input::placeholder { color: #444; }
+#search-icon {
+  position: absolute; left: 20px; top: 7px;
+  color: #444; font-size: 12px; pointer-events: none;
+}
+#search-results {
+  position: absolute; top: 100%; left: 12px; right: 12px;
+  background: #0a0a0a; border: 1px solid #222; border-radius: 6px;
+  max-height: 320px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #1a1a1a transparent;
+  display: none; z-index: 250;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+#search-results.open { display: block; }
+.sr-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px; cursor: pointer;
+  border-bottom: 1px solid #141414;
+  transition: background .1s;
+}
+.sr-item:last-child { border-bottom: none; }
+.sr-item:hover, .sr-item.active { background: #161616; }
+.sr-path {
+  font-size: 11px; font-family: var(--mono); color: #888;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sr-field {
+  display: inline-block; font-size: 9px; text-transform: uppercase;
+  letter-spacing: .1em; color: #666; background: #141414;
+  padding: 1px 5px; border-radius: 3px; align-self: flex-start;
+}
+.sr-snippet {
+  font-size: 11px; color: #777; line-height: 1.5;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.sr-snippet mark {
+  background: transparent; color: #ccc; font-weight: 600;
+}
+.sr-empty {
+  padding: 14px 10px; font-size: 11px; color: #555; text-align: center;
+}
+.sr-featured {
+  padding: 4px 10px 2px; font-size: 9px; text-transform: uppercase;
+  letter-spacing: .1em; color: #555;
+}
+
 #nav-list {
   flex: 1; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: #1a1a1a transparent;
@@ -215,6 +276,17 @@ body.light .sb-ref { background: #eee; border-color: #ddd; color: #555; }
 body.light .sb-ref:hover { border-color: #aaa; color: #111; }
 body.light .empty-state p { color: #bbb; }
 body.light #nav-sidebar { background: #fff; }
+body.light #search-input { background: #f5f5f5; border-color: #ddd; color: #333; }
+body.light #search-input:focus { border-color: #aaa; }
+body.light #search-input::placeholder { color: #bbb; }
+body.light #search-icon { color: #bbb; }
+body.light #search-results { background: #fff; border-color: #ddd; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+body.light .sr-item:hover, body.light .sr-item.active { background: #f5f5f5; }
+body.light .sr-item { border-color: #eee; }
+body.light .sr-path { color: #666; }
+body.light .sr-field { color: #888; background: #eee; }
+body.light .sr-snippet { color: #888; }
+body.light .sr-snippet mark { color: #333; }
 body.light .nav-item { color: #999; }
 body.light .nav-item.nav-root { color: #333; }
 body.light .nav-slot-line::before { background: #ddd; }
@@ -288,6 +360,11 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
 <body>
 <div id="nav-sidebar">
   <div id="nav-title">omm</div>
+  <div id="search-box">
+    <span id="search-icon">⌕</span>
+    <input id="search-input" type="text" placeholder="Search elements…" autocomplete="off" />
+    <div id="search-results"></div>
+  </div>
   <div id="nav-list"></div>
 </div>
 
@@ -1609,6 +1686,126 @@ window.toggleMobileNav = function() {
   nav.classList.toggle('mobile-open', !isOpen);
   overlay.classList.toggle('show', !isOpen);
 };
+
+// ── search ──────────────────────────────────────────────
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+let srActiveIdx = -1;
+let srItems = [];
+let searchDebounce = null;
+
+function closeSearch() {
+  searchResults.classList.remove('open');
+  searchResults.innerHTML = '';
+  srItems = [];
+  srActiveIdx = -1;
+}
+
+function highlightActive() {
+  srItems.forEach((el, i) => el.classList.toggle('active', i === srActiveIdx));
+  if (srActiveIdx >= 0 && srItems[srActiveIdx]) {
+    srItems[srActiveIdx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+async function runSearch(query) {
+  if (!query.trim()) {
+    closeSearch();
+    return;
+  }
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    renderSearchResults(data);
+  } catch { closeSearch(); }
+}
+
+function renderSearchResults(data) {
+  searchResults.innerHTML = '';
+  srItems = [];
+  srActiveIdx = -1;
+
+  if (data.featured && data.results.length) {
+    const label = document.createElement('div');
+    label.className = 'sr-featured';
+    label.textContent = 'Perspectives';
+    searchResults.appendChild(label);
+    for (const r of data.results) {
+      const item = createSrItem(r, false);
+      searchResults.appendChild(item);
+    }
+  } else if (data.results.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'sr-empty';
+    empty.textContent = 'No results';
+    searchResults.appendChild(empty);
+  } else {
+    for (const r of data.results) {
+      const item = createSrItem(r, true);
+      searchResults.appendChild(item);
+    }
+  }
+  searchResults.classList.add('open');
+}
+
+function createSrItem(r, showSnippet) {
+  const item = document.createElement('div');
+  item.className = 'sr-item';
+  item.dataset.cls = r.elementPath;
+  let html = `<div class="sr-path">${escHtml(r.elementPath)}</div>`;
+  html += `<div class="sr-field">${escHtml(r.field)}</div>`;
+  if (showSnippet && r.snippet) {
+    html += `<div class="sr-snippet">${r.snippet}</div>`;
+  }
+  item.innerHTML = html;
+  item.addEventListener('click', () => {
+    closeSearch();
+    searchInput.value = '';
+    if (typeof window.__openSb === 'function') window.__openSb(r.elementPath);
+  });
+  srItems.push(item);
+  return item;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => runSearch(searchInput.value), 200);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (!searchResults.classList.contains('open')) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    srActiveIdx = Math.min(srActiveIdx + 1, srItems.length - 1);
+    highlightActive();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    srActiveIdx = Math.max(srActiveIdx - 1, -1);
+    highlightActive();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (srActiveIdx >= 0 && srItems[srActiveIdx]) {
+      srItems[srActiveIdx].click();
+    } else if (srItems.length) {
+      srItems[0].click();
+    }
+  } else if (e.key === 'Escape') {
+    closeSearch();
+    searchInput.blur();
+  }
+});
+
+searchInput.addEventListener('focus', () => {
+  if (searchInput.value.trim()) runSearch(searchInput.value);
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#search-box')) closeSearch();
+});
 
 function setupLiveReload() {
   if (!window.EventSource) return;
