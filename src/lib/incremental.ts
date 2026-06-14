@@ -86,6 +86,14 @@ function commitExists(cwd: string, ref: string): boolean {
 /**
  * Return files that changed since `sinceRef` (committed), plus any uncommitted
  * changes (staged, unstaged, untracked). Paths are relative to the repo root.
+ *
+ * When `sinceRef` is provided the result is a **union**: committed changes
+ * between `sinceRef` and HEAD, plus any uncommitted working-tree changes.
+ * Callers should treat the return value as the full set of files that may
+ * need re-analysis, not just the committed diff.
+ *
+ * When `sinceRef` is omitted (or the repo has no commits yet), only
+ * working-tree changes are returned.
  */
 export function getChangedFiles(cwd: string, sinceRef?: string): ChangedFile[] {
   if (!isGitRepo(cwd)) return [];
@@ -223,6 +231,7 @@ function readMetaFile(metaPath: string): ClassMeta | null {
     const parsed = YAML.parse(fs.readFileSync(metaPath, 'utf-8')) as ClassMeta | null;
     return parsed && typeof parsed === 'object' ? parsed : null;
   } catch {
+    process.stderr.write(`  warning: could not parse ${metaPath} — skipping\n`);
     return null;
   }
 }

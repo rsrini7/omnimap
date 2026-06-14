@@ -77,13 +77,15 @@ function tokenize(q: string): string[] {
   );
 }
 
-/** Per-field weight — entry-point and intent fields outrank free-form notes. */
+/** Per-field weight — entry-point and intent fields outrank free-form notes.
+ *  Diagram is weighted low because mermaid syntax (graph LR; A-->B) contains
+ *  identifiers that are rarely meaningful search targets. */
 const FIELD_WEIGHT: Record<Field, number> = {
   description: 4.0,
-  diagram: 3.5,
   context: 2.5,
   constraint: 2.0,
   concern: 1.5,
+  diagram: 1.0,
   todo: 1.0,
   note: 0.5,
 };
