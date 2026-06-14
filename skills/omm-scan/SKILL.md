@@ -40,7 +40,43 @@ Use Glob and Read to understand the project:
 - Read key entry points (main, index, app files)
 - Look for route definitions, service layers, database connections, external integrations
 
-## Step 2: Select Perspectives
+## Step 1.5: Plan an incremental update (when updating an existing scan)
+
+If `.omm/` already exists, do not re-scan everything. Use `omm incremental` to find what changed:
+
+```bash
+# Plan — see which elements are stale, fresh, or unknown since the last scan.
+omm incremental
+
+# Machine-readable plan (for piping into other tools).
+omm incremental --json
+```
+
+A clean plan output (no stale elements) means nothing needs re-analysis. For any
+element listed as **Stale**, re-run Steps 3a–3c only for that element. For
+**Unknown** elements (no source tracking), re-run Steps 3a–3c if the
+perspective's code surface has changed.
+
+When the scan agent finishes re-analyzing a perspective, it should record the
+new baseline so the next `omm incremental` run diffs against the right commit:
+
+```bash
+# Record: this perspective was just fully (re-)analyzed.
+omm incremental --record <perspective> full
+
+# Record: this perspective was incrementally updated.
+omm incremental --record <perspective> incremental
+```
+
+If the perspective's source surface is not yet tracked, bootstrap it:
+
+```bash
+# Tell omm which files / globs this perspective covers.
+omm incremental --mark <perspective> --files <path>... --globs <glob>...
+
+# Replace the tracked set instead of appending.
+omm incremental --mark <perspective> --files <path>... --replace
+```
 
 From the catalog below, choose which perspectives are meaningful for this codebase.
 

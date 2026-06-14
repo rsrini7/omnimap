@@ -22,8 +22,9 @@ import { commandValidate } from './commands/validate.js';
 import { commandTree } from './commands/tree.js';
 import { commandRead, commandWrite } from './commands/read-write.js';
 import { commandConfig } from './commands/config.js';
+import { commandIncremental } from './commands/incremental.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'incremental', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -46,6 +47,7 @@ Usage:
   omm refs <path>                   Show elements that reference this element
   omm validate [path]               Validate diagram(s) for syntax and conventions
   omm view [--port <port>]         Start web viewer (default: 3000)
+  omm incremental [--json|--mark|--record]  Plan or record incremental scan updates
 
 Cloud:
   omm login                         Log in to omm.dev
@@ -201,6 +203,10 @@ async function main(): Promise<void> {
 
     case 'org':
       await commandOrg(args[1], args[2]);
+      return;
+
+    case 'incremental':
+      await commandIncremental(args.slice(1));
       return;
 
     default:

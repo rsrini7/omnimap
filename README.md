@@ -77,12 +77,11 @@ Each element carries up to 7 fields: `description`, `diagram`, `context`, `const
 
 ## CLI
 
-```bash
 omm setup                          # Register skills with your AI tools
 omm view                           # Open interactive viewer
 omm config language ko             # Set content language
+omm incremental                    # Plan a scoped re-scan based on git diff
 omm update                         # Update to latest version
-```
 
 Run `omm help` for the full command list.
 
