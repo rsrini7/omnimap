@@ -80,6 +80,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 /* Floating controls */
 .float-controls {
   position: absolute; top: 12px; right: 12px;
+  transition: right .22s cubic-bezier(.4,0,.2,1);
   display: flex; align-items: center; gap: 3px;
   z-index: 100;
   background: rgba(0,0,0,0.7);
@@ -91,6 +92,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 .hbtn { background: none; border: 1px solid var(--border-hi); color: var(--text-mid); height: 26px; min-width: 26px; padding: 0 8px; border-radius: 5px; cursor: pointer; font-size: 13px; font-family: var(--font); transition: border-color .12s, color .12s; }
 .hbtn:hover { border-color: #3a3a3a; color: var(--text); }
 #zoom-label { font-size: 11px; color: var(--text-dim); width: 38px; text-align: center; font-family: var(--mono); }
+.float-controls.sidebar-open { right: calc(var(--sidebar-w) + 12px); }
+@media (max-width: 768px) { .float-controls.sidebar-open { right: 12px; } }
 
 #canvas-wrap {
   flex: 1; position: relative; overflow: hidden; cursor: grab; margin-left: 200px;
@@ -842,6 +845,7 @@ function applyTransform() {
 }
 
 function zoomTo(newScale, originX, originY) {
+  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
   const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
   const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
   const cx = originX ?? cW/2, cy = originY ?? cH/2;
@@ -853,6 +857,7 @@ function zoomTo(newScale, originX, originY) {
 
 function centerView() {
   if (!svgW) return;
+  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
   const cW=canvasWrap.clientWidth, cH=canvasWrap.clientHeight;
   const s = Math.min(0.9, (cW-80)/svgW, (cH-80)/svgH);
   vpScale = s;
@@ -898,16 +903,25 @@ function focusGroup(cls) {
     ancestor = ancestor.parentElement;
   }
 
-  // Use the group's border rect for accurate dimensions
-  const border = el.querySelector(':scope > .grp-border') || el;
-  const rect = border.getBoundingClientRect();
-  const wrapRect = canvasWrap.getBoundingClientRect();
+  // Get group's SVG-space position directly from its transform attribute.
+  // Traverse up to root SVG to accumulate nested translates/scales.
+  function getSvgPoint(el) {
+    const rect = el.getBoundingClientRect();
+    const wrapRect = canvasWrap.getBoundingClientRect();
+    // Screen position of element center, relative to canvas-wrap top-left
+    const sx = rect.left + rect.width / 2 - wrapRect.left;
+    const sy = rect.top + rect.height / 2 - wrapRect.top;
+    // Convert to canvas SVG space (reverse pan+zoom transform)
+    const svgX = (sx - vpX) / vpScale;
+    const svgY = (sy - vpY) / vpScale;
+    // Get element dimensions in SVG space
+    const w = rect.width / vpScale;
+    const h = rect.height / vpScale;
+    return { svgX, svgY, w, h };
+  }
 
-  // Convert screen coords to SVG space
-  const svgCenterX = (rect.left + rect.width/2 - wrapRect.left - vpX) / vpScale;
-  const svgCenterY = (rect.top + rect.height/2 - wrapRect.top - vpY) / vpScale;
-  const svgW = rect.width / vpScale;
-  const svgH = rect.height / vpScale;
+  const border = el.querySelector(':scope > .grp-border') || el;
+  const { svgX, svgY, w, h } = getSvgPoint(border);
 
   // Available viewport (account for sidebar: right panel on desktop, bottom drawer on mobile)
   const isMobile = window.innerWidth <= 768;
@@ -917,15 +931,16 @@ function focusGroup(cls) {
   const availH = canvasWrap.clientHeight - sbH - 60;
 
   // Target scale to fit element with padding
-  const targetScale = Math.min(MAX_SCALE, Math.max(0.15, Math.min(availW / svgW, availH / svgH) * 0.85));
+  const targetScale = Math.min(MAX_SCALE, Math.max(0.15, Math.min(availW / w, availH / h) * 0.85));
 
   // Center in available viewport (account for sidebar/drawer)
   const centerX = (canvasWrap.clientWidth - sbW) / 2;
   const centerY = (canvasWrap.clientHeight - sbH) / 2;
-  const toX = centerX - svgCenterX * targetScale;
-  const toY = centerY - svgCenterY * targetScale;
+  const finalScale = vpScale >= targetScale ? vpScale : targetScale;
 
-  animateTo(toX, toY, targetScale);
+  const toX = centerX - svgX * finalScale;
+  const toY = centerY - svgY * finalScale;
+  animateTo(toX, toY, finalScale);
 }
 
 // ── wheel: Figma-style ─────────────────────────────────────
@@ -957,6 +972,7 @@ canvasWrap.addEventListener('wheel', e => {
 // ── pan: space+drag, middle-mouse, empty-area drag ─────────
 let spaceHeld = false;
 let panning = false, panA = {}, panV = {};
+let dragStarted = false;
 
 function updateCursor() {
   if (panning)      canvasWrap.style.cursor = 'grabbing';
@@ -985,14 +1001,18 @@ window.addEventListener('keyup', e => {
 });
 
 canvasWrap.addEventListener('mousedown', e => {
-  const isMiddle   = e.button === 1;
+  const isMiddle = e.button === 1;
   const isSpaceDrag = e.button === 0 && spaceHeld;
-  const isEmptyDrag = e.button === 0 && !spaceHeld &&
-    !e.target.closest('.grp-node') && !e.target.closest('.reg-node');
+  const isLeftDrag = e.button === 0 && !spaceHeld;
 
-  if (isMiddle || isSpaceDrag || isEmptyDrag) {
-    e.preventDefault();
+  if (isMiddle || isSpaceDrag || isLeftDrag) {
+    // Only prevent default for middle-click/space-drag;
+    // left-click must NOT preventDefault so browser can dispatch dblclick.
+    if (isMiddle || isSpaceDrag) e.preventDefault();
     panning = true;
+    // Middle-click and space-drag pan immediately; left-drag waits for threshold
+    dragStarted = isMiddle || isSpaceDrag;
+    window.__ommDidPan = false;
     panA = { x: e.clientX, y: e.clientY };
     panV = { x: vpX, y: vpY };
     updateCursor();
@@ -1001,13 +1021,23 @@ canvasWrap.addEventListener('mousedown', e => {
 
 window.addEventListener('mousemove', e => {
   if (!panning) return;
-  vpX = panV.x + (e.clientX - panA.x);
-  vpY = panV.y + (e.clientY - panA.y);
-  applyTransform();
+  if (!dragStarted) {
+    const dx = Math.abs(e.clientX - panA.x);
+    const dy = Math.abs(e.clientY - panA.y);
+    if (dx > 8 || dy > 8) { dragStarted = true; window.__ommDidPan = true; }
+  }
+  if (dragStarted) {
+    vpX = panV.x + (e.clientX - panA.x);
+    vpY = panV.y + (e.clientY - panA.y);
+    applyTransform();
+  }
 });
 
 window.addEventListener('mouseup', () => {
   if (panning) { panning = false; updateCursor(); }
+  if (window.__ommDidPan) {
+    setTimeout(() => { window.__ommDidPan = false; }, 0);
+  }
 });
 
 // Touch: pan + pinch zoom
@@ -1047,7 +1077,22 @@ window.addEventListener('mouseup', () => {
 
 // close sidebar when clicking empty canvas area
 canvasWrap.addEventListener('click', e => {
+  if (window.__ommDidPan) {
+    e.stopImmediatePropagation();
+    return;
+  }
   if (!e.target.closest('[onclick]')) closeSidebar();
+}, true);
+
+// double-click: zoom to focused group (node), reset on empty area
+canvasWrap.addEventListener('dblclick', e => {
+  const node = e.target.closest('.grp-node');
+  if (node) {
+    const cls = node.dataset.cls;
+    if (cls) focusGroup(cls);
+  } else {
+    centerView();
+  }
 });
 
 // ── sidebar ───────────────────────────────────────────────
@@ -1080,6 +1125,8 @@ window.__openSb = function(cls) {
   }
 };
 
+const floatControls = document.querySelector('.float-controls');
+
 function openSidebar(cls) {
   const data=classesData[cls]||{}, refs=refsData[cls]||{};
   sbTitle.textContent=fmtLabel(cls);
@@ -1105,12 +1152,24 @@ function openSidebar(cls) {
     ].join('');
     html+=`<div class="sb-sec"><div class="sb-sec-title">References</div><div class="sb-refs">${links}</div></div>`;
   }
+
+  // Cross-perspective links: show which perspectives contain this element
+  var _shortName = cls.includes('/') ? cls.split('/').pop() : cls;
+  var _parents = (parentMap[cls] || parentMap[_shortName]) || [];
+  if (_parents.length > 0) {
+    var _pLinks = _parents.map(function(p) {
+      return `<span class="sb-ref" onclick="window.__openSb('${esc(p)}/${esc(_shortName)}')">${esc(fmtLabel(p))} / ${esc(fmtLabel(_shortName))}</span>`;
+    }).join('');
+    html += `<div class="sb-sec"><div class="sb-sec-title">In</div><div class="sb-refs">${_pLinks}</div></div>`;
+  }
   sbFields.innerHTML=html;
   sidebar.classList.add('open');
+  if (floatControls) floatControls.classList.add('sidebar-open');
 }
 
 function closeSidebar() {
   sidebar.classList.remove('open');
+  if (floatControls) floatControls.classList.remove('sidebar-open');
   document.querySelectorAll('.grp-node,.reg-node').forEach(el=>el.classList.remove('selected'));
   document.querySelectorAll('#canvas [data-cls].focus-exempt').forEach(el => el.classList.remove('focus-exempt'));
   selectedCls=null;
@@ -1434,6 +1493,7 @@ function addNavItem(name, prefix, isLast, displayLabel) {
 
 // ── nested element support ────────────────────────────────
 var childrenByPerspective = {};
+var parentMap = {};
 var originalPerspectives = []; // top-level only, before short names pollute classes
 
 async function loadNodeData(perspective, childName) {
@@ -1493,6 +1553,14 @@ async function init() {
     refsData[c]=ra[i];
     childrenByPerspective[c]=(na[i]&&na[i].children)||[];
   });
+
+  // Build reverse map: child -> [parent perspectives] for cross-linking -- uses module-scoped parentMap
+  for (var persp of Object.keys(childrenByPerspective)) {
+    for (var child of childrenByPerspective[persp]) {
+      if (!parentMap[child]) parentMap[child] = [];
+      parentMap[child].push(persp);
+    }
+  }
 
   // Pre-load nested element data for all children
   var nodeLoads = [];
