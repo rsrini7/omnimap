@@ -116,6 +116,9 @@ Varsayılan olarak özeldir. İsterseniz ekibinizle paylaşabilir ya da [bu örn
 | Cursor | `omm setup cursor` |
 | OpenClaw | `omm setup openclaw` |
 | Antigravity | `omm setup antigravity` |
+| OpenCode | `omm setup opencode` |
+| pi (pi.dev) | `omm setup pi` |
+| Oh my Pi (omp) | `omm setup omp` |
 
 `omm setup` komutu, yüklü tüm araçları otomatik olarak algılar ve yapılandırır.
 

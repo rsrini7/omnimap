@@ -116,6 +116,9 @@ omm login && omm link && omm push
 | Cursor | `omm setup cursor` |
 | OpenClaw | `omm setup openclaw` |
 | Antigravity | `omm setup antigravity` |
+| OpenCode | `omm setup opencode` |
+| pi (pi.dev) | `omm setup pi` |
+| Oh my Pi (omp) | `omm setup omp` |
 
 `omm setup`을 실행하면 설치된 모든 도구를 자동 감지하고 설정합니다.
 

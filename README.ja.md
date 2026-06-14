@@ -116,6 +116,9 @@ omm login && omm link && omm push
 | Cursor | `omm setup cursor` |
 | OpenClaw | `omm setup openclaw` |
 | Antigravity | `omm setup antigravity` |
+| OpenCode | `omm setup opencode` |
+| pi (pi.dev) | `omm setup pi` |
+| Oh my Pi (omp) | `omm setup omp` |
 
 `omm setup`を実行すると、インストール済みのすべてのツールを自動検出して設定します。
 

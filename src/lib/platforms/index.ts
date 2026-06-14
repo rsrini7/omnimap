@@ -4,10 +4,13 @@ import { codex } from './codex.js';
 import { cursor } from './cursor.js';
 import { openclaw } from './openclaw.js';
 import { antigravity } from './antigravity.js';
+import { opencode } from './opencode.js';
+import { pi } from './pi.js';
+import { omp } from './omp.js';
 
 export type { Platform };
 
-export const ALL_PLATFORMS: Platform[] = [claude, codex, cursor, openclaw, antigravity];
+export const ALL_PLATFORMS: Platform[] = [claude, codex, cursor, openclaw, antigravity, opencode, pi, omp];
 
 export function getPlatformById(id: string): Platform | undefined {
   return ALL_PLATFORMS.find(p => p.id === id);

@@ -116,6 +116,9 @@ omm login && omm link && omm push
 | Cursor | `omm setup cursor` |
 | OpenClaw | `omm setup openclaw` |
 | Antigravity | `omm setup antigravity` |
+| OpenCode | `omm setup opencode` |
+| pi (pi.dev) | `omm setup pi` |
+| Oh my Pi (omp) | `omm setup omp` |
 
 运行 `omm setup` 自动检测并配置所有已安装的工具。
 
