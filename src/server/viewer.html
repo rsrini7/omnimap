@@ -1154,10 +1154,10 @@ function openSidebar(cls) {
   }
 
   // Cross-perspective links: show which perspectives contain this element
-  var _shortName = cls.includes('/') ? cls.split('/').pop() : cls;
-  var _parents = (parentMap[cls] || parentMap[_shortName]) || [];
+  const _shortName = cls.includes('/') ? cls.split('/').pop() : cls;
+  const _parents = (parentMap[cls] || parentMap[_shortName]) || [];
   if (_parents.length > 0) {
-    var _pLinks = _parents.map(function(p) {
+    const _pLinks = _parents.map(function(p) {
       return `<span class="sb-ref" onclick="window.__openSb('${esc(p)}/${esc(_shortName)}')">${esc(fmtLabel(p))} / ${esc(fmtLabel(_shortName))}</span>`;
     }).join('');
     html += `<div class="sb-sec"><div class="sb-sec-title">In</div><div class="sb-refs">${_pLinks}</div></div>`;
@@ -1555,17 +1555,17 @@ async function init() {
   });
 
   // Build reverse map: child -> [parent perspectives] for cross-linking -- uses module-scoped parentMap
-  for (var persp of Object.keys(childrenByPerspective)) {
-    for (var child of childrenByPerspective[persp]) {
+  for (const persp of Object.keys(childrenByPerspective)) {
+    for (const child of childrenByPerspective[persp]) {
       if (!parentMap[child]) parentMap[child] = [];
       parentMap[child].push(persp);
     }
   }
 
   // Pre-load nested element data for all children
-  var nodeLoads = [];
-  for (var persp of Object.keys(childrenByPerspective)) {
-    for (var child of childrenByPerspective[persp]) {
+  const nodeLoads = [];
+  for (const persp of Object.keys(childrenByPerspective)) {
+    for (const child of childrenByPerspective[persp]) {
       nodeLoads.push(loadNodeData(persp, child));
     }
   }
