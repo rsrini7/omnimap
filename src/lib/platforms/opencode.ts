@@ -10,8 +10,13 @@ function readConfig(): Record<string, unknown> | null {
   if (!fs.existsSync(CONFIG_PATH)) return null;
   try {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    // opencode config may have trailing commas from JSONC origin - strip them
-    const cleaned = raw.replace(/,\s*}/g, '}').replace(/,\s*\]/g, ']');
+    // opencode config may have trailing commas (JSONC). This naive stripper
+    // works for the common case but will misparse commas inside string values
+    // that contain `}` or `]` (e.g. `{"k": "v,]"}`). Acceptable here because
+    // opencode configs are simple key-value structures, not free-form JSON.
+    const cleaned = raw
+      .replace(/,\s*(?=\})/g, '')
+      .replace(/,\s*(?=\])/g, '');
     return JSON.parse(cleaned);
   } catch {
     return null;

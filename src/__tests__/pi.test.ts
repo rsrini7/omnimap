@@ -54,7 +54,7 @@ describe('pi platform', () => {
     expect(pi.isSetup()).toBe(true);
   });
 
-  it('setup() creates symlink when target missing', async () => {
+  it('setup() creates skill copy when target missing', async () => {
     const { pi } = await import('../lib/platforms/pi.js');
 
     await pi.setup();
@@ -64,7 +64,7 @@ describe('pi platform', () => {
     expect(fs.statSync(targetDir).isDirectory()).toBe(true);
   });
 
-  it('setup() recreates copy when target already exists', async () => {
+  it('setup() replaces existing target with fresh copy', async () => {
     const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'oh-my-mermaid');
     fs.mkdirSync(path.dirname(targetDir), { recursive: true });
     fs.symlinkSync(skillsSource, targetDir, 'dir');
