@@ -1345,6 +1345,7 @@ async function init() {
   var mobileTitle = document.getElementById('mobile-title');
   if (mobileTitle) mobileTitle.textContent = projName;
   buildNavTree();
+  autoSizeNav();
 
   const result = buildCanvas(originalPerspectives, classesData, refsData);
   if (result) {
@@ -1383,6 +1384,25 @@ const navSidebar = document.getElementById('nav-sidebar');
 const navResize = document.getElementById('nav-resize');
 function setNavWidth(px) {
   const clamped = Math.max(140, Math.min(420, px));
+  document.documentElement.style.setProperty('--nav-w', clamped + 'px');
+}
+
+/** Auto-size nav sidebar to fit the longest item text. */
+function autoSizeNav() {
+  const items = navList.querySelectorAll('.nav-item');
+  let maxW = 0;
+  const measure = document.createElement('span');
+  measure.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;';
+  document.body.appendChild(measure);
+  items.forEach(item => {
+    measure.style.font = getComputedStyle(item).font;
+    measure.textContent = item.textContent;
+    maxW = Math.max(maxW, measure.getBoundingClientRect().width);
+  });
+  measure.remove();
+  // Add padding for the tree prefix + scrollbar
+  const targetW = Math.ceil(maxW) + 48;
+  const clamped = Math.max(200, Math.min(420, targetW));
   document.documentElement.style.setProperty('--nav-w', clamped + 'px');
 }
 
