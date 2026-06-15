@@ -840,6 +840,20 @@ function openSidebar(cls, origCls) {
       <div class="sb-diagram-view">${svg || '<div style="padding:16px;color:#666">Could not render diagram</div>'}</div>
       <div class="sb-code-view" style="display:none"><pre class="sb-code-pre">${codeHtml}</pre></div>
     `;
+  // Timeline slider if history exists
+    const history = data.meta?.diagram_history ?? [];
+    if (history.length > 0) {
+      const allVersions = [...history, { diagram: data.diagram, at: data.meta?.updated || '', commit: data.meta?.git_commit }];
+      window.__timelineVersions = allVersions;
+      const sliderHtml = `
+        <div class="sb-timeline">
+          <div class="sb-timeline-label">Version history (${allVersions.length} versions)</div>
+          <input type="range" class="sb-timeline-slider" min="0" max="${allVersions.length - 1}" value="${allVersions.length - 1}" oninput="window.__scrubTimeline(this.value)" />
+          <div class="sb-timeline-info" id="sb-timeline-info">Current</div>
+        </div>
+      `;
+      sbDiagram.innerHTML += sliderHtml;
+    }
   }
 
   const md=t=>t?marked.parse(t):'';
@@ -1607,6 +1621,35 @@ window.__showDiagramTab = function(tab) {
   if (diagramView) diagramView.style.display = tab === 'diagram' ? 'block' : 'none';
   if (codeView) codeView.style.display = tab === 'code' ? 'block' : 'none';
 };
+window.__scrubTimeline = function(idx) {
+  const versions = window.__timelineVersions;
+  if (!versions) return;
+  const v = versions[idx];
+  if (!v) return;
+  const container = document.getElementById('sb-diagram');
+  if (!container) return;
+  const diagramView = container.querySelector('.sb-diagram-view');
+  const codeView = container.querySelector('.sb-code-view');
+  const info = document.getElementById('sb-timeline-info');
+  // Reset diff state when scrubbing
+  if (_diffActive) {
+    _diffActive = false;
+    const diffBtn = document.getElementById('sb-diff-btn');
+    if (diffBtn) { diffBtn.textContent = 'Show Diff'; diffBtn.classList.remove('active'); }
+  }
+  if (diagramView) {
+    const svg = renderFlatSVG(v.diagram);
+    diagramView.innerHTML = svg || '<div style="padding:16px;color:#666">Could not render diagram</div>';
+  }
+  if (codeView) {
+    codeView.querySelector('pre').innerHTML = highlightMermaid(v.diagram);
+  }
+  if (info) {
+    const isLast = idx === versions.length - 1;
+    const date = v.at ? new Date(v.at).toLocaleString() : '';
+    info.textContent = isLast ? 'Current' : `${date}${v.commit ? ' · ' + v.commit : ''}`;
+  }
+};
 window.toggleMobileNav = function() {
   const nav = document.getElementById('nav-sidebar');
   const overlay = document.getElementById('mobile-overlay');
@@ -1619,12 +1662,14 @@ window.toggleMobileNav = function() {
 let _diffActive = false;
 window.__toggleDiff = async function(cls) {
   const btn = document.getElementById('sb-diff-btn');
+  const diagramView = document.querySelector('#sb-diagram .sb-diagram-view');
+  if (!diagramView) return;
+
   if (_diffActive) {
     _diffActive = false;
     if (btn) { btn.textContent = 'Show Diff'; btn.classList.remove('active'); }
     const data = classesData[cls];
-    const svg = data?.diagram ? renderFlatSVG(data.diagram) : '';
-    sbDiagram.innerHTML = svg || '';
+    diagramView.innerHTML = data?.diagram ? (renderFlatSVG(data.diagram) || '') : '';
     return;
   }
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
@@ -1632,7 +1677,7 @@ window.__toggleDiff = async function(cls) {
     const res = await fetch(`/api/class/${encodeURIComponent(cls)}/diff`);
     const diff = await res.json();
     if (!diff.has_changes) {
-      sbDiagram.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:#666;font-size:12px">No changes detected</div>';
+      diagramView.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:#666;font-size:12px">No changes detected</div>';
       if (btn) { btn.textContent = 'No Changes'; btn.disabled = false; }
       return;
     }
@@ -1652,11 +1697,12 @@ window.__toggleDiff = async function(cls) {
       const safeId = nodeId.replace(/[^a-z0-9_-]/gi, '');
       svg = svg.replace(new RegExp(`(<g[^>]*data-cls="[^"]*${safeId}[^"]*")`, 'g'), '$1 class="diff-added"');
     }
-    sbDiagram.innerHTML = svg;
+    let html = svg;
     if (diff.removed_nodes?.length) {
       const removedHtml = diff.removed_nodes.map(n => `<span style="color:#ef4444;text-decoration:line-through">${esc(n)}</span>`).join(', ');
-      sbDiagram.innerHTML += `<div style="padding:8px 16px;font-size:11px;color:#999;border-top:1px solid #222">Removed: ${removedHtml}</div>`;
+      html += `<div style="padding:8px 16px;font-size:11px;color:#999;border-top:1px solid #222">Removed: ${removedHtml}</div>`;
     }
+    diagramView.innerHTML = html;
   } catch {
     if (btn) { btn.textContent = 'Error'; btn.disabled = false; }
   }
