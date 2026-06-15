@@ -166,9 +166,14 @@ export async function commandPush(args: string[]): Promise<void> {
 
   // Report
   const total = diff.added.length + diff.modified.length + diff.removed.length;
-  if (total === 0 && !opts.dryRun) {
+  if (total === 0 && !opts.dryRun && !opts.commit) {
     process.stderr.write(`Already up to date. (${sourceFiles.length} files, no changes)\n`);
     return;
+  }
+
+  if (total === 0 && opts.commit) {
+    // No file changes, but still try to commit (arch repo may have uncommitted changes)
+    process.stderr.write(`Files already in sync (${sourceFiles.length} files). Checking git status...\n`);
   }
 
   if (opts.dryRun) {
@@ -191,25 +196,27 @@ export async function commandPush(args: string[]): Promise<void> {
     return;
   }
 
-  // Execute push: copy files from .omm/ to arch repo
-  fs.mkdirSync(archTarget, { recursive: true });
+  if (total > 0) {
+    // Execute push: copy files from .omm/ to arch repo
+    fs.mkdirSync(archTarget, { recursive: true });
 
-  // Remove files that no longer exist in source
-  for (const f of diff.removed) {
-    const target = path.join(archTarget, f);
-    if (fs.existsSync(target)) fs.unlinkSync(target);
+    // Remove files that no longer exist in source
+    for (const f of diff.removed) {
+      const target = path.join(archTarget, f);
+      if (fs.existsSync(target)) fs.unlinkSync(target);
+    }
+
+    // Copy all source files
+    const copied = copyFiles(ommDir, archTarget, sourceFiles);
+
+    // Clean empty directories
+    cleanEmptyDirs(archTarget);
+
+    process.stderr.write(`Pushed ${copied} files → ${archTarget}\n`);
+    process.stderr.write(`  ${diff.added.length} added, ${diff.modified.length} modified, ${diff.removed.length} removed\n`);
   }
 
-  // Copy all source files
-  const copied = copyFiles(ommDir, archTarget, sourceFiles);
-
-  // Clean empty directories
-  cleanEmptyDirs(archTarget);
-
-  process.stderr.write(`Pushed ${copied} files → ${archTarget}\n`);
-  process.stderr.write(`  ${diff.added.length} added, ${diff.modified.length} modified, ${diff.removed.length} removed\n`);
-
-  // Auto-commit if requested
+  // Auto-commit if requested (even if no file changes — arch repo may have uncommitted changes)
   if (opts.commit) {
     // Ensure arch repo is a git repo
     if (!fs.existsSync(path.join(archRepo, '.git'))) {
@@ -223,18 +230,15 @@ export async function commandPush(args: string[]): Promise<void> {
       process.stderr.write('Initialized git repo.\n');
     }
 
-    const statusResult = gitExec('git status --porcelain .omm/', archRepo);
+    // Stage all .omm/ changes first, then check if there's anything to commit
+    gitExec(`git add .omm/`, archRepo);
+    const statusResult = gitExec('git diff --cached --name-only .omm/', archRepo);
     if (!statusResult.output) {
       process.stderr.write('No git changes to commit.\n');
       return;
     }
 
     const commitMsg = opts.message || buildCommitMessage(projectName, diff);
-    const addResult = gitExec(`git add .omm/`, archRepo);
-    if (!addResult.ok) {
-      process.stderr.write('Git add failed.\n');
-      return;
-    }
     const commitResult = gitExec(`git commit -m "${commitMsg}"`, archRepo);
     if (!commitResult.ok) {
       process.stderr.write('Git commit failed.\n');
