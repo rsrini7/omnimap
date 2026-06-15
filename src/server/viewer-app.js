@@ -824,8 +824,11 @@ const floatControls = document.querySelector('.float-controls');
 
 function openSidebar(cls, origCls) {
   if (!origCls) origCls = cls;
-  const data=classesData[cls]||{}, refs=refsData[cls]||{};
-  sbTitle.textContent=fmtLabel(cls);
+  // Use origCls for data (shows the clicked element's fields)
+  // Use cls only for diagram rendering (resolved to nearest ancestor with diagram)
+  const data=classesData[origCls]||classesData[cls]||{};
+  const refs=refsData[origCls]||refsData[cls]||{};
+  sbTitle.textContent=fmtLabel(origCls);
 
   // Render diagram SVG in sidebar with code toggle
   sbDiagram.innerHTML = '';
