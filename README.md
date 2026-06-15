@@ -77,11 +77,22 @@ Each element carries up to 7 fields: `description`, `diagram`, `context`, `const
 
 ## CLI
 
+```bash
 omm setup                          # Register skills with your AI tools
 omm view                           # Open interactive viewer
-omm config language ko             # Set content language
+omm list                           # List all perspectives
+omm show <element>                 # Show all fields for an element
+omm tree [perspective]             # Print element tree
+omm validate [element]             # Validate diagram(s)
+omm validate --changed [--json]    # Validate only changed elements (for CI)
+omm diff <element>                 # Show diagram diff (added/removed nodes)
+omm refs <element>                 # Show incoming/outgoing references
+omm export <element> [--format svg|png] [-o file]  # Export diagram
+omm tag <element> [add|remove|set] [tags]          # Manage element tags
 omm incremental                    # Plan a scoped re-scan based on git diff
+omm config language ko             # Set content language
 omm update                         # Update to latest version
+```
 
 Run `omm help` for the full command list.
 
@@ -92,7 +103,28 @@ Skills are commands you run **inside your AI coding tool** (not the terminal). T
 | Skill | What it does |
 | --- | --- |
 | `/omm-scan` | Analyze codebase → generate architecture docs |
+| `/omm-guide` | Walk through existing architecture interactively |
 | `/omm-push` | Login + link + push to cloud in one step |
+| `/omm-view` | Open the web viewer |
+| `/omm-tag` | Tag elements with labels for categorization |
+
+## Viewer Features
+
+The web viewer (`omm view`) includes:
+
+| Feature | Description |
+| --- | --- |
+| **Diagram + Code tabs** | Toggle between rendered SVG and syntax-highlighted mermaid source |
+| **Search** | Full-text search across all elements. Supports `tag:` filter and fuzzy matching |
+| **Export** | Download diagrams as SVG or PNG with project title |
+| **Visual diff** | Show added/removed nodes between diagram versions |
+| **Relationship graph** | Bird's-eye view of cross-perspective connections |
+| **Version history** | Timeline slider to scrub through past diagram versions |
+| **Keyboard shortcuts** | `/` search, `F` fit, `T` theme, `←→` navigate, `Esc` close |
+| **Resizable panels** | Drag to resize left nav and right sidebar |
+| **Element tags** | Categorize elements with labels, filter by tag in search |
+| **Cross-perspective nav** | "In" section shows which perspectives contain the element |
+| **Auto-width nav** | Left panel auto-sizes to fit the longest perspective name |
 
 ## Cloud
 

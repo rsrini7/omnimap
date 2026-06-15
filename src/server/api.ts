@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { listClasses, showClass, readMeta, readField, listNodes, showNode } from '../lib/store.js';
 import { diffMermaid } from '../lib/diff.js';
+import { validateDiagram } from '../lib/validate.js';
 import { getIncomingRefs, getOutgoingRefs, buildRefGraph } from '../lib/refs.js';
 import { searchOmm } from './search.js';
 
@@ -84,6 +85,21 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
   // GET /api/refs/graph
   if (path === '/api/refs/graph') {
     json(res, buildRefGraph());
+    return true;
+  }
+
+  // GET /api/class/:name/validate
+  const validateMatch = path.match(/^\/api\/class\/([^/]+)\/validate$/);
+  if (validateMatch) {
+    const className = validateMatch[1];
+    const diagram = readField(className, 'diagram');
+    if (!diagram) {
+      json(res, { valid: true, issues: [], element: className });
+      return true;
+    }
+    const allClasses = listClasses();
+    const result = validateDiagram(diagram, { className, allClasses });
+    json(res, { ...result, element: className });
     return true;
   }
 

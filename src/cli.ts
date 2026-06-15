@@ -48,6 +48,7 @@ Usage:
   omm diff <path>                   Compare current vs previous diagram
   omm refs <path>                   Show elements that reference this element
   omm validate [path]               Validate diagram(s) for syntax and conventions
+  omm validate --changed [--json]   Validate only changed elements (for CI)
   omm view [--port <port>]         Start web viewer (default: 3000)
   omm incremental [--json|--mark|--record]  Plan or record incremental scan updates
   omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
@@ -149,9 +150,13 @@ async function main(): Promise<void> {
       commandDiff(args[1]);
       return;
 
-    case 'validate':
-      commandValidate(args[1]);
+    case 'validate': {
+      const valArgs = args.slice(1);
+      const valFlags = valArgs.filter(a => a.startsWith('--'));
+      const valClass = valArgs.find(a => !a.startsWith('--'));
+      commandValidate(valClass, valFlags);
       return;
+    }
 
     case 'refs': {
       let reverse = false;

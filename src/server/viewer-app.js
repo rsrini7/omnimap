@@ -865,6 +865,12 @@ function openSidebar(cls, origCls) {
     html += `<div class="sb-sec"><button id="sb-diff-btn" class="sb-diff-toggle" onclick="window.__toggleDiff('${esc(cls)}')">Show Diff</button></div>`;
   }
 
+  // Validate button (only when diagram exists)
+  if (data.diagram) {
+    html += `<div class="sb-sec"><button class="sb-diff-toggle" onclick="window.__validateElement('${esc(cls)}')">Validate Diagram</button></div>
+      <div id="sb-validate-results"></div>`;
+  }
+
   if (data.meta) {
     const t=data.meta.updated?new Date(data.meta.updated).toLocaleString():'';
     html+=`<div class="sb-sec"><div class="sb-sec-title">Meta</div><div class="sb-meta-text">${t?t+'<br>':''}${data.meta.update_count||0} updates${data.meta.git_branch?` · ${data.meta.git_branch}`:''}${data.meta.git_commit?` · ${data.meta.git_commit}`:''}</div></div>`;
@@ -1648,6 +1654,39 @@ window.__scrubTimeline = function(idx) {
     const isLast = idx === versions.length - 1;
     const date = v.at ? new Date(v.at).toLocaleString() : '';
     info.textContent = isLast ? 'Current' : `${date}${v.commit ? ' · ' + v.commit : ''}`;
+  }
+};
+window.__validateElement = async function(cls) {
+  const container = document.getElementById('sb-validate-results');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:4px 0;font-size:11px;color:#666">Validating…</div>';
+  try {
+    const res = await fetch(`/api/class/${encodeURIComponent(cls)}/validate`);
+    const data = await res.json();
+    if (!data.issues?.length) {
+      container.innerHTML = '<div class="sb-validate-ok">✓ Valid — no issues</div>';
+      return;
+    }
+    const errors = data.issues.filter(i => i.level === 'error');
+    const warnings = data.issues.filter(i => i.level === 'warning');
+    let html = '';
+    if (errors.length) {
+      html += `<div class="sb-validate-section sb-validate-errors">${errors.length} error${errors.length > 1 ? 's' : ''}</div>`;
+      for (const issue of errors) {
+        const loc = issue.line ? `:${issue.line}` : '';
+        html += `<div class="sb-validate-issue sb-validate-error"><span class="sb-validate-rule">${issue.rule}${loc}</span> ${esc(issue.message)}</div>`;
+      }
+    }
+    if (warnings.length) {
+      html += `<div class="sb-validate-section sb-validate-warnings">${warnings.length} warning${warnings.length > 1 ? 's' : ''}</div>`;
+      for (const issue of warnings) {
+        const loc = issue.line ? `:${issue.line}` : '';
+        html += `<div class="sb-validate-issue sb-validate-warning"><span class="sb-validate-rule">${issue.rule}${loc}</span> ${esc(issue.message)}</div>`;
+      }
+    }
+    container.innerHTML = html;
+  } catch {
+    container.innerHTML = '<div style="padding:4px 0;font-size:11px;color:#ef4444">Validation failed</div>';
   }
 };
 window.toggleMobileNav = function() {
