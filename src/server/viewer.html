@@ -579,7 +579,8 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   if (!scopedPath) scopedPath = cls; // level 0: scopedPath = perspective name
   let labelOverlay = ''; // centered labels for sub-groups, rendered outside grp-inner
 
-  const data = classesData[cls];
+  // Use full path for data lookup to avoid short-name collision
+  const data = scopedPath && scopedPath !== cls ? (classesData[scopedPath] || classesData[cls]) : classesData[cls];
   if (!data?.diagram) return null;
 
   const parsed = parseFlowchart(data.diagram);
@@ -598,8 +599,11 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
 
   for (const n of nodes) {
     // Resolve subgroup: @ref (legacy) OR node ID is a child of current element with its own diagram
-    const refCls = n.isRef ? (n.refTarget || n.id) : (currentChildren.includes(n.id) && classesData[n.id]?.diagram ? n.id : null);
-    if (level < maxDepth && refCls && classesData[refCls]?.diagram && !seen.has(refCls) && !_expandedGlobal.has(refCls)) {
+    // Use FULL path to check diagram — avoids short-name collision (e.g. rest-api in multiple perspectives)
+    const childFullPath = scopedPath + '/' + n.id;
+    const hasOwnDiagram = !n.isRef && currentChildren.includes(n.id) && classesData[childFullPath]?.diagram;
+    const refCls = n.isRef ? (n.refTarget || n.id) : (hasOwnDiagram ? n.id : null);
+    if (level < maxDepth && refCls && !seen.has(refCls) && !_expandedGlobal.has(refCls)) {
       _expandedGlobal.add(refCls);
       const childScopedPath = scopedPath + '/' + refCls;
       const sub = renderGroup(refCls, classesData, allClasses, level+1, seen, childScopedPath);
@@ -1233,6 +1237,12 @@ function resolveDataKey(cls) {
   return null;
 }
 
+/** Strict resolve for export — no walk-up, no short-name fallback. */
+function resolveDataKeyExact(cls) {
+  if (classesData[cls]?.diagram) return cls;
+  return null;
+}
+
 window.__openSb = function(cls) {
   var dataKey = resolveDataKey(cls);
   if (!dataKey || !classesData[dataKey]) return;
@@ -1247,7 +1257,7 @@ window.__openSb = function(cls) {
   var activeNav = document.querySelector('.nav-item.active');
   if (activeNav) activeNav.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   var sidebarAlreadyOpen = sidebar.classList.contains('open');
-  openSidebar(dataKey);
+  openSidebar(dataKey, cls);
   if (sidebarAlreadyOpen) {
     focusGroup(cls);
   } else {
@@ -1261,7 +1271,8 @@ window.__openSb = function(cls) {
 
 const floatControls = document.querySelector('.float-controls');
 
-function openSidebar(cls) {
+function openSidebar(cls, origCls) {
+  if (!origCls) origCls = cls;
   const data=classesData[cls]||{}, refs=refsData[cls]||{};
   sbTitle.textContent=fmtLabel(cls);
   sbDiagram.innerHTML = '';
@@ -1288,8 +1299,8 @@ function openSidebar(cls) {
   }
 
   // Cross-perspective links: show which perspectives contain this element
-  const _shortName = cls.includes('/') ? cls.split('/').pop() : cls;
-  const _parents = (parentMap[cls] || parentMap[_shortName]) || [];
+  const _shortName = origCls.includes('/') ? origCls.split('/').pop() : origCls;
+  const _parents = (parentMap[origCls] || parentMap[_shortName]) || [];
   if (_parents.length > 0) {
     const _pLinks = _parents.map(function(p) {
       return `<span class="sb-ref" onclick="window.__openSb('${esc(p)}/${esc(_shortName)}')">${esc(fmtLabel(p))} / ${esc(fmtLabel(_shortName))}</span>`;
@@ -1964,9 +1975,9 @@ window.exportDiagram = function() {
 };
 
 function exportElementSvg(cls) {
-  const dataKey = resolveDataKey(cls);
+  const dataKey = resolveDataKeyExact(cls);
   const data = dataKey ? classesData[dataKey] : null;
-  if (!data?.diagram) { showExportToast('No diagram found for this element'); return; }
+  if (!data?.diagram) { showExportToast('No diagram for this element'); return; }
   let svg = renderFlatSVG(data.diagram);
   if (!svg) { showExportToast('Could not render diagram'); return; }
   svg = addTitleToSvg(svg, cls);
@@ -1975,9 +1986,9 @@ function exportElementSvg(cls) {
 }
 
 function exportElementPng(cls) {
-  const dataKey = resolveDataKey(cls);
+  const dataKey = resolveDataKeyExact(cls);
   const data = dataKey ? classesData[dataKey] : null;
-  if (!data?.diagram) { showExportToast('No diagram found for this element'); return; }
+  if (!data?.diagram) { showExportToast('No diagram for this element'); return; }
   let svg = renderFlatSVG(data.diagram);
   if (!svg) { showExportToast('Could not render diagram'); return; }
   svg = addTitleToSvg(svg, cls);
