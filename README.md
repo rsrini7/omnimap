@@ -125,6 +125,7 @@ The web viewer (`omm view`) includes:
 | **Keyboard shortcuts** | `/` search, `F` fit, `T` theme, `←→` navigate, `Esc` close |
 | **Resizable panels** | Drag to resize left nav and right sidebar |
 | **Element tags** | Categorize elements with labels, filter by tag in search |
+| **Element metrics** | Word count, field coverage %, diagram complexity, children count |
 | **Cross-perspective nav** | "In" section shows which perspectives contain the element |
 | **Auto-width nav** | Left panel auto-sizes to fit the longest perspective name |
 | **Viewport-responsive fonts** | Font sizes scale with monitor width for readability |

@@ -878,6 +878,31 @@ function openSidebar(cls, origCls) {
     const t=data.meta.updated?new Date(data.meta.updated).toLocaleString():'';
     html+=`<div class="sb-sec"><div class="sb-sec-title">Meta</div><div class="sb-meta-text">${t?t+'<br>':''}${data.meta.update_count||0} updates${data.meta.git_branch?` · ${data.meta.git_branch}`:''}${data.meta.git_commit?` · ${data.meta.git_commit}`:''}</div></div>`;
   }
+
+  // Metrics
+  const allFields = ['description','diagram','constraint','concern','context','todo','note'];
+  const filledFields = allFields.filter(f => data[f] && data[f].trim());
+  const coverage = Math.round((filledFields.length / allFields.length) * 100);
+  const totalWords = filledFields.reduce((sum, f) => sum + (data[f].trim().split(/\s+/).length), 0);
+  const children = data.meta?.children ?? [];
+  let diagramNodes = 0, diagramEdges = 0;
+  if (data.diagram) {
+    try {
+      const parsed = parseFlowchart(data.diagram);
+      diagramNodes = parsed.nodes.length;
+      diagramEdges = parsed.edges.length;
+    } catch {}
+  }
+  const complexity = diagramNodes > 15 ? 'high' : diagramNodes > 8 ? 'medium' : 'low';
+  const complexityColor = complexity === 'high' ? '#ef4444' : complexity === 'medium' ? '#fbbf24' : '#22c55e';
+  html += `<div class="sb-sec"><div class="sb-sec-title">Metrics</div><div class="sb-metrics">
+    <span class="sb-metric"><span class="sb-metric-value">${coverage}%</span> coverage</span>
+    <span class="sb-metric"><span class="sb-metric-value">${totalWords}</span> words</span>
+    ${diagramNodes ? `<span class="sb-metric"><span class="sb-metric-value">${diagramNodes}N/${diagramEdges}E</span> diagram</span>` : ''}
+    ${diagramNodes ? `<span class="sb-metric"><span class="sb-metric-value" style="color:${complexityColor}">${complexity}</span> complexity</span>` : ''}
+    ${children.length ? `<span class="sb-metric"><span class="sb-metric-value">${children.length}</span> children</span>` : ''}
+  </div></div>`;
+
   // Tags
   if (data.meta?.tags?.length) {
     const tagHtml = data.meta.tags.map(t => `<span class="sb-tag">${esc(t)}</span>`).join('');

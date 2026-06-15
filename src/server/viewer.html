@@ -323,6 +323,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 .sb-sec-body strong { color: #eee; }
 .sb-concern .sb-sec-body { border-left: 2px solid #444; padding-left: 10px; }
 .sb-meta-text { font-size: calc(var(--sb-font) - 1px); color: #777; line-height: 1.9; font-family: var(--mono); }
+.sb-metrics { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.sb-metric { font-size: 11px; color: #888; font-family: var(--mono); }
+.sb-metric-value { color: #ccc; font-weight: 600; }
 .sb-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .sb-tag { display: inline-block; padding: 3px 10px; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 12px; font-size: calc(var(--sb-font) - 1px); color: #818cf8; font-family: var(--mono); letter-spacing: 0.02em; }
 .sb-refs { display: flex; flex-direction: column; gap: 4px; }
@@ -378,6 +381,8 @@ body.light .sb-sec-body code { background: #e5e5e5; color: #333; }
 body.light .sb-sec-body strong { color: #222; }
 body.light .sb-concern .sb-sec-body { border-color: #ccc; }
 body.light .sb-meta-text { color: #999; }
+body.light .sb-metric { color: #888; }
+body.light .sb-metric-value { color: #333; }
 body.light .sb-tag { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
 body.light .sb-ref { background: #eee; border-color: #ddd; color: #555; }
 body.light .sb-ref:hover { border-color: #aaa; color: #111; }
