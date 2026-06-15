@@ -711,6 +711,21 @@ function resolveDataKeyExact(cls) {
 }
 
 window.__openSb = function(cls) {
+  // If in graph view, exit graph mode first
+  if (_graphMode) {
+    _graphMode = false;
+    const btn = document.getElementById('graph-btn');
+    if (btn) btn.classList.remove('active');
+    rebuildCanvas();
+    if (_savedViewport) {
+      vpX = _savedViewport.vpX;
+      vpY = _savedViewport.vpY;
+      vpScale = _savedViewport.vpScale;
+      applyTransform();
+      _savedViewport = null;
+    }
+  }
+
   var dataKey = resolveDataKey(cls);
   if (!dataKey || !classesData[dataKey]) return;
   // highlight using scoped cls for DOM, dataKey for data
