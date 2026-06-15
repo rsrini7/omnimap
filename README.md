@@ -80,7 +80,7 @@ Each element carries up to 7 fields: `description`, `diagram`, `context`, `const
 ```bash
 omm setup                          # Register skills with your AI tools
 omm init --template list           # Show available diagram templates
-omm init --template microservices  # Scaffold from a template
+omm init --template microservices  # Scaffold from a template (+ .gitignore + skills update)
 omm view [--port <p>] [--project <n>]  Open interactive viewer
 omm list [--project <name>]         List perspectives (auto-detects arch repo)
 omm show <element> [--project <n>]  Show all fields for an element

@@ -86,7 +86,7 @@ async function main(): Promise<void> {
 
   switch (cmd) {
     case 'init':
-      commandInit(args.slice(1));
+      await commandInit(args.slice(1));
       return;
 
     case 'setup':
