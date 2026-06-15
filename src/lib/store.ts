@@ -205,7 +205,7 @@ export function readNodeMeta(perspective: string, nodePath: string[], cwd?: stri
   return YAML.parse(fs.readFileSync(filePath, 'utf-8')) as ClassMeta;
 }
 
-function writeNodeMeta(perspective: string, nodePath: string[], meta: ClassMeta, cwd?: string): void {
+export function writeNodeMeta(perspective: string, nodePath: string[], meta: ClassMeta, cwd?: string): void {
   const dir = nodePath.length === 0
     ? ensureClassDir(perspective, cwd)
     : ensureNodeDir(perspective, nodePath, cwd);

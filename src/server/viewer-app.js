@@ -782,6 +782,11 @@ function openSidebar(cls, origCls) {
     const t=data.meta.updated?new Date(data.meta.updated).toLocaleString():'';
     html+=`<div class="sb-sec"><div class="sb-sec-title">Meta</div><div class="sb-meta-text">${t?t+'<br>':''}${data.meta.update_count||0} updates${data.meta.git_branch?` · ${data.meta.git_branch}`:''}${data.meta.git_commit?` · ${data.meta.git_commit}`:''}</div></div>`;
   }
+  // Tags
+  if (data.meta?.tags?.length) {
+    const tagHtml = data.meta.tags.map(t => `<span class="sb-tag">${esc(t)}</span>`).join('');
+    html += `<div class="sb-sec"><div class="sb-sec-title">Tags</div><div class="sb-tags">${tagHtml}</div></div>`;
+  }
   html+=sec('Description',md(data.description));
   html+=sec('Constraints',md(data.constraint));
   html+=sec('Concerns',md(data.concern),'sb-concern');

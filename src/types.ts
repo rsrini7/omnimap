@@ -25,6 +25,7 @@ export interface ClassMeta {
   title?: string;
   children?: string[];
   parentPath?: string[];
+  tags?: string[];
 
   /**
    * Incremental analysis metadata.

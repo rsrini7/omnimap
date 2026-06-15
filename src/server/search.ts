@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import YAML from 'yaml';
 import type { Field } from '../types.js';
 import { FIELD_FILES } from '../types.js';
 import { getOmmDir } from '../lib/store.js';
@@ -218,30 +219,52 @@ export function searchOmm(query: string, opts: SearchOptions = {}): SearchRespon
 
   const index = getIndex(ommDir);
   const q = query.trim();
-  const tokens = tokenize(q);
 
-  // Empty query: return top-level perspectives as "featured" suggestions.
+  // Parse tag:xxx filters from query
+  const tagFilter: string[] = [];
+  const remaining = q.replace(/tag:([\w-]+)/g, (_, tag) => { tagFilter.push(tag.toLowerCase()); return ''; }).trim();
+  const tokens = tokenize(remaining);
+  const phrase = remaining.toLowerCase();
+
+  // Filter by tags if specified
+  function hasTag(elementPath: string): boolean {
+    if (!tagFilter.length) return true;
+    const metaPath = path.join(ommDir, elementPath.replace(/\//g, path.sep), 'meta.yaml');
+    try {
+      const meta = YAML.parse(fs.readFileSync(metaPath, 'utf-8')) as { tags?: string[] } | null;
+      const tags = (meta?.tags ?? []).map(t => t.toLowerCase());
+      return tagFilter.every(ft => tags.includes(ft));
+    } catch { return false; }
+  }
+
+  // Empty query (or tag-only query): return matching elements
   if (!tokens.length) {
     const seen = new Set<string>();
     const featured: SearchResult[] = [];
-    for (const e of index?.entries ?? []) {
-      if (seen.has(e.perspective)) continue;
-      seen.add(e.perspective);
-      featured.push({
-        elementPath: e.perspective,
-        perspective: e.perspective,
-        field: e.field,
-        score: 0,
-        snippet: '',
-      });
-      if (featured.length >= limit) break;
+    if (tagFilter.length) {
+      // Tag-only: show all matching elements
+      for (const e of index?.entries ?? []) {
+        if (seen.has(e.elementPath)) continue;
+        if (!hasTag(e.elementPath)) continue;
+        seen.add(e.elementPath);
+        featured.push({ elementPath: e.elementPath, perspective: e.perspective, field: e.field, score: 0, snippet: '' });
+        if (featured.length >= limit) break;
+      }
+    } else {
+      // No query: show top-level perspectives only
+      for (const e of index?.entries ?? []) {
+        if (seen.has(e.perspective)) continue;
+        seen.add(e.perspective);
+        featured.push({ elementPath: e.perspective, perspective: e.perspective, field: e.field, score: 0, snippet: '' });
+        if (featured.length >= limit) break;
+      }
     }
-    return { query, total: featured.length, results: featured, limit, offset, featured: true };
+    return { query, total: featured.length, results: featured, limit, offset, featured: !tagFilter.length };
   }
 
-  const phrase = q.toLowerCase();
   const ranked: SearchResult[] = [];
   for (const e of index?.entries ?? []) {
+    if (!hasTag(e.elementPath)) continue;
     const s = scoreDoc(tokens, phrase, e.text, e.field);
     if (s < minScore) continue;
     ranked.push({
