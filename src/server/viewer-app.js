@@ -153,6 +153,7 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   const uid = `${cls.replace(/[^a-z0-9]/gi,'')}_l${level}_`;
   const th = theme();
   let svg = '';
+  let edgeLabels = ''; // collected separately, rendered after nodes (on top)
 
   // edges
   // Dim edge labels when too many edges, show on hover
@@ -185,7 +186,7 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
     if (e.label) {
       const lw = tw(e.label,'10px Inter')+12;
       const mx=r1(mid.x), my=r1(mid.y);
-      svg += `<g class="edge-label${hoverClass}" opacity="${opacity}"><rect x="${mx-lw/2}" y="${my-8}" width="${lw}" height="16" rx="3" fill="${th.edgeLabelBg}"/>
+      edgeLabels += `<g class="edge-label${hoverClass}" opacity="${opacity}"><rect x="${mx-lw/2}" y="${my-8}" width="${lw}" height="16" rx="3" fill="${th.edgeLabelBg}"/>
         <text x="${mx}" y="${my+4}" text-anchor="middle" font-family="Inter,system-ui" font-size="10" fill="${th.edgeLabelText}">${esc(e.label)}</text></g>`;
     }
   });
@@ -260,6 +261,9 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
       }
     }
   }
+
+  // Edge labels rendered last (on top of all nodes)
+  svg += edgeLabels;
 
   return { svgContent: svg, W, H, labelOverlay };
 }
@@ -351,7 +355,7 @@ function renderFlatSVG(text) {
   try { dagre.layout(g); } catch { return null; }
   const gi = g.graph();
   const W = r1((gi.width||150)+60), H = r1((gi.height||80)+50);
-  let edg='', nds='';
+  let edg='', edgLabels='', nds='';
   const sth = theme();
   edges.forEach((e,i) => {
     const ed=g.edge(e.from,e.to); if (!ed?.points?.length) return;
@@ -363,7 +367,7 @@ function renderFlatSVG(text) {
       <path class="edge-path" d="${d}" stroke="${sth.edgeColor0}" stroke-width="2" fill="none" marker-end="url(#${mk})" data-from="${esc(e.from)}" data-to="${esc(e.to)}"/>`;
     if (e.label) {
       const lw=tw(e.label,'9px Inter')+8, mx=r1(mid.x), my=r1(mid.y);
-      edg+=`<rect x="${mx-lw/2}" y="${my-6}" width="${lw}" height="12" rx="2" fill="${sth.edgeLabelBg}"/>
+      edgLabels+=`<rect x="${mx-lw/2}" y="${my-6}" width="${lw}" height="12" rx="2" fill="${sth.edgeLabelBg}"/>
         <text x="${mx}" y="${my+3}" text-anchor="middle" font-family="Inter,system-ui" font-size="9" fill="${sth.edgeLabelText}">${esc(e.label)}</text>`;
     }
   });
@@ -390,7 +394,7 @@ function renderFlatSVG(text) {
         font-family="Inter,system-ui" font-size="11" fill="${st.text}">${esc(mainLbl)}</text></g>`;
     }
   }
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible" xmlns="http://www.w3.org/2000/svg">${edg}${nds}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible" xmlns="http://www.w3.org/2000/svg">${edg}${nds}${edgLabels}</svg>`;
 }
 
 // ── canvas pan/zoom ───────────────────────────────────────
