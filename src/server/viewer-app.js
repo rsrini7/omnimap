@@ -782,8 +782,26 @@ function openSidebar(cls, origCls) {
   const _shortName = origCls.includes('/') ? origCls.split('/').pop() : origCls;
   const _parents = (parentMap[origCls] || parentMap[_shortName]) || [];
   if (_parents.length > 0) {
-    const _pLinks = _parents.map(function(p) {
-      return `<span class="sb-ref" onclick="window.__openSb('${esc(p)}/${esc(_shortName)}')">${esc(fmtLabel(p))} / ${esc(fmtLabel(_shortName))}</span>`;
+    // Build full paths by walking up parentMap for each parent
+    function buildFullPaths(childName) {
+      const parents = parentMap[childName] || [];
+      if (!parents.length) return [childName];
+      const result = [];
+      for (const p of parents) {
+        const grandParents = buildFullPaths(p);
+        for (const gp of grandParents) {
+          result.push(gp + '/' + childName);
+        }
+      }
+      return result;
+    }
+    const fullPaths = buildFullPaths(_shortName);
+    // Deduplicate and format
+    const seen = new Set();
+    const _pLinks = fullPaths.filter(p => { if (seen.has(p)) return false; seen.add(p); return true; }).map(function(p) {
+      const parts = p.split('/');
+      const display = parts.map(fmtLabel).join(' / ');
+      return `<span class="sb-ref" onclick="window.__openSb('${esc(p)}')">${esc(display)}</span>`;
     }).join('');
     html += `<div class="sb-sec"><div class="sb-sec-title">In</div><div class="sb-refs">${_pLinks}</div></div>`;
   }
@@ -1148,8 +1166,13 @@ async function loadNodeData(perspective, childName) {
     if (data.diagram || !classesData[childName]?.diagram) {
       classesData[childName] = data;
     }
-    // Also load this element's children (depth 2+)
+    // Update childrenByPerspective and parentMap for nested children
     if (data.children && data.children.length > 0) {
+      childrenByPerspective[key] = data.children;
+      for (const child of data.children) {
+        if (!parentMap[child]) parentMap[child] = [];
+        if (!parentMap[child].includes(key)) parentMap[child].push(key);
+      }
       var subLoads = [];
       for (var sub of data.children) {
         subLoads.push(loadSubNodeData(perspective, childName + '/' + sub, sub));
@@ -1164,13 +1187,19 @@ async function loadSubNodeData(perspective, subPath, shortName) {
   if (classesData[perspective + '/' + subPath]) return;
   var data = await api('/api/class/' + perspective + '/node/' + subPath);
   if (data && !data.error) {
-    classesData[perspective + '/' + subPath] = data;
+    var fullKey = perspective + '/' + subPath;
+    classesData[fullKey] = data;
     // Short name: only overwrite if new data has a diagram, or existing has none
     if (data.diagram || !classesData[shortName]?.diagram) {
       classesData[shortName] = data;
     }
-    // Recurse for deeper children
+    // Update childrenByPerspective and parentMap for deeper nested children
     if (data.children && data.children.length > 0) {
+      childrenByPerspective[fullKey] = data.children;
+      for (const child of data.children) {
+        if (!parentMap[child]) parentMap[child] = [];
+        if (!parentMap[child].includes(fullKey)) parentMap[child].push(fullKey);
+      }
       var deepLoads = [];
       for (var sub of data.children) {
         deepLoads.push(loadSubNodeData(perspective, subPath + '/' + sub, sub));
@@ -1515,6 +1544,141 @@ function setupLiveReload() {
       if (sel && classes.includes(sel)) window.__openSb(sel);
     });
   } catch {}
+}
+
+// ── relationship graph view ───────────────────────────────
+let _graphMode = false;
+let _savedViewport = null; // { vpX, vpY, vpScale }
+window.toggleGraphView = async function() {
+  const btn = document.getElementById('graph-btn');
+  if (_graphMode) {
+    _graphMode = false;
+    if (btn) btn.classList.remove('active');
+    rebuildCanvas();
+    // Restore previous viewport
+    if (_savedViewport) {
+      vpX = _savedViewport.vpX;
+      vpY = _savedViewport.vpY;
+      vpScale = _savedViewport.vpScale;
+      applyTransform();
+      _savedViewport = null;
+    }
+    return;
+  }
+
+  // Save current viewport before switching to graph
+  _savedViewport = { vpX, vpY, vpScale };
+  _graphMode = true;
+  if (btn) { btn.classList.add('active'); btn.textContent = '◇'; }
+
+  // Build ref graph: find cross-perspective connections by matching
+  // diagram node IDs against children of other perspectives
+  const refGraph = [];
+  const seen = new Set();
+
+  // Build a set of all known element paths (perspective + nested)
+  const allPaths = new Set();
+  for (const persp of Object.keys(childrenByPerspective)) {
+    allPaths.add(persp);
+    for (const child of childrenByPerspective[persp]) {
+      allPaths.add(child);
+      allPaths.add(persp + '/' + child);
+    }
+  }
+
+  for (const cls of classes) {
+    const diagram = classesData[cls]?.diagram;
+    if (!diagram) continue;
+
+    // Extract node IDs from the mermaid diagram
+    const parsed = parseFlowchart(diagram);
+    for (const node of parsed.nodes) {
+      const nodeId = node.id;
+      // Skip self-references
+      if (nodeId === cls) continue;
+
+      // Check if this node ID matches a child of another perspective
+      for (const otherPersp of classes) {
+        if (otherPersp === cls) continue;
+        const children = childrenByPerspective[otherPersp] || [];
+        if (children.includes(nodeId)) {
+          const key = cls + '->' + otherPersp;
+          if (!seen.has(key)) {
+            seen.add(key);
+            refGraph.push({ source_class: cls, target_class: otherPersp });
+          }
+        }
+      }
+    }
+  }
+
+  if (!refGraph.length) {
+    canvasEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#666" font-size="14">No cross-perspective references found</text>';
+    return;
+  }
+  renderGraphView(refGraph);
+};
+
+function renderGraphView(refs) {
+  if (!refs.length) {
+    canvasEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#666" font-size="14">No cross-perspective references found</text>';
+    return;
+  }
+
+  // Build unique node list from refs
+  const nodeSet = new Set();
+  refs.forEach(r => { nodeSet.add(r.source_class); nodeSet.add(r.target_class); });
+  const nodes = [...nodeSet];
+
+  // Dagre layout
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'LR', nodesep: 48, ranksep: 64, marginx: 40, marginy: 40 });
+  g.setDefaultEdgeLabel(() => ({}));
+  const th = themeColors();
+
+  for (const n of nodes) {
+    const w = Math.max(100, tw(fmtLabel(n), '600 11px Plus Jakarta Sans,Inter,system-ui') + 32);
+    g.setNode(n, { width: w, height: 36 });
+  }
+  for (const r of refs) {
+    g.setEdge(r.source_class, r.target_class);
+  }
+
+  try { dagre.layout(g); } catch { return; }
+  const gi = g.graph();
+  const W = (gi.width || 400) + 80;
+  const H = (gi.height || 300) + 80;
+
+  let svg = '';
+
+  // Edges
+  refs.forEach((r, i) => {
+    const ed = g.edge(r.source_class, r.target_class);
+    if (!ed?.points?.length) return;
+    const d = smoothPath(ed.points);
+    const mk = `gm${i}`;
+    svg += `<defs><marker id="${mk}" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0.5 L0,4.5 L6,2.5 z" fill="${th.edgeColor0}"/></marker></defs>
+      <path class="edge-path" d="${d}" stroke="${th.edgeColor0}" stroke-width="1.5" fill="none" marker-end="url(#${mk})" opacity="0.6"/>`;
+  });
+
+  // Nodes
+  for (const n of nodes) {
+    const pos = g.node(n); if (!pos) continue;
+    const w = pos.width, h = pos.height;
+    const nx = pos.x - w/2, ny = pos.y - h/2;
+    const isTopLevel = classes.includes(n);
+    const fill = isTopLevel ? th.groupFill : th.subFill;
+    const stroke = isTopLevel ? th.groupStroke : th.subStroke;
+    svg += `<g class="grp-node" data-cls="${esc(n)}" onclick="event.stopPropagation();window.__openSb('${esc(n)}')" style="cursor:pointer">
+      <rect class="grp-border" x="${nx}" y="${ny}" width="${w}" height="${h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
+      <text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" font-family="Plus Jakarta Sans,Inter,system-ui" font-size="11" font-weight="600" fill="${th.grpLabelFill}">${esc(fmtLabel(n))}</text>
+    </g>`;
+  }
+
+  canvasEl.innerHTML = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">${svg}</svg>`;
+  svgW = W; svgH = H;
+  requestAnimationFrame(centerView);
 }
 
 // ── export ────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { listClasses, showClass, readMeta, readField, listNodes, showNode } from '../lib/store.js';
 import { diffMermaid } from '../lib/diff.js';
-import { getIncomingRefs, getOutgoingRefs } from '../lib/refs.js';
+import { getIncomingRefs, getOutgoingRefs, buildRefGraph } from '../lib/refs.js';
 import { searchOmm } from './search.js';
 
 function json(res: ServerResponse, data: unknown, status = 200): void {
@@ -78,6 +78,12 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
     const offset = numParam(url.searchParams.get('offset'));
     const minScore = numParam(url.searchParams.get('minScore'));
     json(res, searchOmm(q, { limit, offset, minScore }));
+    return true;
+  }
+
+  // GET /api/refs/graph
+  if (path === '/api/refs/graph') {
+    json(res, buildRefGraph());
     return true;
   }
 

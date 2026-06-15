@@ -178,6 +178,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 }
 .hbtn { background: none; border: 1px solid var(--border-hi); color: var(--text-mid); height: 26px; min-width: 26px; padding: 0 8px; border-radius: 5px; cursor: pointer; font-size: 13px; font-family: var(--font); transition: border-color .12s, color .12s; }
 .hbtn:hover { border-color: #3a3a3a; color: var(--text); }
+.hbtn.active { border-color: #818cf8; color: #818cf8; }
 #zoom-label { font-size: 11px; color: var(--text-dim); width: 38px; text-align: center; font-family: var(--mono); }
 .float-controls.sidebar-open { right: calc(var(--sidebar-w) + 12px); }
 @media (max-width: 768px) { .float-controls.sidebar-open { right: 12px; } }
@@ -427,6 +428,7 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
     <button class="hbtn" onclick="resetView()" style="font-size:11px">fit</button>
     <button class="hbtn" id="theme-btn" onclick="toggleTheme()" style="font-size:13px">○</button>
     <button class="hbtn" id="export-btn" onclick="exportDiagram()" title="Export diagram" style="font-size:12px">↓</button>
+    <button class="hbtn" id="graph-btn" onclick="toggleGraphView()" title="Relationship graph" style="font-size:11px">◈</button>
   </div>
   <div id="canvas"></div>
 </div>
