@@ -23,8 +23,9 @@ import { commandTree } from './commands/tree.js';
 import { commandRead, commandWrite } from './commands/read-write.js';
 import { commandConfig } from './commands/config.js';
 import { commandIncremental } from './commands/incremental.js';
+import { commandExport } from './commands/export.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'incremental', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -48,6 +49,7 @@ Usage:
   omm validate [path]               Validate diagram(s) for syntax and conventions
   omm view [--port <port>]         Start web viewer (default: 3000)
   omm incremental [--json|--mark|--record]  Plan or record incremental scan updates
+  omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
 
 Cloud:
   omm login                         Log in to omm.dev
@@ -207,6 +209,10 @@ async function main(): Promise<void> {
 
     case 'incremental':
       await commandIncremental(args.slice(1));
+      return;
+
+    case 'export':
+      await commandExport(args.slice(1));
       return;
 
     default:
