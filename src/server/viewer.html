@@ -1097,6 +1097,9 @@ function updateCursor() {
 }
 
 window.addEventListener('keydown', e => {
+  // Don't intercept when user is typing in an input
+  const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
+
   if (e.code === 'Space' && document.activeElement === document.body) {
     e.preventDefault();
     spaceHeld = true;
@@ -1109,8 +1112,18 @@ window.addEventListener('keydown', e => {
     if (e.key === '2') { e.preventDefault(); zoomTo(2); }
     if (e.key === '+' || e.key === '=') { e.preventDefault(); window.zoomIn(); }
     if (e.key === '-') { e.preventDefault(); window.zoomOut(); }
+    // Ctrl/Cmd+K — focus search
+    if (e.key === 'k') { e.preventDefault(); searchInput.focus(); searchInput.select(); }
   }
-  if (e.key === 'Escape') closeSidebar();
+  if (isInput) return; // Don't handle shortcuts while typing
+  if (e.key === 'Escape') { closeSidebar(); closeSearch(); searchInput.blur(); }
+  if (e.key === '/' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); searchInput.focus(); searchInput.select(); }
+  if (e.key === 'f' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); centerView(); }
+  if (e.key === 't' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); toggleTheme(); }
+  // Arrow keys: navigate elements in the sidebar
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.metaKey && !e.ctrlKey) {
+    navigateElement(e.key === 'ArrowRight' ? 1 : -1);
+  }
 });
 window.addEventListener('keyup', e => {
   if (e.code === 'Space') { spaceHeld = false; updateCursor(); }
@@ -1319,6 +1332,22 @@ function closeSidebar() {
   document.querySelectorAll('#canvas [data-cls].focus-exempt').forEach(el => el.classList.remove('focus-exempt'));
   selectedCls=null;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+}
+
+/** Navigate to next/prev element (arrow key support) */
+function navigateElement(dir) {
+  const items = document.querySelectorAll('#canvas [data-cls]');
+  if (!items.length) return;
+  const clsList = Array.from(items).map(el => el.getAttribute('data-cls'));
+  const idx = clsList.indexOf(selectedCls);
+  let next;
+  if (idx < 0) {
+    next = dir > 0 ? 0 : clsList.length - 1;
+  } else {
+    next = (idx + dir + clsList.length) % clsList.length;
+  }
+  const target = clsList[next];
+  if (target) window.__openSb(target);
 }
 
 // Mobile: swipe down to close drawer
