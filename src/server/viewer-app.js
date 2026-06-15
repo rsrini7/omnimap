@@ -68,7 +68,7 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   }
 
   // Pre-process: identify fan-out groups for compact grid layout
-  const maxPerRow = 3;
+  const maxPerRow = 4;
   const _gridGroups = {};  // virtualId -> { parentId, children[], cols, cellW, cellH }
   const _gridExcluded = new Set();  // node IDs replaced by virtual nodes
   const _gridPositions = {};  // childId -> { x, y } (filled after dagre)
@@ -83,8 +83,8 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
       const rows = Math.ceil(leafTargets.length / cols);
       const maxCW = Math.max(...leafTargets.map(id => nodeDims[id].width));
       const maxCH = Math.max(...leafTargets.map(id => nodeDims[id].height));
-      const cellW = maxCW + 16;
-      const cellH = maxCH + 10;
+      const cellW = maxCW + 28;
+      const cellH = maxCH + 20;
       const vid = `__grid_${n.id}`;
       _gridGroups[vid] = { parentId: n.id, children: leafTargets, cols, cellW, cellH };
       nodeDims[vid] = { width: cols * cellW, height: rows * cellH };
@@ -96,8 +96,8 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   const dense = nodes.length > 10;
   function buildGraph(rd) {
     const g = new dagre.graphlib.Graph();
-    const nsep = dense ? 24 : 36;
-    const rsep = dense ? 32 : 48;
+    const nsep = dense ? 28 : 36;
+    const rsep = dense ? 40 : 48;
     g.setGraph({rankdir: rd, nodesep:nsep, ranksep:rsep, marginx:PAD_L, marginy:PAD_T});
     g.setDefaultEdgeLabel(() => ({}));
     for (const n of nodes) {
@@ -179,10 +179,10 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
       <path d="M0,0.5 L0,4.5 L6,2.5 z" fill="${ec}"/></marker></defs>
       <path class="edge-path" d="${d}" stroke="${ec}" stroke-width="2" fill="none" marker-end="url(#${mk})" data-from="${esc(e.from)}" data-to="${esc(e.to)}"/>`;
     if (e.label) {
-      const lw = tw(e.label,'9px Inter')+8;
+      const lw = tw(e.label,'10px Inter')+12;
       const mx=r1(mid.x), my=r1(mid.y);
-      svg += `<g class="edge-label"><rect x="${mx-lw/2}" y="${my-6}" width="${lw}" height="12" rx="2" fill="${th.edgeLabelBg}"/>
-        <text x="${mx}" y="${my+3}" text-anchor="middle" font-family="Inter,system-ui" font-size="9" fill="${th.edgeLabelText}">${esc(e.label)}</text></g>`;
+      svg += `<g class="edge-label"><rect x="${mx-lw/2}" y="${my-8}" width="${lw}" height="16" rx="3" fill="${th.edgeLabelBg}"/>
+        <text x="${mx}" y="${my+4}" text-anchor="middle" font-family="Inter,system-ui" font-size="10" fill="${th.edgeLabelText}">${esc(e.label)}</text></g>`;
     }
   });
 
