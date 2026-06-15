@@ -9,15 +9,10 @@ import { commandStatus } from './commands/status.js';
 import { commandDiff } from './commands/diff.js';
 import { commandRefs } from './commands/refs.js';
 import { commandView } from './commands/view.js';
-import { commandLogin } from './commands/login.js';
-import { commandLogout } from './commands/logout.js';
 import { commandPush } from './commands/push.js';
 import { commandPull } from './commands/pull.js';
-import { commandLink } from './commands/link.js';
-import { commandShare } from './commands/share.js';
 import { commandSetup } from './commands/setup.js';
 import { commandUpdate } from './commands/update.js';
-import { commandOrg } from './commands/org.js';
 import { commandValidate } from './commands/validate.js';
 import { commandTree } from './commands/tree.js';
 import { commandRead, commandWrite } from './commands/read-write.js';
@@ -27,7 +22,7 @@ import { commandExport } from './commands/export.js';
 import { commandTag } from './commands/tag.js';
 import { commandArch } from './commands/arch.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -55,17 +50,10 @@ Usage:
   omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
   omm tag <element> [add|remove|set] [tags]         Manage element tags
 
-Cloud:
-  omm login                         Log in to omm.dev
-  omm logout                        Log out
-  omm link [org/slug]                Link project to a cloud slug
+Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
   omm pull [--from repo] [--all]     Pull .omm/ from architecture repository
   omm arch init [--remote <url>]     Initialize architecture repository with git
-  omm share                         Print the shareable URL
-  omm org list                      List your organizations
-  omm org switch <slug>             Set default organization
-  omm org members [slug]            View members (opens web)
 
 Paths: use / for nested elements (e.g. overall-architecture/main-process)
 Fields: description, diagram, constraint, concern, context, todo, note
@@ -188,32 +176,12 @@ async function main(): Promise<void> {
       return;
     }
 
-    case 'login':
-      await commandLogin();
-      return;
-
-    case 'logout':
-      commandLogout();
-      return;
-
-    case 'link':
-      await commandLink(args[1]);
-      return;
-
     case 'push':
       await commandPush(args.slice(1));
       return;
 
     case 'pull':
       commandPull(args.slice(1));
-      return;
-
-    case 'share':
-      commandShare();
-      return;
-
-    case 'org':
-      await commandOrg(args[1], args[2]);
       return;
 
     case 'incremental':

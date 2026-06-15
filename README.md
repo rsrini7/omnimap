@@ -109,7 +109,7 @@ Skills are commands you run **inside your AI coding tool** (not the terminal). T
 | --- | --- |
 | `/omm-scan` | Analyze codebase → generate architecture docs |
 | `/omm-guide` | Walk through existing architecture interactively |
-| `/omm-push` | Login + link + push to cloud in one step |
+| `/omm-push` | Push architecture docs to shared repository |
 | `/omm-view` | Open the web viewer |
 | `/omm-tag` | Tag elements with labels for categorization |
 
@@ -215,12 +215,6 @@ When in an arch repo with multiple projects, use `--project <name>` to specify w
 ```
 
 Each `omm push` syncs the local `.omm/` to the arch repo under the project name. Team members run `omm pull` to get the latest docs.
-
-### Also supports ohmymermaid.com
-
-```bash
-omm login && omm link && omm push   # cloud mode (legacy)
-```
 
 ## Supported AI Tools
 
