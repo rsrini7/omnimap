@@ -252,13 +252,21 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 
 /* Sidebar */
 #sidebar {
-  position: fixed; top: 0; right: 0; bottom: 0; width: var(--sidebar-w);
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: var(--sidebar-w); min-width: 280px; max-width: 700px;
   background: #000; border-left: 1px solid var(--border);
   transform: translateX(100%);
-  transition: transform .22s cubic-bezier(.4,0,.2,1);
+  transition: transform .22s cubic-bezier(.4,0,.2,1), width .18s ease;
   z-index: 300; display: flex; flex-direction: column;
 }
 #sidebar.open { transform: translateX(0); }
+#sb-resize {
+  position: absolute; top: 0; left: -3px; bottom: 0; width: 6px;
+  cursor: col-resize; z-index: 310;
+  background: transparent;
+  transition: background .15s;
+}
+#sb-resize:hover, #sb-resize.dragging { background: rgba(129,140,248,0.3); }
 #sb-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 #sb-title { flex: 1; font-size: 14px; font-weight: 600; color: #fff; font-family: var(--mono); }
 #sb-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 22px; line-height: 1; padding: 0; }
@@ -288,6 +296,7 @@ body.light { --bg: #f0f0f0; --border: #ddd; --border-hi: #bbb; --text: #1a1a1a; 
 body.light header { background: #fff; }
 body.light #canvas-wrap { background-color: #f0f0f0; background-image: radial-gradient(circle, #ccc 1px, transparent 1px); }
 body.light #sidebar { background: #fafafa; }
+body.light #sb-resize:hover, body.light #sb-resize.dragging { background: rgba(79,70,229,0.2); }
 body.light #sb-body { scrollbar-color: #ddd transparent; }
 body.light .hbtn { border-color: #ccc; color: #666; }
 body.light .hbtn:hover { border-color: #aaa; color: #222; }
@@ -417,6 +426,7 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
 </div>
 
 <div id="sidebar">
+  <div id="sb-resize"></div>
   <div id="sb-head"><div id="sb-title"></div><button id="sb-close" onclick="closeSidebar()">×</button></div>
   <div id="sb-body">
     <div class="sb-diagram" id="sb-diagram"></div>

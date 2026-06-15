@@ -419,8 +419,15 @@ function centerView() {
   applyTransform();
 }
 
-window.zoomIn    = () => zoomTo(vpScale * 1.25);
-window.zoomOut   = () => zoomTo(vpScale / 1.25);
+let _lastZoom = 0;
+function throttledZoom(fn) {
+  const now = performance.now();
+  if (now - _lastZoom < 50) return; // max 20 zoom steps/sec
+  _lastZoom = now;
+  fn();
+}
+window.zoomIn    = () => throttledZoom(() => zoomTo(vpScale * 1.25));
+window.zoomOut   = () => throttledZoom(() => zoomTo(vpScale / 1.25));
 window.resetView = centerView;
 
 // ── animated transition ────────────────────────────────────
@@ -478,7 +485,7 @@ function focusGroup(cls) {
 
   // Available viewport (account for sidebar: right panel on desktop, bottom drawer on mobile)
   const isMobile = window.innerWidth <= 768;
-  const sbW = (!isMobile && sidebar.classList.contains('open')) ? 400 : 0;
+  const sbW = (!isMobile && sidebar.classList.contains('open')) ? sidebar.getBoundingClientRect().width : 0;
   const sbH = (isMobile && sidebar.classList.contains('open')) ? window.innerHeight * 0.5 : 0;
   const availW = canvasWrap.clientWidth - sbW - 60;
   const availH = canvasWrap.clientHeight - sbH - 60;
@@ -647,11 +654,13 @@ canvasWrap.addEventListener('click', e => {
     e.stopImmediatePropagation();
     return;
   }
-  if (!e.target.closest('[onclick]')) closeSidebar();
+  if (!e.target.closest('[onclick]') && !e.target.closest('.float-controls')) closeSidebar();
 }, true);
 
 // double-click: zoom to focused group (node), reset on empty area
+// Ignore double-clicks on controls (zoom buttons, etc.)
 canvasWrap.addEventListener('dblclick', e => {
+  if (e.target.closest('.float-controls')) return;
   const node = e.target.closest('.grp-node');
   if (node) {
     const cls = node.dataset.cls;
@@ -1264,6 +1273,34 @@ function updateSearchResultsPos() {
 }
 const navResizeObserver = new ResizeObserver(updateSearchResultsPos);
 navResizeObserver.observe(navSidebar);
+
+// ── right sidebar resize ────────────────────────────────
+const sbResize = document.getElementById('sb-resize');
+if (sbResize) {
+  let sbDragging = false, sbStartX = 0, sbStartW = 0;
+  sbResize.addEventListener('mousedown', (e) => {
+    sbDragging = true;
+    sbStartX = e.clientX;
+    sbStartW = sidebar.getBoundingClientRect().width;
+    sbResize.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!sbDragging) return;
+    // Dragging left increases width (sidebar is right-aligned)
+    const newW = Math.max(280, Math.min(700, sbStartW - (e.clientX - sbStartX)));
+    document.documentElement.style.setProperty('--sidebar-w', newW + 'px');
+  });
+  document.addEventListener('mouseup', () => {
+    if (!sbDragging) return;
+    sbDragging = false;
+    sbResize.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+}
 
 // ── search ──────────────────────────────────────────────
 const searchInput = document.getElementById('search-input');
