@@ -289,6 +289,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 .sb-refs { display: flex; flex-direction: column; gap: 4px; }
 .sb-ref { font-size: 11px; color: #999; padding: 5px 10px; background: #090909; border: 1px solid #1e1e1e; border-radius: 4px; cursor: pointer; display: block; font-family: var(--mono); transition: border-color .12s, color .12s; }
 .sb-ref:hover { border-color: #333; color: #bbb; }
+.sb-diff-toggle { background: none; border: 1px solid #333; color: #888; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: var(--mono); transition: all .15s; width: 100%; }
+.sb-diff-toggle:hover { border-color: #555; color: #ccc; }
+.sb-diff-toggle.active { border-color: #22c55e; color: #22c55e; }
 .empty-state { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
 .empty-state p { font-size: 12px; color: #444; line-height: 1.9; }
 /* Light mode */
@@ -309,6 +312,9 @@ body.light .sb-concern .sb-sec-body { border-color: #ccc; }
 body.light .sb-meta-text { color: #999; }
 body.light .sb-ref { background: #eee; border-color: #ddd; color: #555; }
 body.light .sb-ref:hover { border-color: #aaa; color: #111; }
+body.light .sb-diff-toggle { border-color: #ddd; color: #888; }
+body.light .sb-diff-toggle:hover { border-color: #aaa; color: #333; }
+body.light .sb-diff-toggle.active { border-color: #16a34a; color: #16a34a; }
 body.light .empty-state p { color: #bbb; }
 body.light #nav-sidebar { background: #fff; }
 body.light #nav-resize:hover, body.light #nav-resize.dragging { background: rgba(79,70,229,0.2); }

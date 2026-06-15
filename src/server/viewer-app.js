@@ -734,10 +734,23 @@ function openSidebar(cls, origCls) {
   if (!origCls) origCls = cls;
   const data=classesData[cls]||{}, refs=refsData[cls]||{};
   sbTitle.textContent=fmtLabel(cls);
+
+  // Render diagram SVG in sidebar
   sbDiagram.innerHTML = '';
+  if (data.diagram) {
+    const svg = renderFlatSVG(data.diagram);
+    if (svg) sbDiagram.innerHTML = svg;
+  }
+
   const md=t=>t?marked.parse(t):'';
   const sec=(title,body,ex='')=>body?`<div class="sb-sec ${ex}"><div class="sb-sec-title">${title}</div><div class="sb-sec-body">${body}</div></div>`:'';
   let html='';
+
+  // Diff toggle button (only when prev_diagram exists)
+  if (data.diagram && data.meta?.prev_diagram) {
+    html += `<div class="sb-sec"><button id="sb-diff-btn" class="sb-diff-toggle" onclick="window.__toggleDiff('${esc(cls)}')">Show Diff</button></div>`;
+  }
+
   if (data.meta) {
     const t=data.meta.updated?new Date(data.meta.updated).toLocaleString():'';
     html+=`<div class="sb-sec"><div class="sb-sec-title">Meta</div><div class="sb-meta-text">${t?t+'<br>':''}${data.meta.update_count||0} updates${data.meta.git_branch?` · ${data.meta.git_branch}`:''}${data.meta.git_commit?` · ${data.meta.git_commit}`:''}</div></div>`;
@@ -1435,6 +1448,53 @@ window.toggleMobileNav = function() {
   const isOpen = nav.classList.contains('mobile-open');
   nav.classList.toggle('mobile-open', !isOpen);
   overlay.classList.toggle('show', !isOpen);
+};
+
+// ── diff toggle ──────────────────────────────────────────
+let _diffActive = false;
+window.__toggleDiff = async function(cls) {
+  const btn = document.getElementById('sb-diff-btn');
+  if (_diffActive) {
+    _diffActive = false;
+    if (btn) { btn.textContent = 'Show Diff'; btn.classList.remove('active'); }
+    const data = classesData[cls];
+    const svg = data?.diagram ? renderFlatSVG(data.diagram) : '';
+    sbDiagram.innerHTML = svg || '';
+    return;
+  }
+  if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`/api/class/${encodeURIComponent(cls)}/diff`);
+    const diff = await res.json();
+    if (!diff.has_changes) {
+      sbDiagram.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:#666;font-size:12px">No changes detected</div>';
+      if (btn) { btn.textContent = 'No Changes'; btn.disabled = false; }
+      return;
+    }
+    _diffActive = true;
+    if (btn) { btn.textContent = 'Hide Diff'; btn.classList.add('active'); btn.disabled = false; }
+    let svg = renderFlatSVG(diff.current_diagram);
+    if (!svg) return;
+    const addedNodes = new Set(diff.added_nodes || []);
+    const diffStyles = `<defs><style>
+      .diff-added .nshape { stroke: #22c55e !important; stroke-width: 3px !important; filter: drop-shadow(0 0 4px rgba(34,197,94,0.5)); }
+      .diff-removed .nshape { stroke: #ef4444 !important; stroke-width: 3px !important; stroke-dasharray: 6 3 !important; opacity: 0.6; }
+      .diff-added text { fill: #86efac !important; }
+      .diff-removed text { fill: #fca5a5 !important; }
+    </style></defs>`;
+    svg = svg.replace(/^(<svg[^>]*>)/, '$1' + diffStyles);
+    for (const nodeId of addedNodes) {
+      const safeId = nodeId.replace(/[^a-z0-9_-]/gi, '');
+      svg = svg.replace(new RegExp(`(<g[^>]*data-cls="[^"]*${safeId}[^"]*")`, 'g'), '$1 class="diff-added"');
+    }
+    sbDiagram.innerHTML = svg;
+    if (diff.removed_nodes?.length) {
+      const removedHtml = diff.removed_nodes.map(n => `<span style="color:#ef4444;text-decoration:line-through">${esc(n)}</span>`).join(', ');
+      sbDiagram.innerHTML += `<div style="padding:8px 16px;font-size:11px;color:#999;border-top:1px solid #222">Removed: ${removedHtml}</div>`;
+    }
+  } catch {
+    if (btn) { btn.textContent = 'Error'; btn.disabled = false; }
+  }
 };
 
 function setupLiveReload() {
