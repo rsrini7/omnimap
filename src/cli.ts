@@ -21,8 +21,10 @@ import { commandIncremental } from './commands/incremental.js';
 import { commandExport } from './commands/export.js';
 import { commandTag } from './commands/tag.js';
 import { commandArch } from './commands/arch.js';
+import { commandShare } from './commands/share.js';
+import { commandOrg } from './commands/org.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -54,6 +56,9 @@ Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
   omm pull [--from repo] [--all]     Pull .omm/ from architecture repository
   omm arch init [--remote <url>]     Initialize architecture repository with git
+  omm share                          Print the arch repo URL (GitHub/GitLab)
+  omm org list                       List configured architecture repositories
+  omm org switch <name>              Switch active architecture repository
 
 Paths: use / for nested elements (e.g. overall-architecture/main-process)
 Fields: description, diagram, constraint, concern, context, todo, note
@@ -198,6 +203,14 @@ async function main(): Promise<void> {
 
     case 'arch':
       commandArch(args.slice(1));
+      return;
+
+    case 'share':
+      commandShare();
+      return;
+
+    case 'org':
+      commandOrg(args.slice(1));
       return;
 
     default:

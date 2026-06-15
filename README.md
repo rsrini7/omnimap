@@ -94,6 +94,8 @@ omm export <element> [--format svg|png] [-o file]  # Export diagram
 omm tag <element> [add|remove|set] [tags]          # Manage element tags
 omm push [--to repo] [--commit]    # Push to architecture repository
 omm pull [--from repo] [--all]     # Pull from architecture repository
+omm share                          # Print arch repo URL (GitHub/GitLab)
+omm org list|switch|add|edit|remove  # Manage architecture repositories
 omm incremental                    # Plan a scoped re-scan based on git diff
 omm config language ko             # Set content language
 omm update                         # Update to latest version
@@ -147,6 +149,33 @@ omm config arch-repo ~/ws/my-mm-docs
 
 # Set the git remote (for auto-push)
 omm config arch-remote git@github.com:rsrini7/my-mm-docs.git
+```
+
+### Teams (multiple arch repos)
+
+```bash
+# Register team repos
+omm org add team-alpha ~/ws/alpha-repo --remote git@github.com:team/alpha.git
+omm org add team-beta ~/ws/beta-repo --remote git@github.com:team/beta.git
+
+# List all
+omm org list
+
+# Switch active repo
+omm org switch team-beta
+
+# Edit (change path or remote)
+omm org edit team-alpha --remote git@github.com:team/new-alpha.git
+
+# Remove
+omm org remove team-beta
+```
+
+### Share
+
+```bash
+# Print the GitHub/GitLab URL for the arch repo
+omm share
 ```
 
 ### Push
