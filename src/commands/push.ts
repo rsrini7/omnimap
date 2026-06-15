@@ -24,16 +24,18 @@ interface PushOptions {
   dryRun: boolean;
   json: boolean;
   commit: boolean;
+  push: boolean;
   message?: string;
 }
 
 function parseArgs(args: string[]): PushOptions {
-  const opts: PushOptions = { dryRun: false, json: false, commit: false };
+  const opts: PushOptions = { dryRun: false, json: false, commit: false, push: false };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--to' && args[i + 1]) opts.to = args[++i];
     else if (a === '--dry-run') opts.dryRun = true;
     else if (a === '--json') opts.json = true;
+    else if (a === '--commit-push') { opts.commit = true; opts.push = true; }
     else if (a === '--commit') opts.commit = true;
     else if ((a === '-m' || a === '--message') && args[i + 1]) opts.message = args[++i];
     else if (a === '--help' || a === '-h') {
@@ -51,25 +53,35 @@ const HELP = `
 omm push — Sync local architecture docs to the shared repository.
 
 Usage:
-  omm push                              Push to configured arch repo
-  omm push --to ~/arch/team-repo        Push to specific repo (saves config)
+  omm push                              Copy .omm/ to arch repo
+  omm push --to ~/arch/team-repo        Copy to specific repo (saves config)
   omm push --dry-run                    Show what would change
   omm push --json                       JSON output
-  omm push --commit                     Auto-commit to git after push
-  omm push --commit -m "update docs"    Auto-commit with message
+  omm push --commit                     Copy + git commit
+  omm push --commit-push                Copy + git commit + push to remote
+  omm push --commit-push -m "update"    With custom message
 
 Examples:
-  omm push --to ~/arch/my-team          First time: set arch repo and push
-  omm push                              Subsequent: push to saved repo
-  omm push --dry-run                    Preview changes
-  omm push --commit -m "add auth"       Push and commit to git
+  omm push                              Just copy files
+  omm push --commit                     Copy + commit locally
+  omm push --commit-push                Copy + commit + push to GitHub
 `;
 
-function gitExec(cmd: string, cwd: string): string {
+interface GitResult {
+  ok: boolean;
+  output: string;
+}
+
+function gitExec(cmd: string, cwd: string, silent = false): GitResult {
   try {
-    return execSync(cmd, { cwd, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }).trim();
-  } catch {
-    return '';
+    const output = execSync(cmd, { cwd, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }).trim();
+    return { ok: true, output };
+  } catch (e: unknown) {
+    if (!silent && e instanceof Error && 'stderr' in e) {
+      const stderr = (e as { stderr?: string }).stderr?.toString().trim();
+      if (stderr) process.stderr.write(`git: ${stderr}\n`);
+    }
+    return { ok: false, output: '' };
   }
 }
 
@@ -92,9 +104,39 @@ export async function commandPush(args: string[]): Promise<void> {
   // Resolve to absolute path
   archRepo = path.resolve(archRepo);
 
+  // Validate arch repo parent exists and is writable
+  const archParent = path.dirname(archRepo);
+  if (!fs.existsSync(archParent)) {
+    process.stderr.write(`error: parent directory does not exist: ${archParent}\n`);
+    process.exit(1);
+  }
+
+  // Check git is installed (only for commit/push)
+  if (opts.commit) {
+    try {
+      execSync('git --version', { stdio: 'ignore' });
+    } catch {
+      process.stderr.write('error: git is not installed. Install git first.\n');
+      process.exit(1);
+    }
+
+    // Validate remote URL format
+    const remote = getArchRemote(cwd);
+    if (opts.push && !remote) {
+      process.stderr.write('error: no remote configured for push.\n');
+      process.stderr.write('  Run: omm config arch-remote <url>\n');
+      process.stderr.write('  Example: omm config arch-remote git@github.com:user/repo.git\n');
+      process.exit(1);
+    }
+    if (remote && !remote.match(/^(git@|https?:\/\/|ssh:\/\/)/)) {
+      process.stderr.write(`warning: remote URL '${remote}' doesn't look like a git URL.\n`);
+      process.stderr.write('  Expected: git@github.com:user/repo.git or https://...\n');
+    }
+  }
+
   // Save if --to was specified
   if (opts.to) {
-    setArchRepo(opts.to, cwd);
+    setArchRepo(opts.to);
   }
 
   // Initialize arch repo if needed
@@ -169,41 +211,81 @@ export async function commandPush(args: string[]): Promise<void> {
 
   // Auto-commit if requested
   if (opts.commit) {
-    const changes = gitExec('git status --porcelain .omm/', archRepo);
-    if (!changes) {
+    // Ensure arch repo is a git repo
+    if (!fs.existsSync(path.join(archRepo, '.git'))) {
+      const initResult = gitExec('git init -q', archRepo);
+      if (!initResult.ok) {
+        process.stderr.write('Failed to initialize git repo.\n');
+        return;
+      }
+      const remote = getArchRemote(cwd);
+      if (remote) gitExec(`git remote add origin ${remote}`, archRepo);
+      process.stderr.write('Initialized git repo.\n');
+    }
+
+    const statusResult = gitExec('git status --porcelain .omm/', archRepo);
+    if (!statusResult.output) {
       process.stderr.write('No git changes to commit.\n');
       return;
     }
 
     const commitMsg = opts.message || buildCommitMessage(projectName, diff);
-    gitExec(`git add .omm/`, archRepo);
-    gitExec(`git commit -m "${commitMsg}"`, archRepo);
+    const addResult = gitExec(`git add .omm/`, archRepo);
+    if (!addResult.ok) {
+      process.stderr.write('Git add failed.\n');
+      return;
+    }
+    const commitResult = gitExec(`git commit -m "${commitMsg}"`, archRepo);
+    if (!commitResult.ok) {
+      process.stderr.write('Git commit failed.\n');
+      return;
+    }
     process.stderr.write(`Committed: ${commitMsg}\n`);
 
-    // Auto-configure remote from config if not set in git
-    const configuredRemote = getArchRemote(cwd);
-    if (configuredRemote) {
-      const existingRemote = gitExec('git remote get-url origin', archRepo);
-      if (!existingRemote) {
-        gitExec(`git remote add origin ${configuredRemote}`, archRepo);
-        process.stderr.write(`Added remote: ${configuredRemote}\n`);
-      } else if (existingRemote !== configuredRemote) {
-        gitExec(`git remote set-url origin ${configuredRemote}`, archRepo);
-        process.stderr.write(`Updated remote: ${configuredRemote}\n`);
+    // Push to remote only with --commit-push
+    if (opts.push) {
+      // Auto-configure remote from config if not set in git
+      const configuredRemote = getArchRemote(cwd);
+      if (configuredRemote) {
+        const existingRemote = gitExec('git remote get-url origin', archRepo, true);
+        if (!existingRemote.ok) {
+          gitExec(`git remote add origin ${configuredRemote}`, archRepo);
+          process.stderr.write(`Added remote: ${configuredRemote}\n`);
+        } else if (existingRemote.output !== configuredRemote) {
+          gitExec(`git remote set-url origin ${configuredRemote}`, archRepo);
+          process.stderr.write(`Updated remote: ${configuredRemote}\n`);
+        }
       }
-    }
 
-    // Push to remote
-    const remoteUrl = gitExec('git remote get-url origin', archRepo);
-    if (remoteUrl) {
-      const pushResult = gitExec('git push -u origin main 2>&1 || git push -u origin master 2>&1', archRepo);
-      if (pushResult) {
-        process.stderr.write(`Pushed to ${remoteUrl}\n`);
-      } else {
-        process.stderr.write('Push failed. Check remote access.\n');
+      const remoteResult = gitExec('git remote get-url origin', archRepo, true);
+      if (!remoteResult.ok || !remoteResult.output) {
+        process.stderr.write('No remote configured. Use `omm config arch-remote <url>` to set one.\n');
+        return;
       }
-    } else {
-      process.stderr.write('No remote configured. Use `omm config arch-remote <url>` to set one.\n');
+
+      // Pull with rebase to handle concurrent updates from other devs
+      const branchResult = gitExec('git branch --show-current', archRepo, true);
+      const currentBranch = branchResult.output || 'main';
+      const pullResult = gitExec(`git pull --rebase origin ${currentBranch}`, archRepo);
+      if (!pullResult.ok) {
+        process.stderr.write('error: git pull failed.\n');
+        process.stderr.write('  Possible causes:\n');
+        process.stderr.write('  - Remote has conflicting changes. Resolve manually in the arch repo.\n');
+        process.stderr.write('  - SSH key not configured. Run: ssh -T git@github.com\n');
+        process.stderr.write('  - Network issue. Check your connection.\n');
+        return;
+      }
+
+      const pushResult = gitExec(`git push -u origin ${currentBranch}`, archRepo);
+      if (pushResult.ok) {
+        process.stderr.write(`Pushed to ${remoteResult.output}\n`);
+      } else {
+        process.stderr.write('error: git push failed.\n');
+        process.stderr.write('  Possible causes:\n');
+        process.stderr.write('  - Remote repo does not exist. Create it on GitHub/GitLab first.\n');
+        process.stderr.write('  - No write access. Check your SSH key or token.\n');
+        process.stderr.write('  - Branch protection rules. Check repo settings.\n');
+      }
     }
   }
 }

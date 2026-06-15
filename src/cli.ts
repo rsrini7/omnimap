@@ -59,7 +59,7 @@ Cloud:
   omm login                         Log in to omm.dev
   omm logout                        Log out
   omm link [org/slug]                Link project to a cloud slug
-  omm push [--to repo] [--commit]    Push .omm/ to architecture repository
+  omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
   omm pull [--from repo] [--all]     Pull .omm/ from architecture repository
   omm arch init [--remote <url>]     Initialize architecture repository with git
   omm share                         Print the shareable URL

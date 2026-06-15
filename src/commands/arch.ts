@@ -15,11 +15,17 @@ import { execSync } from 'node:child_process';
 import { getArchRepo, initArchRepo, listArchProjects, setArchRepo } from '../lib/arch.js';
 import { getOmmDir } from '../lib/store.js';
 
-function git(cmd: string, cwd: string): string {
+interface GitResult {
+  ok: boolean;
+  output: string;
+}
+
+function git(cmd: string, cwd: string): GitResult {
   try {
-    return execSync(`git ${cmd}`, { cwd, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }).trim();
+    const output = execSync(`git ${cmd}`, { cwd, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }).trim();
+    return { ok: true, output };
   } catch {
-    return '';
+    return { ok: false, output: '' };
   }
 }
 
@@ -65,7 +71,7 @@ export function commandArch(args: string[]): void {
     // Add remote if specified
     if (remoteUrl) {
       const existing = git('remote get-url origin', absPath);
-      if (existing) {
+      if (existing.ok) {
         git(`remote set-url origin ${remoteUrl}`, absPath);
         process.stderr.write(`Updated remote: ${remoteUrl}\n`);
       } else {
@@ -83,16 +89,16 @@ export function commandArch(args: string[]): void {
     // Auto-configure current project to point to this arch repo
     const cwd = process.cwd();
     if (cwd !== absPath && fs.existsSync(getOmmDir(cwd))) {
-      setArchRepo(absPath, cwd);
+      setArchRepo(absPath);
       process.stderr.write(`Configured current project → ${absPath}\n`);
     }
 
     // Initial commit
     git('add .omm/ .gitignore', absPath);
     const status = git('status --porcelain', absPath);
-    if (status) {
+    if (status.output) {
       git('commit -q -m "init: architecture repository"', absPath);
-      process.stderr.write(`Created initial commit.\n`);
+      process.stderr.write('Created initial commit.\n');
     }
 
     process.stderr.write(`\nArchitecture repository ready at: ${absPath}\n`);
@@ -121,9 +127,9 @@ export function commandArch(args: string[]): void {
       const remote = git('remote get-url origin', absPath);
       const lastCommit = git('log --oneline -1', absPath);
       const behind = git('rev-list --count HEAD..@{u}', absPath);
-      process.stderr.write(`Git: ${branch || 'detached'}${remote ? ` → ${remote}` : ''}\n`);
-      if (lastCommit) process.stderr.write(`Last commit: ${lastCommit}\n`);
-      if (behind && behind !== '0') process.stderr.write(`Behind remote by ${behind} commits.\n`);
+      process.stderr.write(`Git: ${branch.output || 'detached'}${remote.ok ? ` → ${remote.output}` : ''}\n`);
+      if (lastCommit.ok && lastCommit.output) process.stderr.write(`Last commit: ${lastCommit.output}\n`);
+      if (behind.ok && behind.output && behind.output !== '0') process.stderr.write(`Behind remote by ${behind.output} commits.\n`);
     } else {
       process.stderr.write('Git: not initialized (run `omm arch init` to add version control)\n');
     }

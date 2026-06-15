@@ -1,59 +1,65 @@
 ---
 name: omm-push
-description: Push architecture docs to oh-my-mermaid cloud. Handles login, link, and push workflow with error guidance. Use when the user says "omm push", "push to cloud", "deploy architecture", or "share architecture".
+description: Push architecture docs to the shared architecture repository. Handles setup, push, and commit workflow. Use when the user says "omm push", "push docs", "sync architecture", or "share architecture".
 ---
 
-# omm-push — Cloud Push Workflow
+# omm-push — Architecture Repository Push
 
 ## Purpose
 
-Automate the full workflow of pushing .omm/ architecture docs to the oh-my-mermaid cloud service.
+Push `.omm/` architecture docs to a shared git repository for team collaboration.
 
 ## Prerequisites
-
-Ensure the `omm` CLI is available:
 
 ```bash
 command -v omm || npm install -g oh-my-mermaid
 ```
 
-If the install command fails (permission denied), tell the user:
-"Please run `npm install -g oh-my-mermaid` in your terminal, then try again."
-
 ## Workflow
 
-### Step 1: Check Login Status
+### Step 1: Check arch repo config
 
-Run `omm share` via Bash. If it errors with "not logged in":
-- Tell the user: "You need to log in first."
-- Run `omm login` — this opens a browser for GitHub OAuth
-- Wait for the user to complete login
+Run `omm config arch-repo` via Bash. If it returns "(not set)":
+- Ask the user for the path to their shared architecture repository
+- Run `omm config arch-repo <path>` to set it globally
+- If they also have a git remote, run `omm config arch-remote <url>`
 
-### Step 2: Check Project Link
+### Step 2: Preview changes
 
-Run `omm share` via Bash. If it errors with "no project slug":
-- Run `omm link` — this sets the cloud project slug from the directory name
-- Confirm: "Linked to {slug}"
+Run `omm push --dry-run` via Bash. Show the user:
+- Number of files to be pushed
+- Added/modified/removed counts
+- Target path
 
 ### Step 3: Push
 
-Run `omm push` via Bash.
+Based on user preference:
 
-Handle errors:
-- **401 Unauthorized**: "Login expired. Run `omm login` again."
-- **403 Free plan limit**: "Free plan allows 1 project. Upgrade at https://ohmymermaid.com/pricing"
-- **Network error**: "Cannot reach server. Check your connection."
+| Command | What it does |
+|---------|-------------|
+| `omm push` | Copy files only (no git) |
+| `omm push --commit` | Copy + git commit locally |
+| `omm push --commit-push` | Copy + git commit + push to remote |
+
+If the user just says "push", use `omm push --commit-push`.
 
 ### Step 4: Report
 
 On success, output:
-- Number of files uploaded
-- View URL: `https://ohmymermaid.com/p/{slug}`
-- Share URL (if Pro): "Run `omm share` to get the shareable link"
+- Number of files pushed
+- Commit message (if committed)
+- Remote URL (if pushed)
+
+## Error Handling
+
+- **No arch repo configured**: "Run `omm config arch-repo <path>` first."
+- **No remote configured**: "Run `omm config arch-remote <url>` to set the git remote."
+- **Push failed**: "Check remote access. You may need to pull first: `cd <arch-repo> && git pull`."
+- **Merge conflict**: "Resolve conflicts in the arch repo manually, then retry."
 
 ## Rules
 
-- Always check login before pushing
-- Always check link before pushing
-- Do NOT skip steps — each depends on the previous
-- If any step fails, stop and report the error with guidance
+- Always preview with `--dry-run` first
+- Use `--commit-push` for full workflow (copy + commit + push)
+- Use `--commit` for local-only commits (no remote push)
+- The arch repo path is global (~/.omm/config.yaml) — works from any project

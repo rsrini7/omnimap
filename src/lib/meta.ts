@@ -42,5 +42,10 @@ export function updateMeta(className: string, field: Field, cwd: string = proces
   if (git.commit) meta.git_commit = git.commit;
   if (git.branch) meta.git_branch = git.branch;
 
+  // Record change in log (keep last 50 entries)
+  if (!meta.change_log) meta.change_log = [];
+  meta.change_log.push({ field, at: new Date().toISOString(), commit: git.commit });
+  if (meta.change_log.length > 50) meta.change_log = meta.change_log.slice(-50);
+
   fs.writeFileSync(metaPath, YAML.stringify(meta), 'utf-8');
 }

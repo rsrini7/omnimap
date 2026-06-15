@@ -139,24 +139,54 @@ The web viewer (`omm view`) includes:
 
 You can store architecture docs in a **dedicated git repo** — no external service needed.
 
-```bash
-# One-time setup: point to your team's architecture repo
-omm config arch-repo ~/arch/team-architecture
+### Setup (one-time)
 
-# Push this project's docs to the arch repo
+```bash
+# Set the shared arch repo (global — works from any project)
+omm config arch-repo ~/ws/my-mm-docs
+
+# Set the git remote (for auto-push)
+omm config arch-remote git@github.com:rsrini7/my-mm-docs.git
+```
+
+### Push
+
+```bash
+# Copy .omm/ to arch repo (local file copy only, no git)
 omm push
 
-# Push with auto-commit to git
+# Copy + git commit + push to remote
 omm push --commit -m "add auth-service docs"
 
-# Pull docs from arch repo
+# Preview what would change
+omm push --dry-run
+```
+
+| Command | Copy files | Git commit | Git push to remote |
+|---------|-----------|------------|--------------------|
+| `omm push` | ✓ | ✗ | ✗ |
+| `omm push --commit` | ✓ | ✓ | ✗ |
+| `omm push --commit-push` | ✓ | ✓ | ✓ |
+| `omm push --dry-run` | preview | ✗ | ✗ |
+
+### Pull
+
+```bash
+# Pull current project from arch repo
 omm pull
 
 # Pull all projects
 omm pull --all
 
-# Preview changes
-omm push --dry-run
+# Pull a specific project
+omm pull --project ArcClawInternal
+```
+
+### View from arch repo directly
+
+```bash
+cd ~/ws/my-mm-docs
+omm view   # shows all projects
 ```
 
 ### Dedicated repo structure

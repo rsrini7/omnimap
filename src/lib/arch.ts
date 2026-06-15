@@ -1,84 +1,119 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import YAML from 'yaml';
-import { ensureOmmForRead, ensureOmmForWrite, getOmmDir } from '../lib/store.js';
+import { ensureOmmForRead, ensureOmmForWrite, getOmmDir } from './store.js';
+
+const GLOBAL_OMM_DIR = path.join(os.homedir(), '.omm');
+const GLOBAL_CONFIG_PATH = path.join(GLOBAL_OMM_DIR, 'config.yaml');
 
 const ARCH_CONFIG_KEYS = ['arch_repo', 'arch-repo'];
+const REMOTE_CONFIG_KEYS = ['arch_remote', 'arch-remote'];
 
-/**
- * Get the configured architecture repository path.
- */
-export function getArchRepo(cwd: string = process.cwd()): string | null {
-  const ommDir = getOmmDir(cwd);
-  const configPath = path.join(ommDir, 'config.yaml');
-  if (!fs.existsSync(configPath)) return null;
+// ── Global config (~/.omm/config.yaml) ───────────────────
+
+function readGlobalConfig(): Record<string, unknown> {
+  if (!fs.existsSync(GLOBAL_CONFIG_PATH)) return {};
   try {
-    const config = YAML.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
-    if (!config) return null;
-    // Check standard key names
-    for (const key of ARCH_CONFIG_KEYS) {
-      if (typeof config[key] === 'string' && config[key]) return config[key] as string;
-    }
-    // Fallback: find any string value that looks like a path to an existing directory
-    for (const [key, val] of Object.entries(config)) {
+    return (YAML.parse(fs.readFileSync(GLOBAL_CONFIG_PATH, 'utf-8')) as Record<string, unknown>) || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeGlobalConfig(config: Record<string, unknown>): void {
+  fs.mkdirSync(GLOBAL_OMM_DIR, { recursive: true });
+  fs.writeFileSync(GLOBAL_CONFIG_PATH, YAML.stringify(config), 'utf-8');
+}
+
+function readProjectConfig(cwd: string = process.cwd()): Record<string, unknown> {
+  const configPath = path.join(getOmmDir(cwd), 'config.yaml');
+  if (!fs.existsSync(configPath)) return {};
+  try {
+    return (YAML.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>) || {};
+  } catch {
+    return {};
+  }
+}
+
+/** Read a key from config: global first, then project fallback. */
+function getConfigValue(keys: string[], cwd?: string): string | null {
+  // 1. Check global config
+  const global = readGlobalConfig();
+  for (const key of keys) {
+    if (typeof global[key] === 'string' && global[key]) return global[key] as string;
+  }
+  // 2. Check project config
+  const project = readProjectConfig(cwd);
+  for (const key of keys) {
+    if (typeof project[key] === 'string' && project[key]) return project[key] as string;
+  }
+  // 3. Fallback: find any path-like value pointing to a valid arch repo
+  for (const config of [global, project]) {
+    for (const val of Object.values(config)) {
       if (typeof val === 'string' && val.startsWith('/') && fs.existsSync(val) && fs.existsSync(path.join(val, '.omm'))) {
         return val;
       }
     }
-    return null;
-  } catch {
-    return null;
   }
+  return null;
+}
+
+/** Write a key to global config. */
+function setConfigValue(key: string, value: string): void {
+  const config = readGlobalConfig();
+  // Clean up aliases
+  const aliases: Record<string, string[]> = {
+    'arch_repo': ['arch-repo'],
+    'arch_remote': ['arch-remote'],
+  };
+  for (const alias of aliases[key] || []) {
+    delete config[alias];
+  }
+  config[key] = value;
+  writeGlobalConfig(config);
+}
+
+// ── Public API ───────────────────────────────────────────
+
+/**
+ * Get the configured architecture repository path.
+ * Reads from global (~/.omm/config.yaml) first, then project (.omm/config.yaml).
+ */
+export function getArchRepo(cwd: string = process.cwd()): string | null {
+  return getConfigValue(ARCH_CONFIG_KEYS, cwd);
 }
 
 /**
- * Set the architecture repository path in config.
+ * Set the architecture repository path (saved to global config).
  */
-export function setArchRepo(repoPath: string, cwd: string = process.cwd()): void {
-  ensureOmmForWrite(cwd);
-  const ommDir = getOmmDir(cwd);
-  const configPath = path.join(ommDir, 'config.yaml');
-  let config: Record<string, unknown> = {};
-  if (fs.existsSync(configPath)) {
-    try {
-      config = YAML.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown> || {};
-    } catch {}
-  }
-  // Use underscore key as canonical, remove hyphen variant if present
-  delete config['arch-repo'];
-  config['arch_repo'] = repoPath;
-  fs.writeFileSync(configPath, YAML.stringify(config), 'utf-8');
+export function setArchRepo(repoPath: string): void {
+  setConfigValue('arch_repo', repoPath);
 }
 
 /**
  * Get the configured git remote URL for the architecture repository.
  */
 export function getArchRemote(cwd: string = process.cwd()): string | null {
-  const ommDir = getOmmDir(cwd);
-  const configPath = path.join(ommDir, 'config.yaml');
-  if (!fs.existsSync(configPath)) return null;
-  try {
-    const config = YAML.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
-    if (!config) return null;
-    return (config['arch_remote'] as string) ?? (config['arch-remote'] as string) ?? null;
-  } catch {
-    return null;
-  }
+  return getConfigValue(REMOTE_CONFIG_KEYS, cwd);
 }
 
-export function setArchRemote(remoteUrl: string, cwd: string = process.cwd()): void {
-  ensureOmmForWrite(cwd);
-  const ommDir = getOmmDir(cwd);
-  const configPath = path.join(ommDir, 'config.yaml');
-  let config: Record<string, unknown> = {};
-  if (fs.existsSync(configPath)) {
-    try {
-      config = YAML.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown> || {};
-    } catch {}
-  }
-  delete config['arch-remote'];
-  config['arch_remote'] = remoteUrl;
-  fs.writeFileSync(configPath, YAML.stringify(config), 'utf-8');
+/**
+ * Set the git remote URL (saved to global config).
+ */
+export function setArchRemote(remoteUrl: string): void {
+  setConfigValue('arch_remote', remoteUrl);
+}
+
+/**
+ * List all configured arch repos from global config.
+ */
+export function listArchRepos(): Array<{ path: string; remote?: string }> {
+  const config = readGlobalConfig();
+  const repo = config['arch_repo'] as string | undefined;
+  const remote = config['arch_remote'] as string | undefined;
+  if (!repo) return [];
+  return [{ path: repo, remote: remote || undefined }];
 }
 
 /**
