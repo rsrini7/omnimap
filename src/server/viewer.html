@@ -582,8 +582,14 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border-muted);
+  border-top: 1px solid var(--border-muted);
   flex-wrap: wrap;
+  background: var(--surface);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 150;
 }
 .flow-bar.has-flows { display: flex; }
 .flow-bar-label {
@@ -617,48 +623,31 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 }
 
 /* Flow animation: dim non-lit, highlight lit */
-#canvas-wrap.flowing .edge-path {
-  stroke-width: 1px;
-  stroke-opacity: 0.2;
-  transition: all .2s;
-}
-#canvas-wrap.flowing .edge-label {
-  opacity: 0.2;
-  transition: opacity .2s;
-}
-#canvas-wrap.flowing .reg-node .nshape {
-  fill-opacity: 0.15;
-  stroke-opacity: 0.3;
-  transition: all .2s;
-}
-#canvas-wrap.flowing .grp-node > .grp-border {
-  fill-opacity: 0.15;
-  stroke-opacity: 0.3;
-  transition: all .2s;
-}
-/* Lit edges: bright accent color + marching dashes */
+#canvas-wrap.flowing .edge-path { stroke-width: 1px; stroke-opacity: 0.2; transition: all .2s; }
+#canvas-wrap.flowing .edge-label { opacity: 0.2; transition: opacity .2s; }
+#canvas-wrap.flowing .reg-node .nshape { fill-opacity: 0.15; stroke-opacity: 0.3; transition: all .2s; }
+#canvas-wrap.flowing .grp-node > .grp-border { fill-opacity: 0.15; stroke-opacity: 0.3; transition: all .2s; }
+/* Lit edges */
 #canvas-wrap.flowing .edge-path.flow-lit {
   stroke: var(--accent) !important;
   stroke-width: 3px;
-  stroke-opacity: 1;
+  stroke-opacity: 1 !important;
   stroke-dasharray: 8 5;
   animation: flow-march 0.8s linear infinite;
 }
 /* Lit edge labels */
-#canvas-wrap.flowing .edge-label.flow-lit {
-  opacity: 1;
-}
-/* Lit nodes: bright accent border + glow */
+#canvas-wrap.flowing .edge-label.flow-lit { opacity: 1 !important; }
+/* Lit nodes */
 #canvas-wrap.flowing .reg-node.flow-lit .nshape {
-  fill-opacity: 1;
-  stroke-opacity: 1;
+  fill-opacity: 1 !important;
+  stroke-opacity: 1 !important;
   stroke: var(--accent) !important;
   stroke-width: 3px;
   filter: drop-shadow(0 0 8px var(--accent-glow));
 }
 #canvas-wrap.flowing .grp-node.flow-lit > .grp-border {
-  fill-opacity: 1;
-  stroke-opacity: 1;
+  fill-opacity: 1 !important;
+  stroke-opacity: 1 !important;
   stroke: var(--accent) !important;
   stroke-width: 3px;
   filter: drop-shadow(0 0 8px var(--accent-glow));
@@ -752,10 +741,10 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
     <button class="hbtn" id="graph-btn" onclick="toggleGraphView()" title="Relationship graph" style="font-size:11px">◈</button>
     <button class="hbtn" id="home-btn" onclick="window.location='/'" title="Back to projects" style="font-size:13px;display:none">⌂</button>
   </div>
+  <div id="canvas"></div>
   <div class="flow-bar" id="flow-bar">
     <span class="flow-bar-label">Flows</span>
   </div>
-  <div id="canvas"></div>
 </div>
 
 <div id="sidebar">
