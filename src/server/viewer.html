@@ -528,6 +528,18 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 .sb-diagram-tab:hover { color: var(--text-mid); }
 .sb-diagram-tab.active { color: var(--text-body); border-bottom-color: var(--accent); }
 .sb-code-view { padding: 0; max-height: 300px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--surface4) transparent; }
+.sb-rich-view { padding: 0; max-height: 400px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--surface4) transparent; }
+.sb-rich-canvas { padding: 0; }
+.sb-rich-canvas svg { display: block; width: 100%; height: auto; overflow: visible; }
+.sb-rich-canvas .flow-bar { display: flex; padding: 6px 10px; gap: 4px; border-bottom: 1px solid var(--border-muted); flex-wrap: wrap; }
+.sb-rich-canvas .flow-chip { font-size: 10px; padding: 3px 8px; }
+/* Rich view flow animation */
+.sb-rich-canvas svg.flowing .edge { stroke-opacity: 0.2; stroke-width: 1px; transition: all .2s; }
+.sb-rich-canvas svg.flowing .elbl { opacity: 0.2; transition: opacity .2s; }
+.sb-rich-canvas svg.flowing .node rect { fill-opacity: 0.15; stroke-opacity: 0.3; transition: all .2s; }
+.sb-rich-canvas svg.flowing .edge.flow-lit { stroke: var(--accent) !important; stroke-width: 2.5px; stroke-opacity: 1 !important; stroke-dasharray: 6 4; animation: flow-march 0.8s linear infinite; }
+.sb-rich-canvas svg.flowing .elbl.flow-lit { opacity: 1 !important; }
+.sb-rich-canvas svg.flowing .node.flow-lit rect { fill-opacity: 1 !important; stroke-opacity: 1 !important; stroke: var(--accent) !important; stroke-width: 2.5px; filter: drop-shadow(0 0 6px var(--accent-glow)); }
 .sb-code-pre { margin: 0; padding: 12px 16px; font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--text-mid); white-space: pre; }
 .sb-timeline { padding: 8px 16px 12px; border-top: 1px solid var(--border-muted); }
 .sb-timeline-label { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; font-family: var(--mono); }

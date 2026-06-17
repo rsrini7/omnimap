@@ -967,9 +967,11 @@ function openSidebar(cls, origCls) {
       <div class="sb-diagram-toggle">
         <button class="sb-diagram-tab active" onclick="window.__showDiagramTab('diagram')">Diagram</button>
         <button class="sb-diagram-tab" onclick="window.__showDiagramTab('code')">Code</button>
+        <button class="sb-diagram-tab" onclick="window.__showDiagramTab('rich')">Rich</button>
       </div>
       <div class="sb-diagram-view">${svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>'}</div>
       <div class="sb-code-view" style="display:none"><pre class="sb-code-pre">${codeHtml}</pre></div>
+      <div class="sb-rich-view" style="display:none"><div class="sb-rich-canvas" id="sb-rich-canvas"></div></div>
     `;
   // Timeline slider if history exists
     const history = data.meta?.diagram_history ?? [];
@@ -1784,12 +1786,17 @@ window.__showDiagramTab = function(tab) {
   const container = document.getElementById('sb-diagram');
   if (!container) return;
   container.querySelectorAll('.sb-diagram-tab').forEach((t, i) => {
-    t.classList.toggle('active', (tab === 'diagram' && i === 0) || (tab === 'code' && i === 1));
+    t.classList.toggle('active', (tab === 'diagram' && i === 0) || (tab === 'code' && i === 1) || (tab === 'rich' && i === 2));
   });
   const diagramView = container.querySelector('.sb-diagram-view');
   const codeView = container.querySelector('.sb-code-view');
+  const richView = container.querySelector('.sb-rich-view');
   if (diagramView) diagramView.style.display = tab === 'diagram' ? 'block' : 'none';
   if (codeView) codeView.style.display = tab === 'code' ? 'block' : 'none';
+  if (richView) {
+    richView.style.display = tab === 'rich' ? 'block' : 'none';
+    if (tab === 'rich') renderRichView();
+  }
 };
 window.__scrubTimeline = function(idx) {
   const versions = window.__timelineVersions;
@@ -1820,6 +1827,131 @@ window.__scrubTimeline = function(idx) {
     info.textContent = isLast ? 'Current' : `${date}${v.commit ? ' · ' + v.commit : ''}`;
   }
 };
+
+// ── Rich view: interactive SVG in sidebar ──
+var _richFlows = {};
+var _richActiveFlow = -1;
+
+function renderRichView() {
+  var canvas = document.getElementById('sb-rich-canvas');
+  if (!canvas) return;
+  var cls = selectedCls;
+  if (!cls) { canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted)">Select an element</div>'; return; }
+  var dataKey = resolveDataKey(cls);
+  var data = dataKey ? classesData[dataKey] : null;
+  if (!data || !data.diagram) { canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted)">No diagram</div>'; return; }
+
+  // Render SVG using same parser as main canvas
+  var parsed = parseFlowchart(data.diagram);
+  if (!parsed || !parsed.nodes.length) { canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted)">Empty diagram</div>'; return; }
+
+  var g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: parsed.rankdir, nodesep: 36, ranksep: 48, marginx: 20, marginy: 20 });
+  g.setDefaultEdgeLabel(function() { return {}; });
+  var nDims = {};
+  parsed.nodes.forEach(function(n) {
+    var lbl = n.label.replace(/^@/, '');
+    var parts = lbl.split('\n');
+    var w = Math.min(180, Math.max(60, tw(parts[0], '11px Inter,system-ui') + 32));
+    var h = n.shape === 'diamond' ? 32 : 28 + (parts[1] ? 16 : 0);
+    nDims[n.id] = { w: w, h: h };
+    g.setNode(n.id, { width: w, height: h });
+  });
+  parsed.edges.forEach(function(e) { if (g.hasNode(e.from) && g.hasNode(e.to)) g.setEdge(e.from, e.to); });
+  try { dagre.layout(g); } catch(err) { canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted)">Layout error</div>'; return; }
+  var gi = g.graph();
+  var W = r1(gi.width + 40), H = r1(gi.height + 30);
+
+  var ec = 'var(--svg-edge-0)';
+  var svg = '';
+  parsed.edges.forEach(function(e, i) {
+    var ed = g.edge(e.from, e.to); if (!ed || !ed.points || !ed.points.length) return;
+    var d = smoothPath(ed.points);
+    var mid = ed.points[Math.floor(ed.points.length / 2)];
+    svg += '<path class="edge" d="' + d + '" stroke="' + ec + '" stroke-width="1.5" fill="none" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"/>';
+    if (e.label) {
+      var lw = tw(e.label, '9px Inter') + 8;
+      svg += '<g class="elbl" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"><rect x="' + (mid.x - lw / 2) + '" y="' + (mid.y - 7) + '" width="' + lw + '" height="14" rx="3" fill="var(--svg-edge-label-bg)"/><text x="' + mid.x + '" y="' + (mid.y + 4) + '" text-anchor="middle" font-size="9" fill="var(--svg-edge-label-text)">' + esc(e.label) + '</text></g>';
+    }
+  });
+  parsed.nodes.forEach(function(n) {
+    var pos = g.node(n.id); if (!pos) return;
+    var dim = nDims[n.id];
+    var nx = r1(pos.x - dim.w / 2), ny = r1(pos.y - dim.h / 2);
+    var st = nodeStyle(n);
+    var raw = n.label.replace(/^@/, '');
+    var lp = raw.split('\n');
+    var cx = r1(pos.x), cy = r1(pos.y);
+    var shape = '<rect x="' + nx + '" y="' + ny + '" width="' + dim.w + '" height="' + dim.h + '" rx="4" fill="' + st.bg + '" stroke="' + st.border + '" stroke-width="1.5"/>';
+    svg += '<g class="node" data-id="' + esc(n.id) + '">' + shape;
+    if (lp[1]) {
+      svg += '<text x="' + cx + '" y="' + (cy - 5) + '" text-anchor="middle" font-size="11" font-weight="600" fill="' + st.text + '">' + esc(lp[0]) + '</text>';
+      svg += '<text x="' + cx + '" y="' + (cy + 8) + '" text-anchor="middle" font-size="8" fill="' + st.text + '" opacity="0.45">' + esc(lp[1]) + '</text>';
+    } else {
+      svg += '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="600" fill="' + st.text + '">' + esc(lp[0]) + '</text>';
+    }
+    svg += '</g>';
+  });
+
+  var flowBar = '';
+  var flows = _flowsData[cls] || [];
+  if (flows.length > 0) {
+    flowBar = '<div class="flow-bar" style="position:static;border-top:1px solid var(--border-muted)"><span class="flow-bar-label">Flows</span>';
+    flows.forEach(function(f, i) {
+      flowBar += '<button class="flow-chip" onclick="window.__richToggleFlow(' + i + ')">' + esc(f.name) + '</button>';
+    });
+    flowBar += '</div>';
+  }
+
+  canvas.innerHTML = flowBar + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;overflow:visible">' + svg + '</svg>';
+}
+
+window.__richToggleFlow = function(idx) {
+  var canvas = document.getElementById('sb-rich-canvas');
+  if (!canvas) return;
+  var svgEl = canvas.querySelector('svg');
+  if (!svgEl) return;
+  var cls = selectedCls;
+  var flows = _flowsData[cls] || [];
+
+  if (_richActiveFlow === idx) {
+    _richActiveFlow = -1;
+    svgEl.classList.remove('flowing');
+    svgEl.querySelectorAll('.flow-lit').forEach(function(el) { el.classList.remove('flow-lit'); });
+    canvas.querySelectorAll('.flow-chip').forEach(function(c) { c.classList.remove('active'); });
+    return;
+  }
+  _richActiveFlow = idx;
+  var flow = flows[idx]; if (!flow) return;
+  svgEl.classList.add('flowing');
+
+  var litNodes = new Set(); var litEdges = new Set();
+  flow.steps.forEach(function(s) {
+    if (s.node) litNodes.add(s.node);
+    if (s.edge) { var p = s.edge.split('->'); if (p[0] && p[1]) litEdges.add(p[0] + '->' + p[1]); }
+  });
+  svgEl.querySelectorAll('.node').forEach(function(el) {
+    var id = el.getAttribute('data-id');
+    var short = id ? id.split('/').pop() : '';
+    if (litNodes.has(id) || litNodes.has(short)) el.classList.add('flow-lit'); else el.classList.remove('flow-lit');
+  });
+  svgEl.querySelectorAll('.edge').forEach(function(el) {
+    var from = el.getAttribute('data-from'), to = el.getAttribute('data-to');
+    var key = from + '->' + to;
+    var fromS = from ? from.split('/').pop() : '';
+    var toS = to ? to.split('/').pop() : '';
+    if (litEdges.has(key) || litEdges.has(fromS + '->' + toS)) el.classList.add('flow-lit'); else el.classList.remove('flow-lit');
+  });
+  svgEl.querySelectorAll('.elbl').forEach(function(el) {
+    var from = el.getAttribute('data-from'), to = el.getAttribute('data-to');
+    var key = from + '->' + to;
+    var fromS = from ? from.split('/').pop() : '';
+    var toS = to ? to.split('/').pop() : '';
+    if (litEdges.has(key) || litEdges.has(fromS + '->' + toS)) el.classList.add('flow-lit'); else el.classList.remove('flow-lit');
+  });
+  canvas.querySelectorAll('.flow-chip').forEach(function(c, i) { c.classList.toggle('active', i === idx); });
+};
+
 window.__validateElement = async function(cls) {
   const container = document.getElementById('sb-validate-results');
   if (!container) return;

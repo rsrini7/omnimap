@@ -122,7 +122,7 @@ The web viewer (`omm view`) includes:
 
 | Feature | Description |
 | --- | --- |
-| **Diagram + Code tabs** | Toggle between rendered SVG and syntax-highlighted mermaid source |
+| **Diagram + Code + Rich tabs** | Toggle between rendered SVG, syntax-highlighted source, and interactive rich view with flow animation |
 | **Search** | Full-text search with fuzzy matching, `tag:` filter, and markdown-rendered snippets |
 | **Validate** | Click "Validate Diagram" in sidebar to check for errors/warnings inline |
 | **Export** | Download diagrams as SVG, PNG, or self-contained HTML with project title |
