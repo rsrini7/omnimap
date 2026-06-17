@@ -44,7 +44,7 @@ export async function commandSetup(args: string[]): Promise<void> {
             return;
           }
         }
-        process.stderr.write(`${platform.name}: already configured.\n`);
+        process.stderr.write(`${platform.name}: already configured. Skills are read live from the source path.\n`);
         return;
       }
       process.stderr.write(`${platform.name}: setting up...\n`);
@@ -79,7 +79,7 @@ export async function commandSetup(args: string[]): Promise<void> {
           continue;
         }
       }
-      process.stderr.write(`${platform.name}: already configured.\n`);
+      process.stderr.write(`${platform.name}: already configured. Skills are read live from the source path.\n`);
       continue;
     }
     process.stderr.write(`${platform.name}: setting up...\n`);

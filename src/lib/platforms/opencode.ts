@@ -56,6 +56,24 @@ export const opencode: Platform = {
     return getSkillsPaths(config).includes(source);
   },
 
+  /**
+   * Opencode reads skills dynamically from the configured path, so
+   * there's no separate "copy" to update. We just verify the path
+   * is still in the config and the source directory exists.
+   */
+  needsUpdate(): { needed: boolean; changes: string[] } {
+    const source = getSkillsSource();
+    if (!source) return { needed: true, changes: ['(source not found)'] };
+    if (!fs.existsSync(source)) return { needed: true, changes: [`(source missing: ${source})`] };
+    // Check that the path is registered in opencode config
+    const config = readConfig();
+    if (!config) return { needed: true, changes: ['(config missing)'] };
+    if (!getSkillsPaths(config).includes(source)) {
+      return { needed: true, changes: ['(path not in config)'] };
+    }
+    return { needed: false, changes: [] };
+  },
+
   async setup(): Promise<void> {
     const source = getSkillsSource();
     if (!source) {
