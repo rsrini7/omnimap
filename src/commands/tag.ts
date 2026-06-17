@@ -47,12 +47,14 @@ export function commandTag(args: string[]): void {
   if (!classExists(perspective)) {
     process.stderr.write(`error: perspective '${perspective}' not found\n`);
     process.exit(1);
+    return;
   }
 
   const meta = getMeta(perspective, nodePath);
   if (!meta) {
     process.stderr.write(`error: element '${targetPath}' not found\n`);
     process.exit(1);
+    return;
   }
 
   const action = args[1];
