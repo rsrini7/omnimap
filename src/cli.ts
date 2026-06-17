@@ -24,8 +24,9 @@ import { commandArch } from './commands/arch.js';
 import { commandShare } from './commands/share.js';
 import { commandOrg } from './commands/org.js';
 import { commandFlows } from './commands/flows.js';
+import { commandEval } from './commands/eval.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -53,6 +54,7 @@ Usage:
   omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
   omm tag <element> [add|remove|set] [tags]         Manage element tags
   omm flows <element> [add|remove] [name]          Manage flow animations
+  omm eval [--json] [--threshold <score>]         Evaluate documentation quality
 
 Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
@@ -217,6 +219,10 @@ async function main(): Promise<void> {
 
     case 'flows':
       commandFlows(args.slice(1));
+      return;
+
+    case 'eval':
+      commandEval(args.slice(1));
       return;
 
     default:

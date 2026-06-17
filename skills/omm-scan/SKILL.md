@@ -236,9 +236,115 @@ steps:
 
 Aim for 2-5 flows per perspective that collectively cover all nodes and edges. Each flow should tell a distinct story.
 
-## Step 5: Summarize
+## Step 5: Auto-Improve Loop (Quality Gate)
 
-Report what was created/updated and suggest `omm view` to view.
+After initial scan completes, **automatically invoke `/omm-eval`** to improve documentation until a target quality score is reached. This is a self-improving loop.
+
+### How it works
+
+1. **Run eval to get baseline** after initial scan
+2. **If score < target** (default 80), improve based on issues
+3. **Re-run eval** to verify improvement
+4. **Repeat** until target reached or max iterations hit
+
+```bash
+# 1. Get baseline
+BASELINE=$(omm eval --json)
+SCORE=$(echo "$BASELINE" | jq -r '.summary.overallScore')
+echo "Initial score: $SCORE"
+
+# 2. Loop until target or max iterations
+TARGET=80
+MAX_ITER=5
+for i in $(seq 1 $MAX_ITER); do
+  if [ "$SCORE" -ge "$TARGET" ]; then
+    echo "✓ Target reached in iteration $((i-1))"
+    break
+  fi
+
+  # Identify worst elements
+  echo "--- Iteration $i (current score: $SCORE) ---"
+
+  # For each worst element (score < target):
+  # 1. Read existing fields
+  # 2. Read source code
+  # 3. Write missing fields with `omm write`
+  # 4. Add missing flows with `omm flows`
+  # 5. Add missing tags with `omm tag`
+
+  # Re-run eval
+  NEW_SCORE=$(omm eval --json | jq -r '.summary.overallScore')
+  echo "  New score: $NEW_SCORE"
+
+  if [ "$NEW_SCORE" -le "$SCORE" ]; then
+    echo "  No improvement, stopping"
+    break
+  fi
+  SCORE=$NEW_SCORE
+done
+```
+
+### What to improve each iteration
+
+**Iteration 1** — Fill sparse fields (low-hanging fruit):
+- For each element with < 4 fields filled, read source code and write missing context, constraint, concern, todo, note
+- Target: field coverage >= 60%
+
+**Iteration 2** — Add flows to perspectives and large groups:
+- For each perspective or group with no flows, trace 2-3 paths and add them
+- Target: flow coverage >= 50%
+
+**Iteration 3** — Improve descriptions:
+- For each element with description < 50 chars, expand it based on source code
+- Target: avg description length >= 80 chars
+
+**Iteration 4** — Add tags:
+- For each perspective without tags, add 2-3 category tags (e.g., `core`, `infra`, `api`, `data`)
+- Target: every perspective has >= 2 tags
+
+**Iteration 5** — Final polish:
+- Fix any remaining warnings from eval
+- Add missing child descriptions
+
+### Stop conditions
+
+- **Target score reached** (default 80)
+- **Max iterations** (default 5)
+- **No improvement** in 2 consecutive iterations
+- **All issues resolved** (no errors, no warnings)
+
+### Usage in Claude Code
+
+After `/omm-scan` completes, the AI will automatically:
+
+1. Run `omm eval` to get current state
+2. Iterate improvements until target is reached
+3. Report final score and improvement delta
+
+```text
+Initial score: 31
+--- Iteration 1 (current score: 31) ---
+  Filled context for 10 elements
+  New score: 48
+--- Iteration 2 (current score: 48) ---
+  Added 8 flows to perspectives
+  New score: 62
+--- Iteration 3 (current score: 62) ---
+  Expanded 15 short descriptions
+  New score: 75
+--- Iteration 4 (current score: 75) ---
+  Added tags to 3 perspectives
+  New score: 82
+✓ Target reached in 4 iterations
+```
+
+### Disabling the loop
+
+The user can disable auto-improvement by passing `--no-improve` to `/omm-scan`. The scan will then only generate initial docs and stop.
+
+## Step 6: Summarize
+
+Report what was created/updated and the final quality score from the improvement loop. Suggest `omm view` to view.
 
 ## Diagram Rules
 

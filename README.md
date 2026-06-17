@@ -33,6 +33,8 @@ Then open your AI coding tool and use the `/omm-scan` skill:
 /omm-scan
 ```
 
+This will scan your codebase, generate architecture docs, and **auto-improve** until a quality score is reached (default 80).
+
 That's it. View the result:
 
 ```bash
@@ -92,6 +94,7 @@ omm diff <element>                 # Show diagram diff (added/removed nodes)
 omm refs <element>                 # Show incoming/outgoing references
 omm export <element> [--format svg|png|html] [-o file]  # Export diagram
 omm flows <element> [add|remove] [name]           # Manage flow animations
+omm eval [--json] [--threshold <score>]         # Evaluate documentation quality
 omm tag <element> [add|remove|set] [tags]          # Manage element tags
 omm push [--to repo] [--commit]    # Push to architecture repository
 omm pull [--from repo] [--all]     # Pull from architecture repository
@@ -111,6 +114,7 @@ Skills are commands you run **inside your AI coding tool** (not the terminal). T
 | Skill | What it does |
 | --- | --- |
 | `/omm-scan` | Analyze codebase → generate architecture docs |
+| `/omm-eval` | Evaluate quality and improve docs iteratively |
 | `/omm-guide` | Walk through existing architecture interactively |
 | `/omm-push` | Push architecture docs to shared repository |
 | `/omm-view` | Open the web viewer |
@@ -192,6 +196,29 @@ steps:
 ### Auto-generation
 
 The `/omm-scan` skill generates flows automatically during scan. It traces paths from entry points to terminal nodes and creates 2-5 flows per perspective.
+
+## Quality Evaluation
+
+Use `omm eval` to check the quality and coverage of your `.omm/` documentation:
+
+```bash
+omm eval                          # quality report
+omm eval --json                   # machine-readable output
+omm eval --threshold 80           # exit 1 if score < 80 (CI/CD)
+```
+
+Report includes:
+
+- **Overall score** (0-100) — weighted by fields, diagram, flows, refs, children
+- **Field coverage** — % of fields filled across all elements
+- **Diagram coverage** — % with valid mermaid diagrams
+- **Flow coverage** — % with flow definitions
+- **Ref integrity** — % with cross-references
+- **Issues** — errors, warnings, and info per element
+- **Suggestions** — improvements for low-scoring areas
+- **Lowest scoring elements** — sorted worst-first
+
+Use `--threshold` in CI/CD pipelines to enforce a minimum quality bar.
 
 ## Graph Views
 
