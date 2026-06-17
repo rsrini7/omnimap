@@ -177,7 +177,66 @@ overall-architecture (perspective)
     → TerminalDock.tsx, DockManager → leaf
 ```
 
-## Step 4: Summarize
+## Step 4: Generate Flows
+
+After writing all fields for a perspective, generate **flow definitions** that trace meaningful paths through the diagram. Flows power the animated flow visualization in the viewer.
+
+### How to identify flows
+
+From the perspective's diagram:
+
+1. **Find entry points** — nodes with no incoming edges (sources)
+2. **Find terminal nodes** — nodes with no outgoing edges (sinks)
+3. **Trace paths** from entry points to terminals
+4. **Name each flow** based on what it represents (e.g., "Install", "Request Path", "Deploy Pipeline")
+
+### Flow rules
+
+- Every node should appear in at least one flow
+- Every edge should appear in at least one flow
+- Flows should be **meaningful** — trace a real user journey, request path, or process
+- Use short, descriptive names (1-2 words)
+- Include a description explaining what the flow represents
+
+### Write flows
+
+For each perspective, write flows using the CLI:
+
+```bash
+omm flows <perspective> add <FlowName> <<'EOF'
+name: FlowName
+description: What this flow traces
+steps:
+  - node: entry-node
+  - edge: entry-node->next-node
+  - node: next-node
+  - edge: next-node->terminal-node
+  - node: terminal-node
+EOF
+```
+
+### Flow YAML format
+
+```yaml
+name: Install
+description: Developer installs skills via CLI
+steps:
+  - node: user          # highlight this node
+  - edge: user->cli     # highlight this edge
+  - node: cli
+  - edge: cli->output
+  - node: output
+```
+
+- `node` steps reference node IDs from the diagram (the part before `[` in node definitions)
+- `edge` steps reference `from->to` where from/to are node IDs
+- Steps are ordered — they define the visual sequence
+
+### Coverage target
+
+Aim for 2-5 flows per perspective that collectively cover all nodes and edges. Each flow should tell a distinct story.
+
+## Step 5: Summarize
 
 Report what was created/updated and suggest `omm view` to view.
 
