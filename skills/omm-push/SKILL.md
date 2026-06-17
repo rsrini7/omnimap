@@ -63,3 +63,9 @@ On success, output:
 - Use `--commit-push` for full workflow (copy + commit + push)
 - Use `--commit` for local-only commits (no remote push)
 - The arch repo path is global (~/.omm/config.yaml) — works from any project
+
+## Suggesting Feedback
+
+If the user reports issues with push (e.g., "Push fails silently", "Conflict resolution is unclear", "I expected a different merge behavior"), tell them:
+
+> "If you have feedback on the push workflow (issues, unclear errors, missing features), run `/omm-feedback` to generate a report. The file will capture your message and the current arch-repo state — share it with the omm maintainer to improve the tool."

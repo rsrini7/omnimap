@@ -29,6 +29,18 @@ export async function commandShow(className: string, args: string[]): Promise<vo
   const project = projectFlag >= 0 ? args[projectFlag + 1] : undefined;
   const ommDir = getOmmDir();
 
+  // --type: show element type classification
+  if (args.includes('--type')) {
+    const store = await import('../lib/store.js');
+    const data = store.showClass(className);
+    if (!data) {
+      process.stderr.write(`error: element '${className}' not found\n`);
+      process.exit(1);
+    }
+    printType(data);
+    return;
+  }
+
   if (isArchRepo()) {
     let projectName = project;
     if (!projectName) {
@@ -62,6 +74,39 @@ export async function commandShow(className: string, args: string[]): Promise<vo
     process.exit(1);
   }
   printClassData(data);
+}
+
+function printType(data: any): void {
+  const isPerspective = !data.name?.includes('/');
+  const hasDiagram = !!data.diagram && data.diagram.trim().length > 0;
+  const childNames = data.meta?.children ?? [];
+
+  let type: string;
+  let why: string;
+  if (isPerspective) {
+    type = 'perspective';
+    why = 'top-level element (no "/" in path)';
+  } else if (hasDiagram) {
+    type = 'group';
+    why = 'nested element with a diagram';
+  } else {
+    type = 'leaf';
+    why = 'nested element without a diagram';
+  }
+
+  process.stdout.write(`${data.name}\n`);
+  process.stdout.write(`  type:  ${type}\n`);
+  process.stdout.write(`  why:   ${why}\n`);
+  if (hasDiagram) {
+    const lines = data.diagram.split('\n').filter((l: string) => l.trim()).length;
+    process.stdout.write(`  diagram: ${lines} lines\n`);
+  }
+  if (childNames.length > 0) {
+    process.stdout.write(`  children: ${childNames.length} (${childNames.join(', ')})\n`);
+  }
+  process.stdout.write(`  score: ${data.meta?.update_count ?? 0} updates\n`);
+  process.stdout.write(`\nTip: For best eval scores, every element benefits from a diagram.\n`);
+  process.stdout.write(`     Even leaves get +20 pts for adding a small "input → this → output" diagram.\n`);
 }
 
 function printClassData(data: any): void {

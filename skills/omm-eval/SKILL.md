@@ -36,14 +36,40 @@ omm config language
 
 Write field content (description, context, constraint, concern, todo, note) in the configured language. Default is English. Element IDs, directory names, and diagram node IDs are always English kebab-case.
 
+## Useful Companion Commands
+
+When iterating, these commands help diagnose specific issues:
+
+```bash
+# Show element type (perspective/leaf/group) and why
+omm show <element> --type
+
+# Validate diagram syntax with rule explanations
+omm validate <element>
+omm validate --explain      # full rule docs
+omm validate --rules        # one-liner list
+
+# Document the @class-name cross-reference convention
+omm ref-syntax
+
+# Show lowest-scoring elements with gap analysis
+omm eval --suggest
+```
+
 ## Step 2: Run Initial Evaluation
 
 ```bash
 # Get baseline report
 omm eval --no-color
 
-# Or get JSON for programmatic analysis
+# Or get JSON for programmatic analysis (includes scoreBreakdown per element)
 omm eval --json
+
+# Deep-dive into one element's score (visual progress bars + improvement actions)
+omm eval --explain <element>
+
+# Top 10 elements to improve, ranked by ROI (potential score gain)
+omm eval --suggest
 ```
 
 Parse the report to understand:
@@ -53,8 +79,24 @@ Parse the report to understand:
 - `summary.flowCoverage` — % with flows
 - `summary.refIntegrity` — % with cross-references
 - `elements` — per-element scores (sorted worst-first)
+  - `elements[i].scoreBreakdown` — how the score was computed (fields/diagram/description/flows/refs/children)
 - `issues` — specific issues to fix
 - `suggestions` — improvement recommendations
+
+### Score breakdown (from `scoreBreakdown` in JSON)
+
+The overall score is the sum of 6 components:
+
+| Component | Max | When earned |
+|-----------|-----|-------------|
+| `fields` | 40 | proportional to fields filled (7 total) |
+| `diagram` | 20 | 20 if valid mermaid, 10 if has but invalid |
+| `description` | 10 | 10 if >50 chars, 5 if >20 chars |
+| `flows` | 10 | 10 if any flow definitions exist |
+| `refs` | 10 | 10 if any @cross-references in diagram |
+| `children` | 10 | 10 if no children OR all children covered |
+
+Use `omm eval --explain <element>` to see which components are missing for a specific element.
 
 ## Step 3: Iterative Improvement Loop
 
@@ -183,6 +225,18 @@ Issues: 0 errors, 0 warnings, 12 info
 - **Keep iterations focused** — fix a few elements per iteration, not all at once
 - **Re-evaluate after each batch of changes** before deciding the next batch
 - **Write in the configured language** (check `omm config language` first)
+
+## Step 6: Suggest Feedback
+
+At the end of the iteration, if the user encountered:
+- Confusing eval output or scoring that doesn't match expectations
+- Missing CLI options that should exist
+- A workflow that felt harder than it should be
+- A successful pattern that should be documented
+
+Tell the user:
+
+> "If you have feedback on the eval system (issues, missing features, scoring questions), run `/omm-feedback` to generate a report in `.omm/feedback.md`. The file will be created with the current eval state and your message — share it with the omm maintainer to improve the tool."
 
 ## Integration with /omm-scan
 

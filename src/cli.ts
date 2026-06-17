@@ -25,8 +25,10 @@ import { commandShare } from './commands/share.js';
 import { commandOrg } from './commands/org.js';
 import { commandFlows } from './commands/flows.js';
 import { commandEval } from './commands/eval.js';
+import { commandRefSyntax } from './commands/ref-syntax.js';
+import { commandFeedback } from './commands/feedback.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -48,13 +50,16 @@ Usage:
   omm diff <path>                   Compare current vs previous diagram
   omm refs <path>                   Show elements that reference this element
   omm validate [path]               Validate diagram(s) for syntax and conventions
-  omm validate --changed [--json]   Validate only changed elements (for CI)
+  omm validate --explain|--rules   Document validation rules
   omm view [--port <port>]         Start web viewer (default: 3000)
   omm incremental [--json|--mark|--record]  Plan or record incremental scan updates
-  omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
-  omm tag <element> [add|remove|set] [tags]         Manage element tags
+  omm export <element> [--format svg|png|html] [-o file]  Export diagram
+  omm tag <element> [add|remove|set|clear] [tags]  Manage element tags
   omm flows <element> [add|remove] [name]          Manage flow animations
-  omm eval [--json] [--threshold <score>]         Evaluate documentation quality
+  omm eval [--json|--explain|--suggest|--threshold <score>]  Evaluate documentation quality
+  omm show <path> --type            Show element type (perspective/leaf/group)
+  omm ref-syntax                    Document the @class-name convention
+  omm feedback [--format md|json] [--include <msg>]  Generate feedback report in .omm/
 
 Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
@@ -223,6 +228,14 @@ async function main(): Promise<void> {
 
     case 'eval':
       commandEval(args.slice(1));
+      return;
+
+    case 'ref-syntax':
+      commandRefSyntax();
+      return;
+
+    case 'feedback':
+      commandFeedback(args.slice(1));
       return;
 
     default:

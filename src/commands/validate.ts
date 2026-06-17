@@ -31,6 +31,18 @@ function validateClass(className: string, allClasses: string[]): { errors: numbe
 export function commandValidate(className?: string, flags?: string[]): void {
   if (!ensureOmmForRead()) return;
 
+  // --explain: show rule documentation
+  if (flags?.includes('--explain')) {
+    printExplain();
+    return;
+  }
+
+  // --rules: list all validation rules
+  if (flags?.includes('--rules')) {
+    printRules();
+    return;
+  }
+
   const allClasses = listClasses();
   const useJson = flags?.includes('--json');
   const changedOnly = flags?.includes('--changed');
@@ -109,4 +121,81 @@ export function commandValidate(className?: string, flags?: string[]): void {
   }
 
   if (totalErrors > 0) process.exit(1);
+}
+
+const RULE_DOCS: Record<string, { level: string; description: string; fix: string; example?: string }> = {
+  'graph-declaration': {
+    level: 'error',
+    description: 'Diagram must start with a graph/flowchart direction declaration.',
+    fix: 'Add "graph LR" (or TD/TB/BT/RL) as the first line.',
+    example: 'graph LR\n    A --> B',
+  },
+  'balanced-brackets': {
+    level: 'error',
+    description: 'All brackets ([], (), {}) on a line must be balanced. Quote-aware — text inside double-quotes is ignored.',
+    fix: 'Count opening and closing brackets. Strings inside node labels can contain brackets if quoted.',
+    example: 'A["Label with (parens)"]',
+  },
+  'edge-label': {
+    level: 'warning',
+    description: 'Every edge should have a label explaining what flows across it.',
+    fix: 'Add a label between pipes: A -->|"my label"| B',
+    example: 'A -->|"sends data"| B',
+  },
+  'classdef-name': {
+    level: 'warning',
+    description: 'classDef name should be one of: external, concern, entry, store.',
+    fix: 'Use one of the standard names. Custom names won\'t get semantic colors in the viewer.',
+    example: 'classDef concern fill:#f38ba8,stroke:#f38ba8,color:#1e1e2e',
+  },
+  'classdef-color': {
+    level: 'warning',
+    description: 'classDef color should match the standard palette for that name.',
+    fix: 'Use the canonical color from the palette. The viewer applies these colors to nodes.',
+    example: 'classDef external fill:#585b70,stroke:#585b70,color:#cdd6f4',
+  },
+  'ref-exists': {
+    level: 'error',
+    description: '@ref must point to an existing perspective (not a child path).',
+    fix: 'Only top-level class names work as refs. Use @perspective-name, not @perspective-name/child.',
+    example: '@command-surface  # ✓ valid\n@command-surface/agent  # ✗ not supported',
+  },
+  'ref-self': {
+    level: 'error',
+    description: 'A diagram cannot reference its own class — that creates a self-loop.',
+    fix: 'Reference a different perspective, or remove the @ref if it\'s your own class.',
+    example: 'In overall-architecture: don\'t write @overall-architecture',
+  },
+  'node-count': {
+    level: 'warning',
+    description: 'Diagrams with <3 nodes are too simple; >15 nodes are too complex.',
+    fix: 'Split complex diagrams into sub-diagrams, or combine too-simple ones into a larger view.',
+    example: 'Recommended: 5-15 nodes per diagram',
+  },
+};
+
+function printExplain(): void {
+  process.stdout.write('\n=== omm validate rules ===\n\n');
+  process.stdout.write('Use --rules to see this list as a one-liner table.\n\n');
+  for (const [rule, doc] of Object.entries(RULE_DOCS)) {
+    process.stdout.write(`[${rule}] (${doc.level})\n`);
+    process.stdout.write(`  What: ${doc.description}\n`);
+    process.stdout.write(`  Fix:  ${doc.fix}\n`);
+    if (doc.example) {
+      process.stdout.write(`  Eg:   ${doc.example}\n`);
+    }
+    process.stdout.write('\n');
+  }
+  process.stdout.write('Diagrams are validated with: omm validate [element] [--json] [--changed]\n');
+  process.stdout.write('CI integration:  omm validate --json | jq \'.results[].errors\'\n');
+}
+
+function printRules(): void {
+  process.stdout.write('\nValidation rules:\n');
+  const rules = Object.entries(RULE_DOCS);
+  const maxLen = Math.max(...rules.map(([k]) => k.length));
+  for (const [rule, doc] of rules) {
+    process.stdout.write(`  ${rule.padEnd(maxLen + 2)} (${doc.level.padEnd(7)}) ${doc.description.split('.')[0]}\n`);
+  }
+  process.stdout.write('\nUse `omm validate --explain` for full docs.\n');
 }

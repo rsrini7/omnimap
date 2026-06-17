@@ -253,6 +253,12 @@ BASELINE=$(omm eval --json)
 SCORE=$(echo "$BASELINE" | jq -r '.summary.overallScore')
 echo "Initial score: $SCORE"
 
+# Or use --explain to deep-dive into specific elements
+omm eval --explain overall-architecture
+
+# Or use --suggest to see top improvement opportunities
+omm eval --suggest
+
 # 2. Loop until target or max iterations
 TARGET=80
 MAX_ITER=5
@@ -284,27 +290,47 @@ for i in $(seq 1 $MAX_ITER); do
 done
 ```
 
-### What to improve each iteration
+### Iteration strategy (based on actual scoring formula)
 
-**Iteration 1** — Fill sparse fields (low-hanging fruit):
+**The scoring formula** (from `omm eval` source):
+
+| Component | Max | Conditions |
+|-----------|-----|-----------|
+| Fields | 40 | proportional to fields filled (7 total) |
+| Diagram | 20 | 20 if valid mermaid, 10 if has but invalid |
+| Description | 10 | 10 if >50 chars, 5 if >20 chars |
+| Flows | 10 | 10 if element has any flow definitions |
+| Refs | 10 | 10 if element has any @cross-references |
+| Children | 10 | 10 if no children OR all children covered |
+
+**Iteration 1** — Fill sparse fields (biggest ROI: +40 pts possible):
 - For each element with < 4 fields filled, read source code and write missing context, constraint, concern, todo, note
 - Target: field coverage >= 60%
 
-**Iteration 2** — Add flows to perspectives and large groups:
+**Iteration 2** — Add diagrams to leaves (important: +20 pts each):
+- Even leaves benefit from a tiny 2-3 node diagram. The `omm-scan` SKILL.md says leaves don't need diagrams, but **eval penalizes leaves without diagrams**. Add a small "input → this → output" diagram.
+- Target: diagram coverage >= 80%
+
+**Iteration 3** — Add flows to perspectives and large groups (+10 pts each):
 - For each perspective or group with no flows, trace 2-3 paths and add them
 - Target: flow coverage >= 50%
 
-**Iteration 3** — Improve descriptions:
+**Iteration 4** — Add @cross-references in diagrams (+10 pts each):
+- For each diagram, add @other-perspective nodes that show cross-perspective connections
+- This also enables the relationship graph in the viewer
+- Target: ref integrity >= 50%
+
+**Iteration 5** — Improve descriptions:
 - For each element with description < 50 chars, expand it based on source code
 - Target: avg description length >= 80 chars
 
-**Iteration 4** — Add tags:
+**Iteration 6** — Add tags to all perspectives:
 - For each perspective without tags, add 2-3 category tags (e.g., `core`, `infra`, `api`, `data`)
 - Target: every perspective has >= 2 tags
 
-**Iteration 5** — Final polish:
-- Fix any remaining warnings from eval
-- Add missing child descriptions
+**Iteration 7** — Document children:
+- For each parent element with undocumented children, add child descriptions
+- Target: children coverage = 100%
 
 ### Stop conditions
 
@@ -345,6 +371,18 @@ The user can disable auto-improvement by passing `--no-improve` to `/omm-scan`. 
 ## Step 6: Summarize
 
 Report what was created/updated and the final quality score from the improvement loop. Suggest `omm view` to view.
+
+## Step 7: Suggest Feedback
+
+If during the scan or auto-improve loop you encountered:
+- Unclear eval output or scoring that doesn't match expectations
+- Missing CLI options that should exist
+- A workflow that felt harder than it should be
+- Inconsistencies in the codebase that are hard to document
+
+Tell the user:
+
+> "If you have feedback on the scan or auto-improve loop (issues, missing features, scoring questions), run `/omm-feedback` to generate a report in `.omm/feedback.md`. The file will include the current eval state and your message — share it with the omm maintainer to improve the tool."
 
 ## Diagram Rules
 

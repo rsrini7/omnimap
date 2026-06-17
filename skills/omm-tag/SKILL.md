@@ -46,6 +46,16 @@ omm tag <element> remove core
 omm tag <element> set microservice,security,external-api
 ```
 
+### Clear all tags
+```bash
+omm tag <element> clear
+```
+
+### Get help
+```bash
+omm tag --help
+```
+
 ### Nested elements
 ```bash
 omm tag overall-architecture/agent-kernel add critical
@@ -109,3 +119,9 @@ omm tag auth-service
 - Do not invent tags — suggest from the table above or ask the user.
 - Keep tags short, lowercase, hyphenated: `microservice`, `external-api`, `data-pipeline`.
 - After tagging, remind the user they can filter by tag in the viewer search: `tag:<name>`.
+
+## Suggesting Feedback
+
+If the user runs into issues with `omm tag` (e.g., "Why doesn't this tag work?", "I expected comma-separated tags to work", "Help is unclear"), tell them:
+
+> "If you have feedback on the tag system (issues, missing features, unclear help), run `/omm-feedback` to generate a report. The file will capture your message and the current state — share it with the omm maintainer to improve the tool."

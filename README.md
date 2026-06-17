@@ -94,8 +94,14 @@ omm diff <element>                 # Show diagram diff (added/removed nodes)
 omm refs <element>                 # Show incoming/outgoing references
 omm export <element> [--format svg|png|html] [-o file]  # Export diagram
 omm flows <element> [add|remove] [name]           # Manage flow animations
-omm eval [--json] [--threshold <score>]         # Evaluate documentation quality
-omm tag <element> [add|remove|set] [tags]          # Manage element tags
+omm eval [--json] [--threshold <score>] [--explain <element>] [--suggest]
+                                             # Evaluate documentation quality
+omm validate [--explain | --rules]             # Validate diagrams with rule docs
+omm ref-syntax                                 # Document the @class-name convention
+omm show <element> --type                      # Show element type (perspective/leaf/group)
+omm incremental --mark <p> --recursive        # Mark perspective + all children
+omm feedback [--format json] [--include "msg"] # Generate feedback report in .omm/
+omm tag <element> [add|remove|set|clear] [tags] # Manage element tags
 omm push [--to repo] [--commit]    # Push to architecture repository
 omm pull [--from repo] [--all]     # Pull from architecture repository
 omm share                          # Print arch repo URL (GitHub/GitLab)
@@ -196,6 +202,28 @@ steps:
 ### Auto-generation
 
 The `/omm-scan` skill generates flows automatically during scan. It traces paths from entry points to terminal nodes and creates 2-5 flows per perspective.
+
+## Feedback Loop
+
+Generate a feedback report inside `.omm/` to share with the omm maintainer:
+
+```bash
+omm feedback                              # writes .omm/feedback.md
+omm feedback --format json                # writes .omm/feedback.json
+omm feedback --include "your message"     # add free-form context
+omm feedback --print                      # print to stdout
+```
+
+The generated file contains:
+
+- omm version + git commit/branch
+- Project state (element count, eval score, coverage metrics)
+- Lowest-scoring elements (top 10)
+- Recent issues from eval
+- Suggestions for improvement
+- Your message (if `--include` was used)
+
+The file lives in `.omm/` so it travels with the project. Share it with the maintainer to improve omm itself.
 
 ## Quality Evaluation
 

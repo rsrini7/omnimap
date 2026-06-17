@@ -33,13 +33,41 @@ function saveMeta(perspective: string, nodePath: string[], meta: any) {
   }
 }
 
+const HELP = `
+omm tag <element> [action] [tags]
+
+Manage tags on elements. Tags are used for categorization and filtering in the viewer.
+
+Usage:
+  omm tag <element>                      List current tags
+  omm tag <element> add <t1,t2,...>       Add tags (comma-separated)
+  omm tag <element> remove <tag>         Remove a tag
+  omm tag <element> set <t1,t2,...>      Replace all tags
+  omm tag <element> clear                Remove all tags
+  omm tag --help | -h                    Show this help
+
+Tags are stored in meta.yaml and can be filtered with 'tag:<name>' in viewer search.
+
+Examples:
+  omm tag auth                            # list tags
+  omm tag auth add core,api,auth          # add multiple
+  omm tag auth remove legacy              # remove one
+  omm tag auth set core,api               # replace all
+  omm tag auth clear                      # remove all tags
+`;
+
 export function commandTag(args: string[]): void {
   if (!ensureOmmForRead()) return;
 
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    process.stdout.write(HELP.trim() + '\n');
+    return;
+  }
+
   const targetPath = args[0];
   if (!targetPath) {
-    process.stderr.write('usage: omm tag <element> [add|remove|set] [tags]\n');
-    process.exit(1);
+    process.stdout.write(HELP.trim() + '\n');
+    return;
   }
 
   const { perspective, nodePath } = parsePath(targetPath);
@@ -106,6 +134,14 @@ export function commandTag(args: string[]): void {
     return;
   }
 
-  process.stderr.write(`error: unknown action '${action}'. Use add, remove, or set.\n`);
+  if (action === 'clear') {
+    meta.tags = [];
+    meta.updated = new Date().toISOString();
+    saveMeta(perspective, nodePath, meta);
+    process.stderr.write(`tags: (none)\n`);
+    return;
+  }
+
+  process.stderr.write(`error: unknown action '${action}'. Use add, remove, set, or clear.\n`);
   process.exit(1);
 }

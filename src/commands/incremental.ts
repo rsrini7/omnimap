@@ -1,5 +1,22 @@
-import { ensureOmmForRead } from '../lib/store.js';
+import { ensureOmmForRead, listNodes } from '../lib/store.js';
 import { planIncrementalUpdate, markElementSources, recordScanGeneration, type IncrementalPlan, type PlanOptions } from '../lib/incremental.js';
+
+function listNodesFromPath(elementPath: string): string[] {
+  // Recursively list all children of a perspective
+  const parts = elementPath.split('/');
+  const perspective = parts[0];
+  const result: string[] = [];
+  function recurse(prefix: string) {
+    const children = listNodes(perspective, prefix.slice(perspective.length + 1).split('/').filter(Boolean));
+    for (const child of children) {
+      const childPath = prefix + '/' + child;
+      result.push(childPath);
+      recurse(childPath);
+    }
+  }
+  recurse(elementPath);
+  return result;
+}
 
 function printHuman(plan: IncrementalPlan): void {
   const head = plan.currentCommit ? `HEAD = ${plan.currentCommit}` : 'no git';
@@ -62,6 +79,7 @@ interface ParsedArgs {
   files?: string[];
   globs?: string[];
   replace?: boolean;
+  recursive?: boolean;
   // record
   recordMode?: 'full' | 'incremental';
 }
@@ -108,6 +126,8 @@ function parseArgs(args: string[]): ParsedArgs {
       out.globs = [...(out.globs ?? []), ...list];
     } else if (a === '--replace') {
       out.replace = true;
+    } else if (a === '--recursive') {
+      out.recursive = true;
     } else {
       process.stderr.write(`error: unknown arg '${a}'\n`);
       process.exit(1);
@@ -123,8 +143,9 @@ Usage:
   omm incremental [--since <ref>] [--json] [--no-mtime]
     Print a plan of stale / fresh / unknown elements since the last scan.
 
-  omm incremental --mark <element-path> [--files <path>...] [--globs <glob>...] [--replace]
+  omm incremental --mark <element-path> [--files <path>...] [--globs <glob>...] [--replace] [--recursive]
     Record the source files / globs an element covers. Bootstrap tracking.
+    With --recursive, also mark all children with the same files/globs.
 
   omm incremental --record <element-path> [full|incremental]
     Mark an element as scanned at the current commit. The next incremental
@@ -137,6 +158,7 @@ Options:
   --no-mtime        Skip the mtime fallback (only diff against git).
   --replace         With --mark, replace existing source files / globs
                     instead of appending.
+  --recursive       With --mark, also mark all children of the element.
 `;
 
 export async function commandIncremental(args: string[]): Promise<void> {
@@ -168,6 +190,20 @@ export async function commandIncremental(args: string[]): Promise<void> {
       replaceGlobs: parsed.replace,
     });
     process.stderr.write(`marked ${parsed.elementPath}: ${parsed.files?.length ?? 0} files, ${parsed.globs?.length ?? 0} globs\n`);
+
+    // Recursive: also mark all children
+    if (parsed.recursive) {
+      const childList = listNodesFromPath(parsed.elementPath);
+      for (const child of childList) {
+        markElementSources(child, {
+          files: parsed.files,
+          globs: parsed.globs,
+          replaceFiles: parsed.replace,
+          replaceGlobs: parsed.replace,
+        });
+        process.stderr.write(`marked ${child}: ${parsed.files?.length ?? 0} files, ${parsed.globs?.length ?? 0} globs\n`);
+      }
+    }
     return;
   }
 

@@ -61,6 +61,7 @@ Repeat this loop for 3–6 steps (based on availability and user interest):
 For the current selected element `<E>`:
 1. Run:
    - `omm show <E>` (add `--project <name>` if arch repo)
+   - `omm show <E> --type` to show element type (perspective/leaf/group)
 2. Present:
    - Description (short)
    - Context (why/decisions)
@@ -91,3 +92,11 @@ When the user selects a referenced element `<R>`:
 - Only describe what exists in `.omm/` files.
 - If something is missing (e.g., no constraint.md), say so plainly and move on.
 - When in an arch repo, always use `--project <name>` for `omm show` calls.
+
+## Suggesting Feedback
+
+If the user asks a question that the existing `.omm/` docs don't answer (e.g., "Why was this structure chosen?" or "What's the relationship between X and Y?" when it's not documented), tell them:
+
+> "That information isn't in the current `.omm/` docs. If this is a pattern worth documenting, run `/omm-feedback` to report it. The maintainer can use the report to improve either the docs structure or add a 'why' field that captures decisions."
+
+If the user wants to drill down into something the docs don't cover, suggest they also run `/omm-feedback` so the maintainer knows the docs are missing this content.
