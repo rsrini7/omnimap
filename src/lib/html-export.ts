@@ -3,6 +3,11 @@ import { readFlows } from './store.js';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// Safe JSON for embedding in <script> tags — escapes < to \u003c and </script> to <\/script
+const safeJson = (obj: unknown): string => JSON.stringify(obj)
+  .replace(/</g, '\\u003c')
+  .replace(/<\/(script)/gi, '<\\/$1');
+
 interface ExportData {
   element: string;
   title: string;
@@ -161,9 +166,9 @@ ${flows.length > 0 ? `<div class="flow-bar">
 // ── data ──
 var DIAGRAM_B64 = "${Buffer.from(data.diagram || '', 'utf-8').toString('base64')}";
 var DIAGRAM = atob(DIAGRAM_B64);
-var FLOWS = ${JSON.stringify(flows)};
-var NODE_DETAILS = ${JSON.stringify(nodeDetails)};
-var CHILDREN_DIAGRAMS = ${JSON.stringify(Object.fromEntries(Object.entries(children).filter(([,v]) => v.diagram).map(([k,v]) => [k, v.diagram!])))};
+var FLOWS = ${safeJson(flows)};
+var NODE_DETAILS = ${safeJson(nodeDetails)};
+var CHILDREN_DIAGRAMS = ${safeJson(Object.fromEntries(Object.entries(children).filter(([,v]) => v.diagram).map(([k,v]) => [k, v.diagram!])))};
 
 // ── helpers ──
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -404,11 +409,11 @@ document.querySelectorAll('.flow-chip').forEach(function(chip){
 // ── node click → detail card ──
 function showCard(nodeId,x,y){
   var details=NODE_DETAILS[nodeId];if(!details)return;
-  var html='<h3>'+fmtLabel(nodeId)+'</h3>';
-  if(details.description)html+='<div class="field"><div class="field-title">Description</div><div class="field-body">'+details.description+'</div></div>';
-  if(details.context)html+='<div class="field"><div class="field-title">Context</div><div class="field-body">'+details.context+'</div></div>';
-  if(details.concern)html+='<div class="field"><div class="field-title">Concern</div><div class="field-body">'+details.concern+'</div></div>';
-  if(details.constraint)html+='<div class="field"><div class="field-title">Constraint</div><div class="field-body">'+details.constraint+'</div></div>';
+  var html='<h3>'+esc(fmtLabel(nodeId))+'</h3>';
+  if(details.description)html+='<div class="field"><div class="field-title">Description</div><div class="field-body">'+esc(details.description)+'</div></div>';
+  if(details.context)html+='<div class="field"><div class="field-title">Context</div><div class="field-body">'+esc(details.context)+'</div></div>';
+  if(details.concern)html+='<div class="field"><div class="field-title">Concern</div><div class="field-body">'+esc(details.concern)+'</div></div>';
+  if(details.constraint)html+='<div class="field"><div class="field-title">Constraint</div><div class="field-body">'+esc(details.constraint)+'</div></div>';
   if(CHILDREN_DIAGRAMS[nodeId])html+='<div class="field"><div class="field-title">Has children</div><div class="field-body">This element has nested sub-diagrams.</div></div>';
   var card=document.getElementById('card');
   document.getElementById('card-content').innerHTML=html;
