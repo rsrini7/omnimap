@@ -126,4 +126,14 @@ function printClassData(data: any): void {
   if (data.meta) {
     process.stdout.write(`--- field: meta ---\n${YAML.stringify(data.meta)}`);
   }
+
+  // Show type + leaf-diagram tip
+  const isPerspective = !data.name?.includes('/');
+  const hasDiagram = !!data.diagram && data.diagram.trim().length > 0;
+  let type: string;
+  if (isPerspective) type = 'perspective';
+  else if (hasDiagram) type = 'group';
+  else type = 'leaf';
+  process.stdout.write(`\ntype: ${type}\n`);
+  printLeafDiagramTip(type);
 }

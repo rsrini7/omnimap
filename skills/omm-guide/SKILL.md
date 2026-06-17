@@ -49,8 +49,9 @@ Run `omm list`. If it shows "Architecture repository (N projects)":
 ## Step 2: Explain the "shape" of the docs
 
 Show:
-- how to navigate in the viewer (`omm view`)
+- how to navigate in the viewer (`omm view`) — main canvas, Rich tab, D3 network (⬡), relationship graph (◈), search, theme toggle
 - that each perspective/element has fields: description, diagram, context, constraint, concern, todo, note
+- how to interpret `@class-name` references (use `omm ref-syntax` to see the convention)
 
 ---
 
@@ -62,6 +63,9 @@ For the current selected element `<E>`:
 1. Run:
    - `omm show <E>` (add `--project <name>` if arch repo)
    - `omm show <E> --type` to show element type (perspective/leaf/group)
+   - `omm refs <E>` to see incoming references
+   - `omm refs --reverse <E>` to see outgoing references
+   - `omm diagram-refs <E>` to see resolved @refs and pass/fail
 2. Present:
    - Description (short)
    - Context (why/decisions)

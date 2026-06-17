@@ -46,8 +46,9 @@ omm show <element> --type
 
 # Validate diagram syntax with rule explanations
 omm validate <element>
-omm validate --explain      # full rule docs
-omm validate --rules        # one-liner list
+omm validate --explain      # full rule docs (rule + fix + example)
+omm validate --rules        # one-liner rule list
+omm validate <element> --fix  # auto-fix fixable issues (classdef-color), writes back
 
 # Document the @class-name cross-reference convention
 omm ref-syntax
@@ -58,6 +59,9 @@ omm diagram-refs <element> --json
 
 # Show lowest-scoring elements with gap analysis
 omm eval --suggest
+
+# Programmatic score breakdown (same as --explain but JSON)
+omm eval --explain <element> --json
 
 # Generate feedback report to share with maintainer
 omm feedback --include "your suggestion"
@@ -74,6 +78,9 @@ omm eval --json
 
 # Deep-dive into one element's score (visual progress bars + improvement actions)
 omm eval --explain <element>
+
+# Same breakdown, JSON output (for programmatic consumption)
+omm eval --explain <element> --json
 
 # Top 10 elements to improve, ranked by ROI (potential score gain)
 omm eval --suggest

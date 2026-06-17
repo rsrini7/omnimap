@@ -79,38 +79,98 @@ Each element carries up to 7 fields: `description`, `diagram`, `context`, `const
 
 ## CLI
 
+### Core commands
+
 ```bash
-omm setup                          # Register skills with your AI tools
-omm init --template list           # Show available diagram templates
-omm init --template microservices  # Scaffold from a template (+ .gitignore + skills update)
-omm view [--port <p>] [--project <n>]  Open interactive viewer
-omm list [--project <name>]         List perspectives (auto-detects arch repo)
-omm show <element> [--project <n>]  Show all fields for an element
-omm tree [perspective]             # Print element tree
-omm validate [element]             # Validate diagram(s)
-omm validate --changed             # Validate only changed elements (CI)
-omm validate --changed --json      # JSON output for CI pipelines
-omm diff <element>                 # Show diagram diff (added/removed nodes)
-omm refs <element>                 # Show incoming/outgoing references
-omm export <element> [--format svg|png|html] [-o file]  # Export diagram
-omm flows <element> [add|remove] [name]           # Manage flow animations
-omm eval [--json] [--threshold <score>] [--explain <el>] [--suggest] [--explain-json]
-                                             # Evaluate documentation quality
-omm validate [--explain | --rules]             # Validate diagrams with rule docs
-omm ref-syntax                                 # Document the @class-name convention
-omm diagram-refs <path> [--json]               # List @refs in diagram with pass/fail status
-omm show <element> --type                      # Show element type (perspective/leaf/group)
-omm incremental --mark <p> [--recursive] [--explain <el>]  # Mark + explain
-omm feedback [--format json] [--include "msg"] # Generate feedback report in .omm/
-omm help <cmd>                                # Drill down to per-command help
-omm tag <element> [add|remove|set|clear] [tags] # Manage element tags
-omm push [--to repo] [--commit]    # Push to architecture repository
-omm pull [--from repo] [--all]     # Pull from architecture repository
-omm share                          # Print arch repo URL (GitHub/GitLab)
-omm org list|switch|add|edit|remove  # Manage architecture repositories
-omm incremental                    # Plan a scoped re-scan based on git diff
-omm config language ko             # Set content language
-omm update                         # Update to latest version
+omm setup [platform|--list|--teardown]  Register/inspect skills for AI tools
+omm init [--template <name>]            Initialize .omm/ or scaffold from template
+omm update                             Update CLI + plugins to latest version
+omm config language <code>             Set content language (en, ko, ja, zh, tr)
+```
+
+### Reading & writing
+
+```bash
+omm list [--project <name>]             List perspectives (auto-detects arch repo)
+omm tree [perspective]                  Print element tree
+omm show <element>                      Show all fields for an element
+omm show <element> --type               Show element type (perspective/leaf/group)
+omm read <path> <field>                 Read a field to stdout
+omm write <path> <field> <text|->       Write a field
+omm status                              Show overview of all elements
+```
+
+### Validation
+
+```bash
+omm validate [path]                     Validate diagram(s) for syntax and conventions
+omm validate <path> --fix               Auto-fix fixable issues (writes back to file)
+omm validate --explain                  Document validation rules (full docs)
+omm validate --rules                    One-liner rule list
+omm validate --changed [--json]         Validate only changed elements (for CI)
+omm diff <element>                      Show diagram diff (added/removed nodes)
+omm refs <element>                      Show incoming/outgoing references
+omm ref-syntax                           Document the @class-name convention
+omm diagram-refs <path> [--json]         List @refs in a diagram with pass/fail status
+```
+
+### Quality
+
+```bash
+omm eval [--json] [--threshold <score>] Evaluate documentation quality
+omm eval --explain <element>            Show score breakdown for one element
+omm eval --explain <element> --json      Programmatic score breakdown (JSON)
+omm eval --suggest                       Top 10 elements to improve (by ROI)
+```
+
+### Viewer & flows
+
+```bash
+omm view [--port <p>] [--project <n>]    Open interactive viewer
+omm flows <element> [add|remove] [name] Manage flow animations
+omm tag <element> [add|remove|set|clear] [tags]
+                                       Manage element tags
+omm export <element> [--format svg|png|html] [-o file]
+                                       Export diagram as SVG, PNG, or self-contained HTML
+```
+
+### Incremental
+
+```bash
+omm incremental [--json]                Plan incremental /omm-scan updates
+omm incremental --mark <p> [--files ...] [--globs ...] [--replace] [--recursive]
+                                       Bootstrap source tracking for an element
+omm incremental --explain <element>      Show why element is stale/fresh/unknown
+omm incremental --record <p> [full|incremental]
+                                       Mark element as scanned at current commit
+```
+
+### Architecture repository
+
+```bash
+omm push [--to repo] [--commit]         Push .omm/ to architecture repository
+omm pull [--from repo] [--all]          Pull .omm/ from architecture repository
+omm arch init [--remote <url>]          Initialize architecture repository
+omm share                               Print arch repo URL (GitHub/GitLab)
+omm org list|switch|add|edit|remove    Manage architecture repositories
+```
+
+### Feedback
+
+```bash
+omm feedback                            Write .omm/feedback.md
+omm feedback --format json              Write .omm/feedback.json
+omm feedback --include "msg"            Add free-form message
+omm feedback --print                    Print to stdout
+omm feedback --out <path>               Custom output path
+```
+
+### Help
+
+```bash
+omm help                                Show full command list
+omm help <cmd>                          Drill down to per-command help
+omm <cmd> --help                        Per-command help (e.g. omm tag --help)
 ```
 
 Run `omm help` for the full command list.
@@ -121,12 +181,13 @@ Skills are commands you run **inside your AI coding tool** (not the terminal). T
 
 | Skill | What it does |
 | --- | --- |
-| `/omm-scan` | Analyze codebase → generate architecture docs |
-| `/omm-eval` | Evaluate quality and improve docs iteratively |
+| `/omm-scan` | Analyze codebase → generate architecture docs (with auto-improve loop) |
+| `/omm-eval` | Evaluate quality and improve docs iteratively (uses `omm eval`) |
 | `/omm-guide` | Walk through existing architecture interactively |
 | `/omm-push` | Push architecture docs to shared repository |
 | `/omm-view` | Open the web viewer |
 | `/omm-tag` | Tag elements with labels for categorization |
+| `/omm-feedback` | Generate feedback report in `.omm/feedback.md` |
 
 ## Viewer Features
 

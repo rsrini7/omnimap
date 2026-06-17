@@ -418,3 +418,6 @@ Tell the user:
 - **Write each field as a separate `omm write` command.** Each `omm write` must be its own Bash tool call.
 - Do not rewrite elements that haven't changed.
 - Do not create circular references. A child element must never reference its parent.
+- After writing all fields, run `omm validate <element>` to check for syntax errors. Use `omm validate --explain` for rule docs and `omm validate --fix` to auto-fix fixable issues like wrong classdef colors.
+- Use `omm ref-syntax` to learn the `@class-name` convention before writing cross-perspective refs.
+- Use `omm diagram-refs <element>` to verify refs in a diagram resolve correctly.

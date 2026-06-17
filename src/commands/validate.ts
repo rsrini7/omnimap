@@ -1,5 +1,6 @@
-import { ensureOmmForRead, listClasses, readField, classExists } from '../lib/store.js';
+import { ensureOmmForRead, listClasses, readField, classExists, writeField, writeNodeField, readNodeField } from '../lib/store.js';
 import { validateDiagram } from '../lib/validate.js';
+import { fixDiagram, type FixResult } from '../lib/fix-diagram.js';
 import { planIncrementalUpdate } from '../lib/incremental.js';
 import { getOmmDir } from '../lib/store.js';
 
@@ -40,6 +41,20 @@ export function commandValidate(className?: string, flags?: string[]): void {
   // --rules: list all validation rules
   if (flags?.includes('--rules')) {
     printRules();
+    return;
+  }
+
+  // --fix: auto-fix fixable issues (classdef-color) and write back
+  if (flags?.includes('--fix')) {
+    if (!className) {
+      process.stderr.write('error: omm validate <element> --fix (requires element path)\n');
+      process.exit(1);
+    }
+    if (!classExists(className)) {
+      process.stderr.write(`error: element '${className}' not found\n`);
+      process.exit(1);
+    }
+    runFix(className);
     return;
   }
 
@@ -198,4 +213,60 @@ function printRules(): void {
     process.stdout.write(`  ${rule.padEnd(maxLen + 2)} (${doc.level.padEnd(7)}) ${doc.description.split('.')[0]}\n`);
   }
   process.stdout.write('\nUse `omm validate --explain` for full docs.\n');
+}
+
+function runFix(className: string): void {
+  const allClasses = listClasses();
+  const parts = className.split('/');
+  const perspective = parts[0];
+  const nodePath = parts.slice(1);
+
+  const diagram = nodePath.length > 0
+    ? readNodeField(perspective, nodePath, 'diagram')
+    : readField(className, 'diagram');
+
+  if (!diagram) {
+    process.stderr.write(`error: ${className} has no diagram to fix\n`);
+    process.exit(1);
+  }
+
+  // Run validation to find issues
+  const result = validateDiagram(diagram, { className, allClasses });
+
+  if (result.issues.length === 0) {
+    process.stdout.write(`${className}: no issues to fix\n`);
+    return;
+  }
+
+  // Apply auto-fixes
+  const fix = fixDiagram(diagram, result.issues);
+
+  if (!fix.changed) {
+    process.stdout.write(`${className}: no auto-fixable issues\n`);
+    if (fix.unfixedIssues.length > 0) {
+      process.stdout.write(`  ${fix.unfixedIssues.length} issue(s) need manual fixing:\n`);
+      for (const i of fix.unfixedIssues) {
+        process.stdout.write(`    [${i.rule}] ${i.message}\n`);
+      }
+    }
+    return;
+  }
+
+  // Write the fixed diagram back
+  if (nodePath.length > 0) {
+    writeNodeField(perspective, nodePath, 'diagram', fix.fixed);
+  } else {
+    writeField(className, 'diagram', fix.fixed);
+  }
+
+  process.stdout.write(`${className}: fixed ${fix.fixedIssues.length} issue(s)\n`);
+  for (const i of fix.fixedIssues) {
+    process.stdout.write(`  ✓ [${i.rule}] ${i.message}\n`);
+  }
+  if (fix.unfixedIssues.length > 0) {
+    process.stdout.write(`  ${fix.unfixedIssues.length} issue(s) need manual fixing:\n`);
+    for (const i of fix.unfixedIssues) {
+      process.stdout.write(`    [${i.rule}] ${i.message}\n`);
+    }
+  }
 }

@@ -62,13 +62,15 @@ Once the viewer is running, the user has access to:
 | Feature | Where | What it does |
 |---------|-------|-------------|
 | **Mermaid diagram** | Main canvas | Auto-layout SVG with dagre, click to inspect |
-| **Rich view** | Sidebar → Rich tab | Interactive SVG with flow animation |
+| **Rich view** | Sidebar → Rich tab | Interactive SVG with flow animation (in-tab flow chips) |
 | **Flow chips** | Bottom of canvas | Click to animate paths through the diagram |
-| **D3 network** | ⬡ button | Force-directed view of all elements |
+| **D3 network** | ⬡ button | Force-directed view of all elements + relationships |
 | **Relationship graph** | ◈ button | Cross-perspective connections (dagre layout) |
 | **HTML export** | ↓ → HTML | Self-contained .html file with interactive SVG |
+| **Element type** | `omm show <el> --type` | CLI command to show perspective/leaf/group type |
 | **Search** | Left sidebar | Fuzzy matching with `tag:` filter |
-| **Theme** | ○ button | Dark/light toggle with system preference detection |
+| **Theme** | ○ button | Dark/light toggle with `prefers-color-scheme` + localStorage persistence |
+| **Help tooltips** | Hover any button | Native browser tooltips explain each button |
 
 Tell the user to explore these features and use `/omm-feedback` if anything is confusing or broken.
 

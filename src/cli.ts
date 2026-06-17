@@ -51,6 +51,7 @@ Usage:
   omm diff <path>                   Compare current vs previous diagram
   omm refs <path>                   Show elements that reference this element
   omm validate [path]               Validate diagram(s) for syntax and conventions
+  omm validate <path> --fix         Auto-fix fixable issues (writes back)
   omm validate --explain|--rules   Document validation rules
   omm view [--port <port>]         Start web viewer (default: 3000)
   omm incremental [--json|--mark|--record]  Plan or record incremental scan updates

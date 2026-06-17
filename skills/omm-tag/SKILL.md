@@ -51,9 +51,14 @@ omm tag <element> set microservice,security,external-api
 omm tag <element> clear
 ```
 
-### Get help
+### Get help (works now — was crashing before)
 ```bash
 omm tag --help
+```
+
+### Per-command help via omm help
+```bash
+omm help tag
 ```
 
 ### Nested elements

@@ -36,6 +36,18 @@ Ask the user what they want to report. If they have a specific message, capture 
 - "What did you expect to happen?"
 - "What command did you run?"
 
+Before writing feedback, also try the diagnostic commands so the feedback includes the actual state:
+
+```bash
+omm eval --json                       # current eval state (includes scoreBreakdown per element)
+omm eval --explain <element>         # score breakdown for one element
+omm validate <element>                # diagram validation
+omm diagram-refs <element>            # resolved @refs
+omm show <element> --type             # element classification
+```
+
+These help the maintainer understand the context. Include the output in the feedback if it helps explain the issue.
+
 Capture the answers in the `--include` argument.
 
 ## Step 2: Generate the Feedback Report
