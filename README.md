@@ -90,7 +90,8 @@ omm validate --changed             # Validate only changed elements (CI)
 omm validate --changed --json      # JSON output for CI pipelines
 omm diff <element>                 # Show diagram diff (added/removed nodes)
 omm refs <element>                 # Show incoming/outgoing references
-omm export <element> [--format svg|png] [-o file]  # Export diagram
+omm export <element> [--format svg|png|html] [-o file]  # Export diagram
+omm flows <element> [add|remove] [name]           # Manage flow animations
 omm tag <element> [add|remove|set] [tags]          # Manage element tags
 omm push [--to repo] [--commit]    # Push to architecture repository
 omm pull [--from repo] [--all]     # Pull from architecture repository
@@ -124,8 +125,8 @@ The web viewer (`omm view`) includes:
 | **Diagram + Code tabs** | Toggle between rendered SVG and syntax-highlighted mermaid source |
 | **Search** | Full-text search with fuzzy matching, `tag:` filter, and markdown-rendered snippets |
 | **Validate** | Click "Validate Diagram" in sidebar to check for errors/warnings inline |
-| **Export** | Download diagrams as SVG or PNG with project title. Theme-aware background |
-| **Visual diff** | Show added/removed nodes between diagram versions |
+| **Export** | Download diagrams as SVG, PNG, or self-contained HTML with project title |
+| **Flow animation** | Click flow chips to animate paths through the diagram (edges glow, nodes highlight) |
 | **Relationship graph** | Bird's-eye view of cross-perspective connections (◈ button) |
 | **Version history** | Timeline slider to scrub through past diagram versions |
 | **Keyboard shortcuts** | `/` search, `F` fit, `T` theme, `←→` navigate, `Esc` close |
@@ -136,6 +137,81 @@ The web viewer (`omm view`) includes:
 | **Auto-width nav** | Left panel auto-sizes to fit the longest perspective name |
 | **Viewport-responsive fonts** | Font sizes scale with monitor width for readability |
 | **Diagram templates** | Scaffold from pre-built architectures via `omm init --template` |
+
+## Flows
+
+Flows define animated paths through your diagrams. Each flow is a sequence of nodes and edges that highlight together when activated.
+
+### Creating flows
+
+```bash
+# List flows for an element
+omm flows overall-architecture
+
+# Add a flow (reads YAML from stdin)
+omm flows overall-architecture add "Request Path" <<'EOF'
+name: Request Path
+description: How a request flows through the system
+steps:
+  - node: client
+  - edge: client->gateway
+  - node: gateway
+  - edge: gateway->service
+  - node: service
+EOF
+
+# Remove a flow
+omm flows overall-architecture remove "Request Path"
+```
+
+### Flow YAML format
+
+```yaml
+name: Install
+description: Developer installs skills via CLI
+steps:
+  - node: user          # highlight this node
+  - edge: user->cli     # highlight this edge (from->to)
+  - node: cli
+  - edge: cli->output
+  - node: output
+```
+
+- `node` steps reference node IDs from the diagram
+- `edge` steps reference `from->to` where from/to are node IDs
+- Steps are ordered — they define the visual animation sequence
+
+### Using flows in the viewer
+
+1. Open `omm view`
+2. Click any element — flow chips appear at the bottom
+3. Click a chip to animate the path
+4. Click again to deactivate
+
+### Auto-generation
+
+The `/omm-scan` skill generates flows automatically during scan. It traces paths from entry points to terminal nodes and creates 2-5 flows per perspective.
+
+## HTML Export
+
+Export any element as a **self-contained HTML file** with interactive SVG, flow animation, dark mode, and clickable detail cards.
+
+```bash
+# CLI
+omm export command-surface --format html -o diagram.html
+
+# Viewer
+# Click any element → ↓ button → HTML
+```
+
+The HTML file:
+- Is completely self-contained (no external dependencies except dagre.js CDN)
+- Includes dark/light theme toggle with `prefers-color-scheme` detection
+- Has flow animation chips (if flows are defined)
+- Shows detail cards on node click (description, context, concern, constraint)
+- Works offline after first load (dagre.js is cached by the browser)
+
+> **Note:** When opening exported HTML files from `file://` URLs, browsers may show a security warning in the console. This is harmless — the diagram renders correctly. The warning disappears when served from a web server.
 
 ## Project picker
 
