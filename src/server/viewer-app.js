@@ -152,7 +152,8 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   const nodeDims  = {}; // nodeId -> { width, height }
 
   // Determine children of current element for subgroup resolution
-  const currentChildren = (level === 0 ? (childrenByPerspective[cls] || []) : (classesData[cls]?.children || []));
+  // Use FULL path to check diagram — avoids short-name collision
+  const currentChildren = (level === 0 ? (childrenByPerspective[cls] || []) : (classesData[scopedPath]?.children || classesData[cls]?.children || []));
 
   for (const n of nodes) {
     // Resolve subgroup: @ref (legacy) OR node ID is a child of current element with its own diagram
@@ -1194,9 +1195,8 @@ function buildCanvas(classes, classesData, refsData) {
   // Top-level = not referenced, OR referenced but has more outgoing refs than any referrer (cycle breaker)
   let topLevel = classes.filter(c => inCount[c] === 0);
   if (!topLevel.length) {
-    // All classes have incoming refs (circular). Pick the one with most outgoing refs as root.
-    const maxOut = Math.max(...classes.map(c => outCount[c]));
-    topLevel = classes.filter(c => outCount[c] === maxOut);
+    // All classes have incoming refs (circular). Render all as independent groups.
+    topLevel = [...classes];
   }
   const roots = topLevel;
 
