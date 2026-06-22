@@ -551,10 +551,27 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 .sb-diagram { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
 .sb-diagram svg { display: block; width: 100%; height: auto; overflow: visible; }
 .sb-diagram-view { padding: 16px; }
-.sb-diagram-toggle { display: flex; border-bottom: 1px solid var(--border-muted); }
+.sb-diagram-toggle { display: flex; border-bottom: 1px solid var(--border-muted); align-items: center; }
 .sb-diagram-tab { background: none; border: none; color: var(--text-muted); padding: 8px 16px; font-size: 11px; font-family: var(--mono); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
 .sb-diagram-tab:hover { color: var(--text-mid); }
 .sb-diagram-tab.active { color: var(--text-body); border-bottom-color: var(--accent); }
+.sb-diagram-expand { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px 10px; font-size: 14px; transition: all .15s; border-left: 1px solid var(--border-muted); }
+.sb-diagram-expand:hover { color: var(--text); background: var(--surface3); }
+
+/* Fullscreen diagram overlay */
+#diagram-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg); z-index: 9999; flex-direction: column; }
+#diagram-overlay.show { display: flex; }
+#diagram-overlay-header { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); gap: 12px; flex-shrink: 0; }
+#diagram-overlay-title { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+#diagram-overlay-controls { display: flex; align-items: center; gap: 8px; }
+#diagram-overlay-controls button { background: var(--surface2); border: 1px solid var(--border); color: var(--text-body); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; transition: all .15s; }
+#diagram-overlay-controls button:hover { background: var(--surface3); border-color: var(--accent); color: var(--text); }
+#diagram-overlay-zoom { font-size: 12px; color: var(--text-muted); font-family: var(--mono); min-width: 48px; text-align: center; }
+#diagram-overlay-close { background: none !important; border: none !important; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+#diagram-overlay-close:hover { color: var(--error); }
+#diagram-overlay-body { flex: 1; overflow: hidden; position: relative; cursor: grab; }
+#diagram-overlay-body.grabbing { cursor: grabbing; }
+#diagram-overlay-body svg { position: absolute; transform-origin: 0 0; }
 .sb-code-view { padding: 0; max-height: 300px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--surface4) transparent; }
 .sb-rich-view { padding: 0; max-height: 400px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--surface4) transparent; }
 .sb-rich-canvas { padding: 0; }
@@ -781,6 +798,20 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 
 <div id="mobile-nav-btn" onclick="toggleMobileNav()"><span>☰</span><span id="mobile-title">omm</span></div>
 <div id="mobile-overlay" onclick="toggleMobileNav()"></div>
+<div id="diagram-overlay">
+  <div id="diagram-overlay-header">
+    <span id="diagram-overlay-title">Diagram</span>
+    <div id="diagram-overlay-controls">
+      <button onclick="diagramOverlayZoom(0.25)" title="Zoom in">+</button>
+      <span id="diagram-overlay-zoom">100%</span>
+      <button onclick="diagramOverlayZoom(-0.25)" title="Zoom out">−</button>
+      <button onclick="diagramOverlayFit()" title="Fit to window">Fit</button>
+      <button onclick="diagramOverlayReset()" title="Reset zoom">Reset</button>
+    </div>
+    <button id="diagram-overlay-close" onclick="closeDiagramOverlay()" title="Close (Esc)">✕</button>
+  </div>
+  <div id="diagram-overlay-body"></div>
+</div>
 <div id="canvas-wrap">
   <div class="float-controls">
     <button class="hbtn" onclick="zoomOut()" title="Zoom out">−</button>

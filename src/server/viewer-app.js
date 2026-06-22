@@ -1025,6 +1025,7 @@ function openSidebar(cls, origCls) {
         <button class="sb-diagram-tab active" onclick="window.__showDiagramTab('diagram')">Diagram</button>
         <button class="sb-diagram-tab" onclick="window.__showDiagramTab('code')">Code</button>
         <button class="sb-diagram-tab" onclick="window.__showDiagramTab('rich')">Rich</button>
+        <button class="sb-diagram-expand" onclick="openDiagramOverlay()" title="Expand diagram (fullscreen, zoom)">⛶</button>
       </div>
       <div class="sb-diagram-view">${svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>'}</div>
       <div class="sb-code-view" style="display:none"><pre class="sb-code-pre">${codeHtml}</pre></div>
@@ -2541,6 +2542,112 @@ function renderNetworkGraph() {
     node.attr('transform', d => `translate(${d.x},${d.y})`);
   });
 }
+
+// ── diagram overlay ─────────────────────────────────────────
+let _overlayScale = 1;
+let _overlayPanX = 0, _overlayPanY = 0;
+let _overlayPanning = false, _overlayPanStart = { x: 0, y: 0 };
+
+window.openDiagramOverlay = function() {
+  const sbView = document.querySelector('#sb-diagram .sb-diagram-view');
+  if (!sbView) return;
+  const svg = sbView.querySelector('svg');
+  if (!svg) return;
+
+  const overlay = document.getElementById('diagram-overlay');
+  const body = document.getElementById('diagram-overlay-body');
+  const title = document.getElementById('diagram-overlay-title');
+  title.textContent = sbTitle.textContent + ' — Diagram';
+
+  // Clone SVG into overlay
+  body.innerHTML = '';
+  const clone = svg.cloneNode(true);
+  clone.style.position = 'absolute';
+  clone.style.transformOrigin = '0 0';
+  body.appendChild(clone);
+
+  _overlayScale = 1;
+  _overlayPanX = 0;
+  _overlayPanY = 0;
+  applyOverlayTransform();
+  overlay.classList.add('show');
+
+  // Fit to window after a tick
+  requestAnimationFrame(() => diagramOverlayFit());
+}
+
+window.closeDiagramOverlay = function() {
+  document.getElementById('diagram-overlay').classList.remove('show');
+  document.getElementById('diagram-overlay-body').innerHTML = '';
+};
+
+function applyOverlayTransform() {
+  const svg = document.querySelector('#diagram-overlay-body svg');
+  if (!svg) return;
+  svg.style.transform = `translate(${_overlayPanX}px, ${_overlayPanY}px) scale(${_overlayScale})`;
+  document.getElementById('diagram-overlay-zoom').textContent = Math.round(_overlayScale * 100) + '%';
+}
+
+window.diagramOverlayZoom = function(delta) {
+  _overlayScale = Math.max(0.1, Math.min(5, _overlayScale + delta));
+  applyOverlayTransform();
+}
+
+window.diagramOverlayFit = function() {
+  const body = document.getElementById('diagram-overlay-body');
+  const svg = body.querySelector('svg');
+  if (!svg) return;
+  const bw = body.clientWidth, bh = body.clientHeight;
+  const sw = svg.getBoundingClientRect().width / _overlayScale;
+  const sh = svg.getBoundingClientRect().height / _overlayScale;
+  if (sw === 0 || sh === 0) return;
+  _overlayScale = Math.min(bw / sw, bh / sh, 2) * 0.9;
+  _overlayPanX = (bw - sw * _overlayScale) / 2;
+  _overlayPanY = (bh - sh * _overlayScale) / 2;
+  applyOverlayTransform();
+}
+
+window.diagramOverlayReset = function() {
+  _overlayScale = 1;
+  _overlayPanX = 0;
+  _overlayPanY = 0;
+  applyOverlayTransform();
+}
+
+// Pan with mouse drag
+document.addEventListener('mousedown', (e) => {
+  if (e.target.closest('#diagram-overlay-body')) {
+    _overlayPanning = true;
+    _overlayPanStart = { x: e.clientX - _overlayPanX, y: e.clientY - _overlayPanY };
+    document.getElementById('diagram-overlay-body').classList.add('grabbing');
+    e.preventDefault();
+  }
+});
+document.addEventListener('mousemove', (e) => {
+  if (!_overlayPanning) return;
+  _overlayPanX = e.clientX - _overlayPanStart.x;
+  _overlayPanY = e.clientY - _overlayPanStart.y;
+  applyOverlayTransform();
+});
+document.addEventListener('mouseup', () => {
+  _overlayPanning = false;
+  const body = document.getElementById('diagram-overlay-body');
+  if (body) body.classList.remove('grabbing');
+});
+
+// Scroll to zoom
+document.addEventListener('wheel', (e) => {
+  if (!e.target.closest('#diagram-overlay-body')) return;
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.1 : 0.1;
+  _overlayScale = Math.max(0.1, Math.min(5, _overlayScale + delta));
+  applyOverlayTransform();
+}, { passive: false });
+
+// Esc to close
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDiagramOverlay();
+});
 
 // ── export ────────────────────────────────────────────────
 setupExport(() => selectedCls, () => classesData, renderFlatSVG);
