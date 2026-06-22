@@ -64,6 +64,20 @@ On success, output:
 - Use `--commit` for local-only commits (no remote push)
 - The arch repo path is global (~/.omm/config.yaml) — works from any project
 
+## Related: Merging from other projects
+
+If the user wants to combine `.omm/` docs from multiple projects into one:
+
+```bash
+# Merge another project's docs into current .omm/
+omm merge ../other-project/.omm
+
+# Merge into a custom output directory
+omm merge ../other-project/.omm --out ./merged-docs
+```
+
+The merge copies perspectives and child elements that don't already exist (target wins on conflicts).
+
 ## Suggesting Feedback
 
 If the user reports issues with push (e.g., "Push fails silently", "Conflict resolution is unclear", "I expected a different merge behavior"), tell them:

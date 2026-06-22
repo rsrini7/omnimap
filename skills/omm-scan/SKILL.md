@@ -412,7 +412,10 @@ The user can disable auto-improvement by passing `--no-improve` to `/omm-scan`. 
 
 ## Step 6: Summarize
 
-Report what was created/updated and the final quality score from the improvement loop. Suggest `omm view` to view.
+Report what was created/updated and the final quality score from the improvement loop. Suggest:
+- `omm view` to visualize the documentation
+- `omm wiki` to generate a crawlable markdown wiki for sharing with the team
+- `omm tour --limit 20` to generate a guided reading order for onboarding
 
 ## Step 7: Suggest Feedback
 

@@ -36,13 +36,14 @@ Run `omm list`. If it shows "Architecture repository (N projects)":
 
 ## Step 1: Pick a starting point
 
-1. If user passed `[topic]`, choose the most relevant perspective/class by scanning these fields (in order):
+1. Run `omm tour --limit 10` to get a dependency-ordered reading list. Use this as the starting point for onboarding.
+2. If user passed `[topic]`, choose the most relevant perspective/class by scanning these fields (in order):
    - description
    - context
    - constraint
    - todo
-2. If no topic, start from `overall-architecture` if it exists.
-3. If `overall-architecture` doesn't exist, pick the first perspective returned by `omm list`.
+3. If no topic, start from `overall-architecture` if it exists.
+4. If `overall-architecture` doesn't exist, pick the first perspective returned by `omm list`.
 
 ---
 
@@ -70,6 +71,7 @@ For the current selected element `<E>`:
    - `omm refs <E>` to see incoming references
    - `omm refs --reverse <E>` to see outgoing references
    - `omm diagram-refs <E>` to see resolved @refs and pass/fail
+   - `omm search <E>` to find related elements
 2. Present:
    - Description (short)
    - Context (why/decisions)
