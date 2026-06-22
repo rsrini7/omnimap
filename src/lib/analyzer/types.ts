@@ -1,3 +1,5 @@
+import type { RouteInfo } from './routes.js';
+
 export interface ImportInfo {
   source: string;
   specifiers: string[];
@@ -34,6 +36,7 @@ export interface FileAnalysis {
   exports: ExportInfo[];
   definitions: DefinitionInfo[];
   calls: CallInfo[];
+  routes?: RouteInfo[];
   error?: string;
 }
 

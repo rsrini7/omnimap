@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { getHandlerForFile, getSupportedExtensions } from './registry.js';
+import { extractRoutes } from './routes.js';
 import type { FileAnalysis, DependencyGraph, DependencyNode, DependencyEdge, ModuleBoundary, AnalysisResult } from './types.js';
 
 export type { FileAnalysis, DependencyGraph, DependencyNode, DependencyEdge, ModuleBoundary, AnalysisResult } from './types.js';
@@ -108,9 +109,10 @@ export async function analyzeFile(filePath: string, rootDir: string): Promise<Fi
       exports: handler.extractExports(tree, source),
       definitions: handler.extractDefinitions(tree, source),
       calls: handler.extractCalls(tree, source),
+      routes: extractRoutes(tree, source, relPath),
     };
   } catch (err: any) {
-    return { file: relPath, language: handler.name, imports: [], exports: [], definitions: [], calls: [], error: err.message };
+    return { file: relPath, language: handler.name, imports: [], exports: [], definitions: [], calls: [], routes: [], error: err.message };
   }
 }
 

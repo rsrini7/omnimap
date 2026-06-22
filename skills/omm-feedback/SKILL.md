@@ -46,8 +46,11 @@ omm diagram-refs <element>            # resolved @refs
 omm show <element> --type             # element classification
 omm analyze --validate                # docs vs actual code structure comparison
 omm analyze --impact <file>           # change impact for a specific file
+omm analyze --routes                  # framework route extraction
 omm search <query>                    # fuzzy search across elements
+omm sync --search <query>             # full-text search via SQLite
 omm tour --limit 10                   # guided reading order
+omm affected --staged                 # test files impacted by changes
 ```
 
 These help the maintainer understand the context. Include the output in the feedback if it helps explain the issue.

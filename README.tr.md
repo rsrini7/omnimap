@@ -89,8 +89,12 @@ omm analyze [--format md|json]     # tree-sitter ile yapısal analiz (bağımlı
 omm analyze --validate             # Belgelenen mimari vs gerçek kod yapısını karşılaştır
 omm analyze --impact <file>        # Dosya değişikliğinin etki alanını analiz et
 omm search <query>                 # Öğre ad/açıklama/yol bulanık araması
+omm sync [--search <query>]        # .omm/’ü SQLite’a senkronize et (FTS5 arama)
 omm tour [dir] [--limit n]         # Bağımlılık sırasına göre rehberli tur
 omm wiki                       # Taranabilir markdown wiki oluştur
+omm affected [files...] [--staged] # Değişikliklerden etkilenen test dosyalarını bul
+omm mcp [--port <port>]            # AI ajanları için MCP sunucusu başlat
+omm watch [dir]                    # Dosya değişikliklerinde omm analyze otomatik çalıştır
 omm merge <source>                 # Başka bir .omm/’ü mevcut olana birleştir
 omm view --share                   # Ağ paylaşımı görüntüleyici aç
 ```

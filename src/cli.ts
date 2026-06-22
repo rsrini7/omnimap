@@ -36,8 +36,12 @@ import { commandTour } from './commands/tour.js';
 import { commandWiki } from './commands/wiki.js';
 import { commandSearch } from './commands/search.js';
 import { commandMerge } from './commands/merge.js';
+import { commandSync } from './commands/sync.js';
+import { commandAffected } from './commands/affected.js';
+import { commandMcp } from './commands/mcp.js';
+import { commandWatch } from './commands/watch.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -75,6 +79,10 @@ Usage:
   omm wiki [--out dir]                              Generate crawlable markdown wiki
   omm search <query>                                Fuzzy search across elements
   omm merge <source> [--out dir]                    Merge another .omm/ into current
+  omm sync [--search <query>]                       Sync .omm/ to SQLite for FTS5 search
+  omm affected [files...] [--staged] [--diff ref]   Find test files impacted by changes
+  omm mcp [--port <port>]                           Start MCP server for AI agents
+  omm watch [dir] [--debounce ms]                   Auto-run omm analyze on file changes
   omm view [--port p] [--share]                     Open viewer (--share for network access)
   omm show <path> --type            Show element type (perspective/leaf/group)
   omm ref-syntax                    Document the @class-name convention
@@ -309,6 +317,22 @@ async function main(): Promise<void> {
 
     case 'merge':
       commandMerge(args.slice(1));
+      return;
+
+    case 'sync':
+      await commandSync(args.slice(1));
+      return;
+
+    case 'affected':
+      await commandAffected(args.slice(1));
+      return;
+
+    case 'mcp':
+      await commandMcp(args.slice(1));
+      return;
+
+    case 'watch':
+      await commandWatch(args.slice(1));
       return;
 
     default:

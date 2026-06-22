@@ -54,6 +54,24 @@ function detectArchRepo(): { isArch: boolean; projects: string[]; ommDir: string
 export function startServer(port: number, host: string = '127.0.0.1'): void {
   startWatcher();
 
+  // Connect-time catch-up: check when last analysis ran
+  const ommDir = getOmmDir();
+  if (ommDir) {
+    const logPath = path.join(ommDir, 'analyze.log');
+    if (fs.existsSync(logPath)) {
+      const log = fs.readFileSync(logPath, 'utf-8').trim();
+      const lastLine = log.split('\n').pop();
+      if (lastLine) {
+        const ts = lastLine.split('  ')[0];
+        const age = Date.now() - new Date(ts).getTime();
+        const mins = Math.round(age / 60000);
+        if (mins > 60) {
+          process.stderr.write(`  Last analysis: ${Math.round(mins / 60)}h ago — consider running \`omm analyze\` for fresh data\n`);
+        }
+      }
+    }
+  }
+
   // Detect once at startup — no per-request global mutation
   const archInfo = detectArchRepo();
 

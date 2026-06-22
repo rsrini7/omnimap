@@ -22,6 +22,7 @@ import {
   findGodNodes, formatGodNodes, detectCommunities, formatCommunities,
   generateTour, formatTour, formatLayerSummary,
 } from '../lib/analyzer/insights.js';
+import { extractRoutes, formatRoutes } from '../lib/analyzer/routes.js';
 
 
 const HELP = `
@@ -37,8 +38,9 @@ Usage:
   omm analyze --format json          Output as JSON
   omm analyze --diagram              Auto-generate Mermaid dependency diagram
   omm analyze --validate             Compare .omm/ docs vs actual structure
-  omm analyze --impact <file>        Show change impact for a file
-  omm analyze --extensions           Show supported file extensions
+  omm analyze --impact <file>             Show change impact for a file
+  omm analyze --routes                    Extract framework routes (Express, Django, Spring, etc.)
+  omm analyze --extensions                Show supported file extensions
 
 Insights (included in --format md):
   - Circular dependency detection
@@ -74,10 +76,11 @@ interface ParsedArgs {
   extensions: boolean;
   help: boolean;
   impact: string | undefined;
+  routes: boolean;
 }
 
 function parseArgs(args: string[]): ParsedArgs {
-  const out: ParsedArgs = { dir: '.', format: 'md', diagram: false, validate: false, extensions: false, help: false, impact: undefined };
+  const out: ParsedArgs = { dir: '.', format: 'md', diagram: false, validate: false, extensions: false, help: false, impact: undefined, routes: false };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--format' && args[i + 1]) {
@@ -88,6 +91,7 @@ function parseArgs(args: string[]): ParsedArgs {
     else if (a === '--validate') out.validate = true;
     else if (a === '--extensions') out.extensions = true;
     else if (a === '--impact' && args[i + 1]) out.impact = args[++i];
+    else if (a === '--routes') out.routes = true;
     else if (a === '--help' || a === '-h') out.help = true;
     else if (!a.startsWith('--')) out.dir = a;
   }
@@ -265,6 +269,11 @@ export async function commandAnalyze(args: string[]): Promise<void> {
     process.stdout.write(formatAnalysisJSON(result) + '\n');
   } else {
     process.stdout.write(formatAnalysisMarkdown(result));
+
+    if (parsed.routes) {
+      const allRoutes = result.files.flatMap(f => f.routes || []);
+      process.stdout.write(formatRoutes(allRoutes));
+    }
 
     // Append insights
     const cycles = findCycles(result.graph);

@@ -50,11 +50,20 @@ omm analyze --validate
 # Show change impact for a specific file
 omm analyze --impact <file>
 
-# Search across all elements
+# Extract framework routes
+omm analyze --routes
+
+# Search across all elements (fuzzy)
 omm search <query>
+
+# Full-text search via SQLite
+omm sync --search <query>
 
 # Guided tour (read in dependency order)
 omm tour --limit 20
+
+# Find test files impacted by changes
+omm affected --staged
 
 # Show element type (perspective/leaf/group) and why
 omm show <element> --type

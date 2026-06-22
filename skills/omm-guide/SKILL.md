@@ -57,6 +57,9 @@ Show:
 - the architectural fitness score from `omm analyze --format md` — a 0-100 score covering circular deps, cohesion, coupling, layer purity, and doc accuracy
 - the guided tour: `omm tour --limit 20` — read files in dependency order to understand the codebase
 - fuzzy search: `omm search <query>` — find elements by name, description, or path
+- full-text search: `omm sync --search <query>` — SQLite FTS5 search (requires `better-sqlite3`)
+- framework routes: `omm analyze --routes` — see Express/Django/Spring/etc. routing
+- affected tests: `omm affected --staged` — find test files impacted by recent changes
 
 ---
 

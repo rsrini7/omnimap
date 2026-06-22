@@ -195,6 +195,7 @@ Supported languages: JavaScript, TypeScript, Java, Kotlin, Scala, Python, Go, Ru
 ```bash
 omm query <question> [--json]           Query dependency graph (no LLM)
 omm search <query>                      Fuzzy search across elements
+omm sync [--search <query>]             Sync .omm/ to SQLite for FTS5 search
 ```
 
 Query patterns: `"what connects X to Y"`, `"who imports X"`, `"cycles"`, `"hotspots"`, `"dead"`
@@ -210,8 +211,11 @@ omm wiki [--out dir]                    Generate crawlable markdown wiki
 
 ```bash
 omm hooks [install|uninstall|status]    Manage git hooks for auto-analysis
+omm watch [dir] [--debounce ms]         Auto-run omm analyze on file changes
 omm pr [number|branch] [--staged]       Show PR/module impact
+omm affected [files...] [--staged]      Find test files impacted by changes
 omm merge <source> [--out dir]          Merge another .omm/ into current
+omm mcp [--port <port>]                 Start MCP server for AI agents
 omm view [--port p] [--share]           Open viewer (--share for network access)
 ```
 
