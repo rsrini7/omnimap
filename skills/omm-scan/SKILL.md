@@ -33,12 +33,25 @@ Write field content (description, context, constraint, concern, todo, note) in t
 
 ## Step 1: Explore the Codebase
 
-Use Glob and Read to understand the project:
+Run the structural analyzer first to get deterministic code facts:
 
+```bash
+omm analyze --format md
+```
+
+This gives you a structured foundation:
+- **Dependency graph** — what imports what, with resolved paths
+- **Public API surface** — exported functions, classes, types
+- **Module boundaries** — directory-level cohesion scores
+- **Definitions** — all functions, classes, methods with line numbers
+
+Use this as the **deterministic anchor**. Then read key files for semantic context:
 - Read `package.json`, `pyproject.toml`, or equivalent manifests
-- List top-level directories to identify module boundaries
-- Read key entry points (main, index, app files)
 - Look for route definitions, service layers, database connections, external integrations
+- Read business logic to understand constraints, concerns, and design rationale
+
+If tree-sitter is not installed (`omm analyze` shows "parser not available"), fall back to
+Glob and Read to understand the project structure manually.
 
 ## Step 1.5: Plan an incremental update (when updating an existing scan)
 

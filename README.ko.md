@@ -85,6 +85,8 @@ omm view                           # 인터랙티브 뷰어 열기
 omm config language ko             # 콘텐츠 언어 설정
 omm incremental                    # git diff 기반 증분 재스캔 계획
 omm update                         # 최신 버전으로 업데이트
+omm analyze [--format md|json]     # tree-sitter 기반 구조 분석 (의존 그래프, API, 모듈)
+omm analyze --validate             # 문서화된 아키텍처 vs 실제 코드 구조 비교
 ```
 
 전체 명령어는 `omm help`를 참고하세요.

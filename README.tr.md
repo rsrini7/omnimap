@@ -85,6 +85,8 @@ omm view                           # Etkileşimli görüntüleyiciyi aç
 omm config language ko             # İçerik dilini ayarla
 omm incremental                    # git diff'e dayalı kademeli yeniden tarama planla
 omm update                         # En güncel sürüme geç
+omm analyze [--format md|json]     # tree-sitter ile yapısal analiz (bağımlılık grafiği, API, modüller)
+omm analyze --validate             # Belgelenen mimari vs gerçek kod yapısını karşılaştır
 ```
 
 Tüm komutları görmek için `omm help` çalıştırın.

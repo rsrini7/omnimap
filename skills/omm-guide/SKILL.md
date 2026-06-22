@@ -52,6 +52,7 @@ Show:
 - how to navigate in the viewer (`omm view`) — main canvas, Rich tab, D3 network (⬡), relationship graph (◈), search, theme toggle
 - that each perspective/element has fields: description, diagram, context, constraint, concern, todo, note
 - how to interpret `@class-name` references (use `omm ref-syntax` to see the convention)
+- how to verify docs match reality: `omm analyze --validate` compares documented edges against actual import dependencies
 
 ---
 

@@ -54,6 +54,8 @@ omm view
 
 Your AI analyzes the codebase and generates **perspectives** — different lenses on your architecture (structure, data flow, integrations...). Each perspective contains a Mermaid diagram and documentation fields.
 
+`omm analyze` uses tree-sitter AST parsing to extract dependency graphs, public API surfaces, and module boundaries — giving the AI a deterministic structural anchor before semantic analysis.
+
 Every node gets **recursively analyzed**. Complex nodes become nested child elements with their own diagrams. Simple ones stay as leaves. The filesystem reflects the tree:
 
 ```
@@ -164,6 +166,17 @@ omm feedback --include "msg"            Add free-form message
 omm feedback --print                    Print to stdout
 omm feedback --out <path>               Custom output path
 ```
+
+### Analysis
+
+```bash
+omm analyze [dir] [--format md|json]   Structural code analysis (tree-sitter)
+omm analyze --diagram                   Auto-generate Mermaid diagram from import graph
+omm analyze --validate                  Compare .omm/ docs vs actual code structure
+omm analyze --extensions                Show supported file extensions
+```
+
+Supported languages: JavaScript, TypeScript, Java, Kotlin, Scala, Python, Go, Rust.
 
 ### Help
 

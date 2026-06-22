@@ -3,6 +3,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import YAML from 'yaml';
 import type { ClassMeta } from '../types.js';
+import type { FingerprintDelta } from './analyzer/types.js';
 import { getOmmDir } from './store.js';
 
 const META_FILE = 'meta.yaml';
@@ -471,4 +472,65 @@ export function recordScanGeneration(
   meta.scan_generation = { mode, git_commit: commit, at: new Date().toISOString() };
   meta.updated = new Date().toISOString();
   writeMetaFile(metaPath, meta);
+}
+
+// ---------- AST Fingerprint integration ----------
+
+const FINGERPRINT_CACHE_FILE = '.fingerprint-cache.json';
+
+/**
+ * Get the path to the fingerprint cache file inside .omm/.
+ */
+export function getFingerprintCachePath(ommDir: string = getOmmDir()): string {
+  return path.join(ommDir, FINGERPRINT_CACHE_FILE);
+}
+
+/**
+ * Map fingerprint deltas to stale elements. More precise than file-level matching.
+ * A delta with added/removed definitions triggers re-analysis of the element
+ * that owns that file.
+ */
+export function mapFingerprintsToElements(
+  deltas: FingerprintDelta[],
+  ommDir: string = getOmmDir(),
+): StaleElement[] {
+  const elements = loadElementIndex(ommDir);
+  const staleMap = new Map<string, StaleElement>();
+
+  for (const delta of deltas) {
+    if (!delta.hasChanges) continue;
+
+    for (const el of elements) {
+      const sourceFiles = el.meta.source_files ?? [];
+      const sourceGlobs = el.meta.source_globs ?? [];
+
+      const matchesFile = sourceFiles.some(sf => fileMatchesPath(delta.file, sf));
+      const matchesGlob = fileMatchesAnyGlob(delta.file, sourceGlobs);
+
+      if (matchesFile || matchesGlob) {
+        let s = staleMap.get(el.elementPath);
+        if (!s) {
+          s = { elementPath: el.elementPath, matchedFiles: [], reasons: [] };
+          staleMap.set(el.elementPath, s);
+        }
+        s.matchedFiles.push(delta.file);
+        s.reasons.push('source_file');
+      }
+    }
+  }
+
+  return [...staleMap.values()].sort((a, b) => a.elementPath.localeCompare(b.elementPath));
+}
+
+/**
+ * Format a fingerprint delta summary for display.
+ */
+export function formatFingerprintDelta(delta: FingerprintDelta): string {
+  if (!delta.hasChanges) return `${delta.file}: no structural changes`;
+
+  const parts: string[] = [];
+  if (delta.added.length > 0) parts.push(`+${delta.added.length} added`);
+  if (delta.removed.length > 0) parts.push(`-${delta.removed.length} removed`);
+  if (delta.modified.length > 0) parts.push(`~${delta.modified.length} modified`);
+  return `${delta.file}: ${parts.join(', ')}`;
 }

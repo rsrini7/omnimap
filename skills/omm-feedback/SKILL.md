@@ -44,6 +44,7 @@ omm eval --explain <element>         # score breakdown for one element
 omm validate <element>                # diagram validation
 omm diagram-refs <element>            # resolved @refs
 omm show <element> --type             # element classification
+omm analyze --validate                # docs vs actual code structure comparison
 ```
 
 These help the maintainer understand the context. Include the output in the feedback if it helps explain the issue.

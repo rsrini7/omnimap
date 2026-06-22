@@ -28,8 +28,9 @@ import { commandEval } from './commands/eval.js';
 import { commandRefSyntax } from './commands/ref-syntax.js';
 import { commandFeedback } from './commands/feedback.js';
 import { commandDiagramRefs } from './commands/diagram-refs.js';
+import { commandAnalyze } from './commands/analyze.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -59,6 +60,7 @@ Usage:
   omm tag <element> [add|remove|set|clear] [tags]  Manage element tags
   omm flows <element> [add|remove] [name]          Manage flow animations
   omm eval [--json|--explain|--suggest|--threshold <score>]  Evaluate documentation quality
+  omm analyze [dir] [--format md|json] [--diagram] [--validate] [--extensions]  Structural code analysis via tree-sitter
   omm show <path> --type            Show element type (perspective/leaf/group)
   omm ref-syntax                    Document the @class-name convention
   omm diagram-refs <path> [--json]  List @refs in a diagram with pass/fail status
@@ -259,6 +261,10 @@ async function main(): Promise<void> {
 
     case 'diagram-refs':
       commandDiagramRefs(args.slice(1));
+      return;
+
+    case 'analyze':
+      await commandAnalyze(args.slice(1));
       return;
 
     default:
