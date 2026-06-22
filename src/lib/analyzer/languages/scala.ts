@@ -274,9 +274,14 @@ function getScalaModifiers(node: ASTNode, source: string): string[] {
 function collectScalaMethods(classNode: ASTNode, source: string): string[] {
   const methods: string[] = [];
   walkAST(classNode, (n) => {
+    if (n === classNode) return;
+    if (n.type === 'class_definition' || n.type === 'trait_definition' || n.type === 'object_definition' || n.type === 'enum_definition') {
+      return true; // Skip inner classes, traits, objects, enums
+    }
     if (n.type === 'function_definition') {
       const name = getScalaName(n, source);
       if (name) methods.push(name);
+      return true; // Skip walking function body (closures, inner functions)
     }
   });
   return methods;

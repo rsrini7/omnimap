@@ -267,9 +267,14 @@ function getVisibilityModifiers(node: ASTNode, source: string): string[] {
 function collectKotlinFunctions(classNode: ASTNode, source: string): string[] {
   const methods: string[] = [];
   walkAST(classNode, (n) => {
+    if (n === classNode) return;
+    if (n.type === 'class_declaration' || n.type === 'interface_declaration' || n.type === 'enum_declaration' || n.type === 'object_declaration') {
+      return true; // Skip inner classes, interfaces, enums, objects
+    }
     if (n.type === 'function_declaration') {
       const name = getIdentifierName(n, source);
       if (name) methods.push(name);
+      return true; // Skip walking function body (closures, inner functions)
     }
   });
   return methods;

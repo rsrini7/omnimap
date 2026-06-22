@@ -221,9 +221,14 @@ function getModifierTexts(node: ASTNode, source: string): string[] {
 function collectMethods(classNode: ASTNode, source: string): string[] {
   const methods: string[] = [];
   walkAST(classNode, (n) => {
+    if (n === classNode) return;
+    if (n.type === 'class_declaration' || n.type === 'interface_declaration' || n.type === 'enum_declaration' || n.type === 'record_declaration') {
+      return true; // Skip inner classes, interfaces, enums, records
+    }
     if (n.type === 'method_declaration' || n.type === 'constructor_declaration') {
       const name = getIdentifierName(n, source) || (n.type === 'constructor_declaration' ? '<init>' : null);
       if (name) methods.push(name);
+      return true; // Skip walking the body of methods/constructors
     }
   });
   return methods;

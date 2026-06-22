@@ -87,6 +87,7 @@ omm incremental                    # 基于 git diff 规划增量重新扫描
 omm update                         # 更新到最新版本
 omm analyze [--format md|json]     # 基于 tree-sitter 的结构分析（依赖图、API、模块）
 omm analyze --validate             # 比较文档化的架构 vs 实际代码结构
+omm analyze --impact <file>        # 分析文件变更的影响范围
 ```
 
 完整命令列表请运行 `omm help`。

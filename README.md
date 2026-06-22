@@ -173,10 +173,19 @@ omm feedback --out <path>               Custom output path
 omm analyze [dir] [--format md|json]   Structural code analysis (tree-sitter)
 omm analyze --diagram                   Auto-generate Mermaid diagram from import graph
 omm analyze --validate                  Compare .omm/ docs vs actual code structure
+omm analyze --impact <file>             Show change impact for a file
 omm analyze --extensions                Show supported file extensions
 ```
 
 Supported languages: JavaScript, TypeScript, Java, Kotlin, Scala, Python, Go, Rust.
+
+`--format md` includes architecture insights:
+- **Circular dependency detection** — import cycles
+- **Coupling hotspots** — files with highest fan-in
+- **Dead exports** — unused public symbols
+- **Layer violation detection** — edges skipping architectural layers
+- **Architectural fitness score** — 0-100 composite score
+- **Complexity hotspots** — definitions over 50 lines
 
 ### Help
 

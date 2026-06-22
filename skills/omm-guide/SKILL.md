@@ -53,6 +53,7 @@ Show:
 - that each perspective/element has fields: description, diagram, context, constraint, concern, todo, note
 - how to interpret `@class-name` references (use `omm ref-syntax` to see the convention)
 - how to verify docs match reality: `omm analyze --validate` compares documented edges against actual import dependencies
+- the architectural fitness score from `omm analyze --format md` — a 0-100 score covering circular deps, cohesion, coupling, layer purity, and doc accuracy
 
 ---
 

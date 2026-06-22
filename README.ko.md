@@ -87,6 +87,7 @@ omm incremental                    # git diff 기반 증분 재스캔 계획
 omm update                         # 최신 버전으로 업데이트
 omm analyze [--format md|json]     # tree-sitter 기반 구조 분석 (의존 그래프, API, 모듈)
 omm analyze --validate             # 문서화된 아키텍처 vs 실제 코드 구조 비교
+omm analyze --impact <file>        # 파일 변경 시 영향 범위 분석
 ```
 
 전체 명령어는 `omm help`를 참고하세요.

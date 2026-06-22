@@ -8,6 +8,7 @@ import './lib/analyzer/languages/python.js';
 import './lib/analyzer/languages/go.js';
 import './lib/analyzer/languages/rust.js';
 
+
 // oh-my-mermaid public API
 export { initOmm, ensureOmmForRead, ensureOmmForWrite, listClasses, readField, writeField, showClass, deleteClass, classExists } from './lib/store.js';
 export { listPerspectives, listNodes, readNodeField, writeNodeField, showNode, nodeDir, readNodeMeta, readFlows, writeFlows } from './lib/store.js';

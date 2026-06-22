@@ -14,6 +14,14 @@ import '../lib/analyzer/languages/python.js';
 import '../lib/analyzer/languages/go.js';
 import '../lib/analyzer/languages/rust.js';
 
+import {
+  findCycles, findHotspots, findDeadExports, findLayerViolations,
+  computeFitness, findComplexHotspots, previewChangeImpact,
+  formatCycles, formatHotspots, formatDeadExports, formatLayerViolations,
+  formatFitness, formatComplexHotspots, formatImpactPreview,
+} from '../lib/analyzer/insights.js';
+
+
 const HELP = `
 omm analyze [dir] [options]
 
@@ -27,7 +35,16 @@ Usage:
   omm analyze --format json          Output as JSON
   omm analyze --diagram              Auto-generate Mermaid dependency diagram
   omm analyze --validate             Compare .omm/ docs vs actual structure
+  omm analyze --impact <file>        Show change impact for a file
   omm analyze --extensions           Show supported file extensions
+
+Insights (included in --format md):
+  - Circular dependency detection
+  - Coupling hotspots (fan-in analysis)
+  - Dead export detection
+  - Layer violation detection
+  - Architectural fitness score (0-100)
+  - Complexity hotspots (>50 line definitions)
 
 Supported languages:
   JavaScript (.js, .jsx, .mjs, .cjs)
@@ -38,13 +55,13 @@ Supported languages:
   Python (.py, .pyw, .pyi)
   Go (.go)
   Rust (.rs)
-  Vue (.vue), Svelte (.svelte)
 
 Examples:
-  omm analyze --format md            # Markdown summary for AI consumption
+  omm analyze --format md            # Markdown summary with insights
   omm analyze --format json | jq     # JSON for programmatic use
   omm analyze --diagram              # Generate Mermaid from import graph
   omm analyze --validate             # Check docs match reality
+  omm analyze --impact src/auth.ts   # Show change impact for a file
 `;
 
 interface ParsedArgs {
@@ -54,10 +71,11 @@ interface ParsedArgs {
   validate: boolean;
   extensions: boolean;
   help: boolean;
+  impact: string | undefined;
 }
 
 function parseArgs(args: string[]): ParsedArgs {
-  const out: ParsedArgs = { dir: '.', format: 'md', diagram: false, validate: false, extensions: false, help: false };
+  const out: ParsedArgs = { dir: '.', format: 'md', diagram: false, validate: false, extensions: false, help: false, impact: undefined };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--format' && args[i + 1]) {
@@ -67,6 +85,7 @@ function parseArgs(args: string[]): ParsedArgs {
     else if (a === '--diagram') out.diagram = true;
     else if (a === '--validate') out.validate = true;
     else if (a === '--extensions') out.extensions = true;
+    else if (a === '--impact' && args[i + 1]) out.impact = args[++i];
     else if (a === '--help' || a === '-h') out.help = true;
     else if (!a.startsWith('--')) out.dir = a;
   }
@@ -234,9 +253,41 @@ export async function commandAnalyze(args: string[]): Promise<void> {
     return;
   }
 
+  if (parsed.impact) {
+    const impact = previewChangeImpact(result.graph, parsed.impact);
+    process.stdout.write(formatImpactPreview(impact));
+    return;
+  }
+
   if (parsed.format === 'json') {
     process.stdout.write(formatAnalysisJSON(result) + '\n');
   } else {
     process.stdout.write(formatAnalysisMarkdown(result));
+
+    // Append insights
+    const cycles = findCycles(result.graph);
+    const hotspots = findHotspots(result.graph);
+    const deadExports = findDeadExports(result.files, result.graph);
+    const violations = findLayerViolations(result.graph);
+    const complexHotspots = findComplexHotspots(result.files);
+
+    // Compute undocumented deps for fitness
+    const ommDir = getOmmDir();
+    let undocumentedDeps = 0;
+    if (ommDir) {
+      const valReport = validateAgainstDocs(result);
+      const match = valReport.match(/Missing from docs: (\d+)/);
+      if (match) undocumentedDeps = parseInt(match[1], 10);
+    }
+
+    const fitness = computeFitness(result, cycles, hotspots, violations, undocumentedDeps);
+
+    process.stdout.write('---\n\n## Architecture Insights\n\n');
+    process.stdout.write(formatFitness(fitness));
+    process.stdout.write(formatCycles(cycles));
+    process.stdout.write(formatHotspots(hotspots));
+    process.stdout.write(formatDeadExports(deadExports));
+    process.stdout.write(formatLayerViolations(violations));
+    process.stdout.write(formatComplexHotspots(complexHotspots));
   }
 }

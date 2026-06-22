@@ -45,6 +45,7 @@ omm validate <element>                # diagram validation
 omm diagram-refs <element>            # resolved @refs
 omm show <element> --type             # element classification
 omm analyze --validate                # docs vs actual code structure comparison
+omm analyze --impact <file>           # change impact for a specific file
 ```
 
 These help the maintainer understand the context. Include the output in the feedback if it helps explain the issue.

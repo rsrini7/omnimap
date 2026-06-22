@@ -87,6 +87,7 @@ omm incremental                    # git diff'e dayalı kademeli yeniden tarama 
 omm update                         # En güncel sürüme geç
 omm analyze [--format md|json]     # tree-sitter ile yapısal analiz (bağımlılık grafiği, API, modüller)
 omm analyze --validate             # Belgelenen mimari vs gerçek kod yapısını karşılaştır
+omm analyze --impact <file>        # Dosya değişikliğinin etki alanını analiz et
 ```
 
 Tüm komutları görmek için `omm help` çalıştırın.

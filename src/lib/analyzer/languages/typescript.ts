@@ -12,8 +12,10 @@ async function loadParser(): Promise<any> {
   try {
     const TreeSitter = (await import('tree-sitter')).default;
     const TypeScript = await import('tree-sitter-typescript');
-    TSParser = new TreeSitter();
-    TSParser.setLanguage(TypeScript.typescript || TypeScript.default || TypeScript);
+    const parser = new TreeSitter();
+    const lang = TypeScript.typescript || TypeScript.default?.typescript || TypeScript.default || TypeScript;
+    parser.setLanguage(lang);
+    TSParser = parser;
     return TSParser;
   } catch {
     return null;

@@ -240,9 +240,14 @@ function extractPythonCalls(tree: ASTNode, source: string): CallInfo[] {
 function collectPythonMethods(classNode: ASTNode, source: string): string[] {
   const methods: string[] = [];
   walkAST(classNode, (n) => {
+    if (n === classNode) return;
+    if (n.type === 'class_definition') {
+      return true; // Skip inner classes
+    }
     if (n.type === 'function_definition' || n.type === 'async_function_definition') {
       const name = getIdentifierName(n, source);
       if (name) methods.push(name);
+      return true; // Skip walking method body (closures, inner functions)
     }
   });
   return methods;

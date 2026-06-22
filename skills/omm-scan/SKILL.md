@@ -44,6 +44,9 @@ This gives you a structured foundation:
 - **Public API surface** — exported functions, classes, types
 - **Module boundaries** — directory-level cohesion scores
 - **Definitions** — all functions, classes, methods with line numbers
+- **Architecture insights** — circular deps, coupling hotspots, dead exports, fitness score, complexity hotspots
+
+Use the **fitness score** (0-100) to gauge architecture health. Use **circular deps** and **hotspots** to identify structural risks worth documenting as concerns.
 
 Use this as the **deterministic anchor**. Then read key files for semantic context:
 - Read `package.json`, `pyproject.toml`, or equivalent manifests

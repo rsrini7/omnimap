@@ -41,11 +41,14 @@ Write field content (description, context, constraint, concern, todo, note) in t
 When iterating, these commands help diagnose specific issues:
 
 ```bash
-# Get deterministic code structure (dependency graph, API surface, module boundaries)
+# Get deterministic code structure + architecture insights (fitness score, cycles, hotspots)
 omm analyze --format md
 
 # Check if documented architecture matches actual code
 omm analyze --validate
+
+# Show change impact for a specific file
+omm analyze --impact <file>
 
 # Show element type (perspective/leaf/group) and why
 omm show <element> --type

@@ -60,7 +60,7 @@ Usage:
   omm tag <element> [add|remove|set|clear] [tags]  Manage element tags
   omm flows <element> [add|remove] [name]          Manage flow animations
   omm eval [--json|--explain|--suggest|--threshold <score>]  Evaluate documentation quality
-  omm analyze [dir] [--format md|json] [--diagram] [--validate] [--extensions]  Structural code analysis via tree-sitter
+  omm analyze [dir] [--format md|json] [--diagram] [--validate] [--impact <file>] [--extensions]  Structural code analysis via tree-sitter
   omm show <path> --type            Show element type (perspective/leaf/group)
   omm ref-syntax                    Document the @class-name convention
   omm diagram-refs <path> [--json]  List @refs in a diagram with pass/fail status
