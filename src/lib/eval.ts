@@ -4,6 +4,7 @@ import { VALID_FIELDS, FIELD_FILES, type Field, type ClassData, type ClassMeta }
 import { listClasses, listNodes, readField, readNodeField, readMeta, readNodeMeta, readFlows, getOmmDir } from './store.js';
 import { getIncomingRefs, getOutgoingRefs } from './refs.js';
 import { validateDiagram } from './validate.js';
+import { parseMermaid } from './diff.js';
 
 export interface ScoreBreakdown {
   fields: { earned: number; max: number; present: number; total: number };
@@ -49,6 +50,7 @@ export interface EvalReport {
     diagramCoverage: number;
     flowCoverage: number;
     refIntegrity: number;
+    undocumentedDiagramNodes: number;
   };
   elements: ElementEval[];
   issues: { type: string; severity: 'error' | 'warning' | 'info'; message: string; path?: string }[];
@@ -240,6 +242,50 @@ export function evaluateProject(cwd?: string): EvalReport {
     }
   }
 
+  // Detect diagram nodes without .omm elements (undocumented diagram nodes)
+  const existingPaths = new Set(allElements.map(e => e.path));
+  const undocumentedDiagramNodes: { parent: string; nodeId: string; label: string }[] = [];
+
+  for (const el of allElements) {
+    if (!el.hasDiagram) continue;
+    const diagram = el.type === 'perspective'
+      ? readField(el.path, 'diagram', cwd)
+      : readNodeField(el.path.split('/')[0], el.path.split('/').slice(1), 'diagram', cwd);
+    if (!diagram) continue;
+
+    try {
+      const parsed = parseMermaid(diagram);
+      for (const nodeId of parsed.nodes) {
+        // Skip @refs and special nodes
+        if (nodeId.startsWith('@') || nodeId.startsWith('__')) continue;
+        // Check if a child element exists for this node
+        const childPath = el.path + '/' + nodeId;
+        if (!existingPaths.has(childPath)) {
+          // Extract label from diagram
+          const labelMatch = diagram.match(new RegExp(nodeId + '\\["([^"]+)"\\]'));
+          const label = labelMatch ? labelMatch[1].replace(/\\n/g, ' — ') : nodeId;
+          undocumentedDiagramNodes.push({ parent: el.path, nodeId, label });
+        }
+      }
+    } catch {
+      // skip unparseable diagrams
+    }
+  }
+
+  // Report undocumented diagram nodes
+  for (const node of undocumentedDiagramNodes) {
+    issues.push({
+      type: 'undocumented-diagram-node',
+      severity: 'warning',
+      message: `Diagram node "${node.nodeId}" (${node.label}) has no documentation element — clicking it in the viewer shows no content`,
+      path: node.parent + '/' + node.nodeId,
+    });
+  }
+
+  if (undocumentedDiagramNodes.length > 0) {
+    suggestions.push(`${undocumentedDiagramNodes.length} diagram node(s) lack documentation. Run /omm-scan and ask: "create descriptions for undocumented diagram nodes"`);
+  }
+
   // Summary
   const totalElements = allElements.length;
   const perspCount = allElements.filter(e => e.type === 'perspective').length;
@@ -272,6 +318,7 @@ export function evaluateProject(cwd?: string): EvalReport {
       diagramCoverage: Math.round(diagramCoverage * 100),
       flowCoverage: Math.round(flowCoverage * 100),
       refIntegrity: Math.round(refIntegrity * 100),
+      undocumentedDiagramNodes: undocumentedDiagramNodes.length,
     },
     elements: allElements.sort((a, b) => a.score - b.score), // worst first
     issues,

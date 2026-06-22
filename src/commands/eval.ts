@@ -90,6 +90,9 @@ function formatReport(report: EvalReport, noColor: boolean): string {
   lines.push(`Diagram cov:  ${summary.diagramCoverage}%`);
   lines.push(`Flow cov:     ${summary.flowCoverage}%`);
   lines.push(`Ref integ:    ${summary.refIntegrity}%`);
+  if (summary.undocumentedDiagramNodes > 0) {
+    lines.push(`Diagram gaps: ${color(`${summary.undocumentedDiagramNodes} node(s) without .omm element`, 33, !noColor)}`);
+  }
   lines.push('');
 
   // Issues

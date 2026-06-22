@@ -124,7 +124,7 @@ Use `omm eval --explain <element>` to see which components are missing for a spe
 ### Issue types (from `issues` array)
 
 The eval report includes an `issues` array. Each issue has:
-- `type` — one of: `missing-description`, `invalid-diagram`, `incomplete-children`, `sparse-fields`, `no-flows`, `corrupted-tags`
+- `type` — one of: `missing-description`, `invalid-diagram`, `incomplete-children`, `sparse-fields`, `no-flows`, `corrupted-tags`, `undocumented-diagram-node`
 - `severity` — `error` | `warning` | `info`
 - `message` — human-readable description with fix suggestion
 - `path` — element path
@@ -133,6 +133,20 @@ When the loop runs, address issues in priority order:
 1. **errors** — must fix
 2. **warnings** — should fix
 3. **info** — nice to fix
+
+### `undocumented-diagram-node` detection
+
+When a diagram contains a node (e.g., `budget["Budget\nSessionBudgetTracker"]`) but no corresponding `.omm` child element exists, the eval reports it as a warning. These nodes are invisible in the viewer — clicking them shows "this is a diagram node" with no content.
+
+To fix:
+```bash
+# Create a description for the undocumented node
+omm write <parent>/<node-id> description - <<'EOF'
+What this component does, based on the code it represents.
+EOF
+```
+
+The `summary.undocumentedDiagramNodes` count in the JSON report tracks how many diagram nodes lack `.omm` elements. The eval summary line shows: `Diagram gaps: N node(s) without .omm element`.
 
 ### `corrupted-tags` detection
 

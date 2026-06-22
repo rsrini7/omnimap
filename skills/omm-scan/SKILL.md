@@ -358,6 +358,16 @@ done
 - For each parent element with undocumented children, add child descriptions
 - Target: children coverage = 100%
 
+**Iteration 8** — Document diagram-only nodes:
+- Check `omm eval` for `undocumented-diagram-node` warnings
+- For each diagram node without an `.omm` element, create a description:
+  ```bash
+  omm write <parent>/<node-id> description - <<'EOF'
+  What this component does, based on source code.
+  EOF
+  ```
+- Target: 0 undocumented diagram nodes
+
 ### Stop conditions
 
 ALL of these must be met:
