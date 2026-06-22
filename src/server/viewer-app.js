@@ -981,6 +981,29 @@ function openSidebar(cls, origCls) {
     children: ownData.children || diagramData.children,
   } : diagramData;
   const refs=refsData[origCls]||refsData[cls]||{};
+
+  // Lazy-load refs for nested elements (only perspectives are pre-loaded)
+  if (!refsData[origCls] && origCls.includes('/')) {
+    api(`/api/class/${origCls.split('/')[0]}/refs?node=${encodeURIComponent(origCls)}`).then(r => {
+      if (r && !r.error) {
+        refsData[origCls] = r;
+        // Re-render refs section if sidebar still shows this element
+        if (selectedCls === cls) {
+          const refsEl = document.querySelector('.sb-refs');
+          if (refsEl) {
+            const inc = r.incoming || [], out = r.outgoing || [];
+            if (inc.length || out.length) {
+              refsEl.innerHTML = [
+                ...inc.map(ref => { const n = typeof ref === 'string' ? ref : ref.source_class; return `<span class="sb-ref" onclick="window.__openSb('${esc(n)}')">← ${esc(n)}</span>`; }),
+                ...out.map(ref => { const n = typeof ref === 'string' ? ref : ref.target_class; return `<span class="sb-ref" onclick="window.__openSb('${esc(n)}')">→ ${esc(n)}</span>`; }),
+              ].join('');
+              refsEl.closest('.sb-sec').style.display = '';
+            }
+          }
+        }
+      }
+    }).catch(() => {});
+  }
   // For diagram-only nodes (no .omm element), show the node label from parent diagram
   const isDiagramOnly = !hasOwnData && origCls !== cls;
   let displayTitle = fmtLabel(origCls);
