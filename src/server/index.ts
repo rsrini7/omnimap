@@ -51,7 +51,7 @@ function detectArchRepo(): { isArch: boolean; projects: string[]; ommDir: string
   return { isArch: isArchRepo(), projects: listProjects(), ommDir };
 }
 
-export function startServer(port: number): void {
+export function startServer(port: number, host: string = '127.0.0.1'): void {
   startWatcher();
 
   // Detect once at startup — no per-request global mutation
@@ -129,8 +129,12 @@ export function startServer(port: number): void {
     }
   });
 
-  server.listen(port, () => {
-    process.stderr.write(`oh-my-mermaid viewer running at http://localhost:${port}\n`);
+  server.listen(port, host, () => {
+    const displayHost = host === '0.0.0.0' ? 'your-ip' : 'localhost';
+    process.stderr.write(`oh-my-mermaid viewer running at http://${displayHost}:${port}\n`);
+    if (host === '0.0.0.0') {
+      process.stderr.write(`  Shared on network — others can connect using your IP\n`);
+    }
     if (archInfo.isArch) {
       process.stderr.write(`  Arch repo: ${archInfo.ommDir} (${archInfo.projects.length} projects)\n`);
     }

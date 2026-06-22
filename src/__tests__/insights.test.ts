@@ -4,7 +4,9 @@ import {
   findHotspots,
   findDeadExports,
   findLayerViolations,
-  previewChangeImpact
+  previewChangeImpact,
+  detectCommunities,
+  generateTour
 } from '../lib/analyzer/insights.js';
 import type { DependencyGraph, FileAnalysis } from '../lib/analyzer/types.js';
 
@@ -159,3 +161,61 @@ describe('insights - previewChangeImpact', () => {
     expect(impact.totalAffected).toBe(2);
   });
 });
+
+describe('insights - detectCommunities', () => {
+  it('groups strongly connected nodes into communities', () => {
+    const graph: DependencyGraph = {
+      nodes: [
+        { id: 'src/a1.ts', file: 'src/a1.ts', exports: [] },
+        { id: 'src/a2.ts', file: 'src/a2.ts', exports: [] },
+        { id: 'src/b1.ts', file: 'src/b1.ts', exports: [] },
+        { id: 'src/b2.ts', file: 'src/b2.ts', exports: [] }
+      ],
+      edges: [
+        // Community A
+        { from: 'src/a1.ts', to: 'src/a2.ts', imports: [] },
+        // Community B
+        { from: 'src/b1.ts', to: 'src/b2.ts', imports: [] },
+        // Weak cross-connection
+        { from: 'src/a1.ts', to: 'src/b1.ts', imports: [] }
+      ]
+    };
+
+    const communities = detectCommunities(graph);
+    // Should successfully detect 2 distinct communities of size 2
+    expect(communities.length).toBeGreaterThanOrEqual(2);
+    expect(communities.some(c => c.files.includes('src/a1.ts') && c.files.includes('src/a2.ts'))).toBe(true);
+    expect(communities.some(c => c.files.includes('src/b1.ts') && c.files.includes('src/b2.ts'))).toBe(true);
+  });
+});
+
+describe('insights - generateTour', () => {
+  it('returns topological tour order respecting dependencies', () => {
+    const graph: DependencyGraph = {
+      nodes: [
+        { id: 'src/a.ts', file: 'src/a.ts', exports: [] },
+        { id: 'src/b.ts', file: 'src/b.ts', exports: [] },
+        { id: 'src/c.ts', file: 'src/c.ts', exports: [] }
+      ],
+      edges: [
+        { from: 'src/a.ts', to: 'src/b.ts', imports: [] },
+        { from: 'src/b.ts', to: 'src/c.ts', imports: [] }
+      ]
+    };
+
+    const tour = generateTour(graph);
+    expect(tour.length).toBe(3);
+    
+    // a has no dependencies (entry point)
+    expect(tour[0].file).toBe('src/a.ts');
+    
+    // b depends on a, c depends on b
+    const idxA = tour.findIndex(t => t.file === 'src/a.ts');
+    const idxB = tour.findIndex(t => t.file === 'src/b.ts');
+    const idxC = tour.findIndex(t => t.file === 'src/c.ts');
+    
+    expect(idxA).toBeLessThan(idxB);
+    expect(idxB).toBeLessThan(idxC);
+  });
+});
+

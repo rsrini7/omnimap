@@ -88,6 +88,11 @@ omm update                         # 更新到最新版本
 omm analyze [--format md|json]     # 基于 tree-sitter 的结构分析（依赖图、API、模块）
 omm analyze --validate             # 比较文档化的架构 vs 实际代码结构
 omm analyze --impact <file>        # 分析文件变更的影响范围
+omm search <query>                 # 模糊搜索元素名称/描述/路径
+omm tour [dir] [--limit n]         # 按依赖顺序的引导式导览
+omm wiki                           # 生成可爬取的 Markdown wiki
+omm merge <source>                 # 将另一个 .omm/ 合并到当前
+omm view --share                   # 打开网络共享查看器
 ```
 
 完整命令列表请运行 `omm help`。

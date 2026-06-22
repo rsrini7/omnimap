@@ -46,6 +46,8 @@ omm diagram-refs <element>            # resolved @refs
 omm show <element> --type             # element classification
 omm analyze --validate                # docs vs actual code structure comparison
 omm analyze --impact <file>           # change impact for a specific file
+omm search <query>                    # fuzzy search across elements
+omm tour --limit 10                   # guided reading order
 ```
 
 These help the maintainer understand the context. Include the output in the feedback if it helps explain the issue.

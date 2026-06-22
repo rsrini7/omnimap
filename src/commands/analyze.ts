@@ -19,6 +19,8 @@ import {
   computeFitness, findComplexHotspots, previewChangeImpact,
   formatCycles, formatHotspots, formatDeadExports, formatLayerViolations,
   formatFitness, formatComplexHotspots, formatImpactPreview,
+  findGodNodes, formatGodNodes, detectCommunities, formatCommunities,
+  generateTour, formatTour, formatLayerSummary,
 } from '../lib/analyzer/insights.js';
 
 
@@ -285,9 +287,13 @@ export async function commandAnalyze(args: string[]): Promise<void> {
     process.stdout.write('---\n\n## Architecture Insights\n\n');
     process.stdout.write(formatFitness(fitness));
     process.stdout.write(formatCycles(cycles));
+    process.stdout.write(formatGodNodes(findGodNodes(result.graph)));
+    process.stdout.write(formatCommunities(detectCommunities(result.graph)));
+    process.stdout.write(formatLayerSummary(result.graph));
     process.stdout.write(formatHotspots(hotspots));
     process.stdout.write(formatDeadExports(deadExports));
     process.stdout.write(formatLayerViolations(violations));
     process.stdout.write(formatComplexHotspots(complexHotspots));
+    process.stdout.write(formatTour(generateTour(result.graph)));
   }
 }

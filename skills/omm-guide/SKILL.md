@@ -54,6 +54,8 @@ Show:
 - how to interpret `@class-name` references (use `omm ref-syntax` to see the convention)
 - how to verify docs match reality: `omm analyze --validate` compares documented edges against actual import dependencies
 - the architectural fitness score from `omm analyze --format md` — a 0-100 score covering circular deps, cohesion, coupling, layer purity, and doc accuracy
+- the guided tour: `omm tour --limit 20` — read files in dependency order to understand the codebase
+- fuzzy search: `omm search <query>` — find elements by name, description, or path
 
 ---
 

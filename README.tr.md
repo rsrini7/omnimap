@@ -88,6 +88,11 @@ omm update                         # En güncel sürüme geç
 omm analyze [--format md|json]     # tree-sitter ile yapısal analiz (bağımlılık grafiği, API, modüller)
 omm analyze --validate             # Belgelenen mimari vs gerçek kod yapısını karşılaştır
 omm analyze --impact <file>        # Dosya değişikliğinin etki alanını analiz et
+omm search <query>                 # Öğre ad/açıklama/yol bulanık araması
+omm tour [dir] [--limit n]         # Bağımlılık sırasına göre rehberli tur
+omm wiki                       # Taranabilir markdown wiki oluştur
+omm merge <source>                 # Başka bir .omm/’ü mevcut olana birleştir
+omm view --share                   # Ağ paylaşımı görüntüleyici aç
 ```
 
 Tüm komutları görmek için `omm help` çalıştırın.

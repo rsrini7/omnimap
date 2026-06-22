@@ -181,11 +181,39 @@ Supported languages: JavaScript, TypeScript, Java, Kotlin, Scala, Python, Go, Ru
 
 `--format md` includes architecture insights:
 - **Circular dependency detection** — import cycles
+- **God nodes** — most-connected files (hubs and bridges)
+- **Communities** — auto-detected module clusters
 - **Coupling hotspots** — files with highest fan-in
 - **Dead exports** — unused public symbols
 - **Layer violation detection** — edges skipping architectural layers
 - **Architectural fitness score** — 0-100 composite score
 - **Complexity hotspots** — definitions over 50 lines
+- **Guided tour** — reading order for onboarding
+
+### Query & Search
+
+```bash
+omm query <question> [--json]           Query dependency graph (no LLM)
+omm search <query>                      Fuzzy search across elements
+```
+
+Query patterns: `"what connects X to Y"`, `"who imports X"`, `"cycles"`, `"hotspots"`, `"dead"`
+
+### Tour & Wiki
+
+```bash
+omm tour [dir] [--limit n]             Guided tour (read in dependency order)
+omm wiki [--out dir]                    Generate crawlable markdown wiki
+```
+
+### Collaboration
+
+```bash
+omm hooks [install|uninstall|status]    Manage git hooks for auto-analysis
+omm pr [number|branch] [--staged]       Show PR/module impact
+omm merge <source> [--out dir]          Merge another .omm/ into current
+omm view [--port p] [--share]           Open viewer (--share for network access)
+```
 
 ### Help
 

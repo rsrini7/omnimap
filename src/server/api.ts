@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
 import * as nodePath from 'node:path';
-import { listClasses, showClass, readMeta, readField, listNodes, showNode, listProjects, getOmmDir, isArchRepo, readFlows } from '../lib/store.js';
+import { listClasses, showClass, readMeta, readField, readNodeField, listNodes, showNode, listProjects, getOmmDir, isArchRepo, readFlows } from '../lib/store.js';
 import { generateHtmlExport } from '../lib/html-export.js';
 import { diffMermaid } from '../lib/diff.js';
 import { validateDiagram } from '../lib/validate.js';
@@ -62,8 +62,37 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
   const refsMatch = path.match(/^\/api\/class\/([^/]+)\/refs$/);
   if (refsMatch) {
     const className = refsMatch[1];
-    const incoming = getIncomingRefs(className);
-    const outgoing = getOutgoingRefs(className);
+    const nodeParam = url.searchParams.get('node');
+    let incoming = getIncomingRefs(className);
+    let outgoing = getOutgoingRefs(className);
+
+    // For nested elements, also extract refs from parent diagram edges
+    if (nodeParam && nodeParam.includes('/')) {
+      const parts = nodeParam.split('/');
+      const perspective = parts[0];
+      const nodeId = parts[parts.length - 1];
+      const parentPath = parts.slice(0, -1).join('/');
+      const parentDiagram = parentPath === perspective
+        ? readField(perspective, 'diagram')
+        : readNodeField(perspective, parentPath.split('/').slice(1), 'diagram');
+
+      if (parentDiagram) {
+        // Find edges where this node is source or target
+        const edgePattern = new RegExp(`(\\S+)\\s*-->.*?(\\S+)`, 'g');
+        let match;
+        while ((match = edgePattern.exec(parentDiagram)) !== null) {
+          const from = match[1].replace(/["'\[\](){}]/g, '').split('\\n')[0].trim();
+          const to = match[2].replace(/["'\[\](){}]/g, '').split('\\n')[0].trim();
+          if (from === nodeId && !outgoing.some(r => r.target_class === to)) {
+            outgoing.push({ source_class: nodeParam, target_class: to, node_id: nodeId });
+          }
+          if (to === nodeId && !incoming.some(r => r.source_class === from)) {
+            incoming.push({ source_class: from, target_class: nodeParam, node_id: nodeId });
+          }
+        }
+      }
+    }
+
     json(res, { incoming, outgoing });
     return true;
   }

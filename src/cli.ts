@@ -32,8 +32,12 @@ import { commandAnalyze } from './commands/analyze.js';
 import { commandQuery } from './commands/query.js';
 import { commandHooks } from './commands/hooks.js';
 import { commandPr } from './commands/pr.js';
+import { commandTour } from './commands/tour.js';
+import { commandWiki } from './commands/wiki.js';
+import { commandSearch } from './commands/search.js';
+import { commandMerge } from './commands/merge.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -67,6 +71,11 @@ Usage:
   omm query <question> [--dir <path>] [--json]    Query dependency graph (no LLM)
   omm hooks [install|uninstall|status]             Manage git hooks for auto-analysis
   omm pr [number|branch] [--staged] [--diff <ref>] Show PR/module impact
+  omm tour [dir] [--limit n]                       Guided tour (read in dependency order)
+  omm wiki [--out dir]                              Generate crawlable markdown wiki
+  omm search <query>                                Fuzzy search across elements
+  omm merge <source> [--out dir]                    Merge another .omm/ into current
+  omm view [--port p] [--share]                     Open viewer (--share for network access)
   omm show <path> --type            Show element type (perspective/leaf/group)
   omm ref-syntax                    Document the @class-name convention
   omm diagram-refs <path> [--json]  List @refs in a diagram with pass/fail status
@@ -206,8 +215,9 @@ async function main(): Promise<void> {
 
     case 'view': {
       let port = 3000;
-      if (args[1] === '--port' && args[2]) {
-        port = parseInt(args[2], 10);
+      const portIdx = args.indexOf('--port');
+      if (portIdx >= 0 && args[portIdx + 1]) {
+        port = parseInt(args[portIdx + 1], 10);
         if (isNaN(port)) {
           process.stderr.write('error: invalid port number\n');
           process.exit(1);
@@ -283,6 +293,22 @@ async function main(): Promise<void> {
 
     case 'pr':
       await commandPr(args.slice(1));
+      return;
+
+    case 'tour':
+      await commandTour(args.slice(1));
+      return;
+
+    case 'wiki':
+      commandWiki(args.slice(1));
+      return;
+
+    case 'search':
+      commandSearch(args.slice(1));
+      return;
+
+    case 'merge':
+      commandMerge(args.slice(1));
       return;
 
     default:

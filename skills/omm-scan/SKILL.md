@@ -44,7 +44,7 @@ This gives you a structured foundation:
 - **Public API surface** — exported functions, classes, types
 - **Module boundaries** — directory-level cohesion scores
 - **Definitions** — all functions, classes, methods with line numbers
-- **Architecture insights** — circular deps, coupling hotspots, dead exports, fitness score, complexity hotspots
+- **Architecture insights** — circular deps, god nodes, communities, coupling hotspots, dead exports, fitness score, complexity hotspots, layer classification, guided tour
 
 Use the **fitness score** (0-100) to gauge architecture health. Use **circular deps** and **hotspots** to identify structural risks worth documenting as concerns.
 

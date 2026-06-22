@@ -88,6 +88,11 @@ omm update                         # 최신 버전으로 업데이트
 omm analyze [--format md|json]     # tree-sitter 기반 구조 분석 (의존 그래프, API, 모듈)
 omm analyze --validate             # 문서화된 아키텍처 vs 실제 코드 구조 비교
 omm analyze --impact <file>        # 파일 변경 시 영향 범위 분석
+omm search <query>                 # 요소 이름/설명 경로 퍼지 검색
+omm tour [dir] [--limit n]         # 의존 순서 기반 가이드 투어
+omm wiki                           # 크롤 가능한 마크다운 위키 생성
+omm merge <source>                 # 다른 .omm/을 현재로 병합
+omm view --share                   # 네트워크 공유 뷰어 열기
 ```
 
 전체 명령어는 `omm help`를 참고하세요.
