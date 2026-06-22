@@ -62,7 +62,7 @@ export function getIdentifierName(node: ASTNode, source: string): string | null 
 export function resolveRelativePath(from: string, specifier: string): string {
   if (!specifier.startsWith('.')) return specifier;
   const fromDir = from.includes('/') ? from.slice(0, from.lastIndexOf('/')) : '.';
-  const parts = fromDir.split('/').filter(Boolean);
+  const parts = fromDir.split('/').filter(p => p && p !== '.');
   for (const seg of specifier.split('/')) {
     if (seg === '.') continue;
     if (seg === '..') {

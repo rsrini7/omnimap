@@ -92,7 +92,7 @@ describe('buildDependencyGraph', () => {
     const analyses: FileAnalysis[] = [
       {
         file: 'src/a.ts', language: 'typescript',
-        imports: [{ source: './b', specifiers: ['bar'], resolved: 'b', line: 1 }],
+        imports: [{ source: './b', specifiers: ['bar'], resolved: 'src/b', line: 1 }],
         exports: [], definitions: [], calls: [],
       },
       { file: 'src/b.ts', language: 'typescript', imports: [], exports: [], definitions: [], calls: [] },
@@ -120,8 +120,8 @@ describe('buildDependencyGraph', () => {
       {
         file: 'src/a.ts', language: 'typescript',
         imports: [
-          { source: './b', specifiers: ['foo'], resolved: 'b', line: 1 },
-          { source: './b', specifiers: ['bar'], resolved: 'b', line: 2 },
+          { source: './b', specifiers: ['foo'], resolved: 'src/b', line: 1 },
+          { source: './b', specifiers: ['bar'], resolved: 'src/b', line: 2 },
         ],
         exports: [], definitions: [], calls: [],
       },
@@ -165,9 +165,9 @@ describe('detectModuleBoundaries', () => {
 
   it('computes cohesion score', () => {
     const analyses: FileAnalysis[] = [
-      { file: 'src/mod/a.ts', language: 'typescript', imports: [{ source: './b', specifiers: ['x'], resolved: 'b', line: 1 }], exports: [], definitions: [], calls: [] },
-      { file: 'src/mod/b.ts', language: 'typescript', imports: [{ source: './a', specifiers: ['y'], resolved: 'a', line: 1 }], exports: [], definitions: [], calls: [] },
-      { file: 'src/mod/c.ts', language: 'typescript', imports: [{ source: '../other', specifiers: ['z'], resolved: 'other', line: 1 }], exports: [], definitions: [], calls: [] },
+      { file: 'src/mod/a.ts', language: 'typescript', imports: [{ source: './b', specifiers: ['x'], resolved: 'src/mod/b', line: 1 }], exports: [], definitions: [], calls: [] },
+      { file: 'src/mod/b.ts', language: 'typescript', imports: [{ source: './a', specifiers: ['y'], resolved: 'src/mod/a', line: 1 }], exports: [], definitions: [], calls: [] },
+      { file: 'src/mod/c.ts', language: 'typescript', imports: [{ source: '../other', specifiers: ['z'], resolved: 'src/other', line: 1 }], exports: [], definitions: [], calls: [] },
     ];
     const graph = buildDependencyGraph(analyses);
     const modules = detectModuleBoundaries(graph, analyses);
@@ -269,7 +269,7 @@ describe('formatAnalysisMarkdown', () => {
     const analyses: FileAnalysis[] = [
       {
         file: 'src/a.ts', language: 'typescript',
-        imports: [{ source: './b', specifiers: ['foo'], resolved: 'b', line: 1 }],
+        imports: [{ source: './b', specifiers: ['foo'], resolved: 'src/b', line: 1 }],
         exports: [{ name: 'foo', kind: 'function', line: 1 }],
         definitions: [{ name: 'foo', kind: 'function', line: 1, endLine: 10, exported: true }],
         calls: [],

@@ -29,8 +29,11 @@ import { commandRefSyntax } from './commands/ref-syntax.js';
 import { commandFeedback } from './commands/feedback.js';
 import { commandDiagramRefs } from './commands/diagram-refs.js';
 import { commandAnalyze } from './commands/analyze.js';
+import { commandQuery } from './commands/query.js';
+import { commandHooks } from './commands/hooks.js';
+import { commandPr } from './commands/pr.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -61,6 +64,9 @@ Usage:
   omm flows <element> [add|remove] [name]          Manage flow animations
   omm eval [--json|--explain|--suggest|--threshold <score>]  Evaluate documentation quality
   omm analyze [dir] [--format md|json] [--diagram] [--validate] [--impact <file>] [--extensions]  Structural code analysis via tree-sitter
+  omm query <question> [--dir <path>] [--json]    Query dependency graph (no LLM)
+  omm hooks [install|uninstall|status]             Manage git hooks for auto-analysis
+  omm pr [number|branch] [--staged] [--diff <ref>] Show PR/module impact
   omm show <path> --type            Show element type (perspective/leaf/group)
   omm ref-syntax                    Document the @class-name convention
   omm diagram-refs <path> [--json]  List @refs in a diagram with pass/fail status
@@ -265,6 +271,18 @@ async function main(): Promise<void> {
 
     case 'analyze':
       await commandAnalyze(args.slice(1));
+      return;
+
+    case 'query':
+      await commandQuery(args.slice(1));
+      return;
+
+    case 'hooks':
+      commandHooks(args.slice(1));
+      return;
+
+    case 'pr':
+      await commandPr(args.slice(1));
       return;
 
     default:

@@ -187,12 +187,19 @@ export function buildDependencyGraph(analyses: FileAnalysis[]): DependencyGraph 
       let targetFile: string | undefined;
 
       if (imp.source.startsWith('.')) {
-        const base = a.file.includes('/') ? a.file.slice(0, a.file.lastIndexOf('/')) : '';
-        const resolved = base ? `${base}/${imp.resolved || imp.source}` : imp.resolved || imp.source;
+        const resolved = imp.resolved || imp.source;
         const allExts = getSupportedExtensions();
-        const candidates = [resolved, `${resolved}/index`];
+        let stem = resolved;
+        const lastDot = resolved.lastIndexOf('.');
+        if (lastDot !== -1 && lastDot > resolved.lastIndexOf('/')) {
+          const ext = resolved.slice(lastDot);
+          if (['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts', ...allExts].includes(ext)) {
+            stem = resolved.slice(0, lastDot);
+          }
+        }
+        const candidates = [stem, `${stem}/index`];
         for (const ext of allExts) {
-          candidates.push(`${resolved}${ext}`);
+          candidates.push(`${stem}${ext}`);
         }
         for (const c of candidates) {
           if (fileMap.has(c) || fileByModule.has(c)) {
