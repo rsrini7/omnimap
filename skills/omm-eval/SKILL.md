@@ -241,7 +241,24 @@ The user can pass arguments to control the loop:
 - `--max-iterations <n>` — max iterations (default: 5)
 - `--target <score>` — target score to reach (default: 80)
 
-Default behavior: stop when score >= 80 OR no improvement in 2 iterations.
+## Stop Conditions
+
+The loop stops when ALL of these are met:
+- Overall score >= target (default 80)
+- **Field coverage >= 50%** (at least 4 of 7 fields filled on average)
+- **Diagram coverage >= 50%** (at least half of elements have diagrams)
+- **Flow coverage >= 30%** (at least 30% of elements have flows)
+- **Ref integrity >= 20%** (at least 20% of elements have cross-references)
+
+If the overall score reaches 80 but any per-component minimum is not met, **continue iterating** targeting the weakest component. The overall score alone is not sufficient — all gates must pass.
+
+### Why per-component gates?
+
+An overall score of 80 can hide critical gaps:
+- Fields 100% + Diagram 100% + Description 100% = 70 points (70%)
+- Add Children 100% = 80 points — but Flows 0% and Refs 0%
+
+This means the documentation is structurally complete but has no flow definitions or cross-references — making it less useful for navigation and understanding. The per-component gates ensure minimum coverage across all dimensions.
 
 ## Example Session
 

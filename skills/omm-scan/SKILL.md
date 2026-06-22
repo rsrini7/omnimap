@@ -167,6 +167,16 @@ Each as a separate `omm write` command: description, context, constraint, concer
 
    Then repeat step 3c for each element in this diagram.
 
+5. **Document ALL diagram nodes — including leaf nodes.** Every node ID in a diagram should have a corresponding `.omm` element with at least a description. If a diagram contains `budget["Budget\nSessionBudgetTracker"]`, create:
+
+   ```bash
+   omm write <perspective>/budget description - <<'EOF'
+   SessionBudgetTracker — enforces token and cost limits per agent session.
+   EOF
+   ```
+
+   This ensures clicking any node in the viewer shows meaningful content, not just "this is a diagram node."
+
 ### Example recursion
 
 ```text
@@ -350,10 +360,16 @@ done
 
 ### Stop conditions
 
-- **Target score reached** (default 80)
+ALL of these must be met:
+- **Overall score >= 80**
+- **Field coverage >= 50%**
+- **Diagram coverage >= 50%**
+- **Flow coverage >= 30%**
+- **Ref integrity >= 20%**
+
+Plus any of these override stops:
 - **Max iterations** (default 5)
 - **No improvement** in 2 consecutive iterations
-- **All issues resolved** (no errors, no warnings)
 
 ### Usage in Claude Code
 
