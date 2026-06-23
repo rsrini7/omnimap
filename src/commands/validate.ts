@@ -1,4 +1,4 @@
-import { ensureOmmForRead, listClasses, readField, classExists, writeField, writeNodeField, readNodeField } from '../lib/store.js';
+import { ensureOmmForRead, listClasses, listNodes, readField, classExists, writeField, writeNodeField, readNodeField } from '../lib/store.js';
 import { validateDiagram } from '../lib/validate.js';
 import { fixDiagram, type FixResult } from '../lib/fix-diagram.js';
 import { planIncrementalUpdate } from '../lib/incremental.js';
@@ -128,11 +128,21 @@ export function commandValidate(className?: string, flags?: string[]): void {
     return;
   }
 
-  // Validate all classes
+  // Validate all classes (perspectives + their children)
   let totalErrors = 0;
   for (const cls of allClasses) {
     const { errors } = validateClass(cls, allClasses);
     totalErrors += errors;
+
+    // Also validate children
+    const children = listNodes(cls, []);
+    for (const child of children) {
+      const childPath = cls + '/' + child;
+      if (classExists(childPath)) {
+        const { errors: childErrors } = validateClass(childPath, allClasses);
+        totalErrors += childErrors;
+      }
+    }
   }
 
   if (totalErrors > 0) process.exit(1);
