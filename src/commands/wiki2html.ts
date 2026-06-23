@@ -84,6 +84,46 @@ function parseInline(text: string): string {
   return escaped;
 }
 
+/**
+ * Sanitize Mermaid diagram source to fix common syntax issues.
+ * - Replaces @ in labels (conflicts with Mermaid directives)
+ * - Renames reserved keywords used as node IDs
+ * - Replaces <> angle brackets in labels (interpreted as HTML)
+ */
+function sanitizeMermaid(src: string): string {
+  let out = src;
+
+  // Reserved keywords that cannot be used as node IDs
+  const RESERVED = /^(graph|flowchart|subgraph|end|class|click|style|linkStyle|interpolate|init|beta|accTitle|accDescr|\|)$/i;
+
+  // Replace @ in label text with → (Mermaid treats @ as directive prefix)
+  out = out.replace(/\["(.*?)"\]/g, (match, label) => {
+    const fixed = label.replace(/@/g, '→ ');
+    return `["${fixed}"]`;
+  });
+
+  // Replace <> angle brackets in label text with [] (Mermaid treats <> as HTML)
+  out = out.replace(/\["(.*?)"\]/g, (match, label) => {
+    const fixed = label.replace(/</g, '[').replace(/>/g, ']');
+    return `["${fixed}"]`;
+  });
+
+  // Rename reserved keyword node IDs by appending -node
+  out = out.replace(/^(\s*)(\S+)(\[)/gm, (match, indent, nodeId, bracket) => {
+    if (RESERVED.test(nodeId)) {
+      return `${indent}${nodeId}-node${bracket}`;
+    }
+    return match;
+  });
+
+  // Fix edge references to renamed reserved node IDs
+  out = out.replace(/-->.*/gm, (edgeLine) => {
+    return edgeLine.replace(/\|(\s*\S+\s*)\|/g, (labelMatch, label) => labelMatch);
+  });
+
+  return out;
+}
+
 // Block Markdown Parser
 function parseMarkdown(md: string): string {
   let html = '';
@@ -149,7 +189,7 @@ function parseMarkdown(md: string): string {
         inCode = false;
         const codeText = codeLines.join('\n');
         if (codeLang === 'mermaid') {
-          html += `<div class="mermaid-container">\n<div class="mermaid">\n${codeText}\n</div>\n</div>\n`;
+          html += `<div class="mermaid-container">\n<div class="mermaid">\n${escapeHtml(sanitizeMermaid(codeText))}\n</div>\n</div>\n`;
         } else {
           html += `<pre><code class="language-${escapeHtml(codeLang)}">${escapeHtml(codeText)}</code></pre>\n`;
         }

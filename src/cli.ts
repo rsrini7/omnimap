@@ -41,8 +41,9 @@ import { commandAffected } from './commands/affected.js';
 import { commandMcp } from './commands/mcp.js';
 import { commandWatch } from './commands/watch.js';
 import { commandWiki2Html } from './commands/wiki2html.js';
+import { commandWiki2Pdf } from './commands/wiki2pdf.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -79,6 +80,7 @@ Usage:
   omm tour [dir] [--limit n]                       Guided tour (read in dependency order)
   omm wiki [--out dir]                              Generate crawlable markdown wiki
   omm wiki2html [--src dir] [--out dir]             Convert Markdown files/wiki to styled HTML site
+  omm wiki2pdf [--src dir] [--out file.pdf]          Convert Markdown files/wiki to a single styled PDF
   omm search <query>                                Fuzzy search across elements
   omm merge <source> [--out dir]                    Merge another .omm/ into current
   omm sync [--search <query>]                       Sync .omm/ to SQLite for FTS5 search
@@ -315,6 +317,10 @@ async function main(): Promise<void> {
 
     case 'wiki2html':
       await commandWiki2Html(args.slice(1));
+      return;
+
+    case 'wiki2pdf':
+      await commandWiki2Pdf(args.slice(1));
       return;
 
     case 'search':
