@@ -84,6 +84,8 @@ omm setup                          # AI 도구에 스킬 등록
 omm view                           # 인터랙티브 뷰어 열기
 omm config language ko             # 콘텐츠 언어 설정
 omm incremental                    # git diff 기반 증분 재스캔 계획
+                                   # stale 이유: source_file, source_glob, orphaned_source,
+                                   #   glob_coverage_changed, no_source_tracking
 omm update                         # 최신 버전으로 업데이트
 omm analyze [--format md|json]     # tree-sitter 기반 구조 분석 (의존 그래프, API, 모듈)
 omm analyze --validate             # 문서화된 아키텍처 vs 실제 코드 구조 비교
@@ -91,7 +93,7 @@ omm analyze --impact <file>        # 파일 변경 시 영향 범위 분석
 omm search <query>                 # 요소 이름/설명 경로 퍼지 검색
 omm sync [--search <query>]        # .omm/을 SQLite로 동기화 (FTS5 검색)
 omm tour [dir] [--limit n]         # 의존 순서 기반 가이드 투어
-omm wiki                           # 크롤 가능한 마크다운 위키 생성
+omm wiki                           # 크롤 가능한 마크다운 위키 생성 (기본: .omm/.wiki/)
 omm affected [files...] [--staged] # 변경으로 영향받는 테스트 파일 찾기
 omm mcp [--port <port>]            # AI 에이전트용 MCP 서버 시작
 omm watch [dir]                    # 파일 변경 시 omm analyze 자동 실행

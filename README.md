@@ -147,6 +147,17 @@ omm incremental --record <p> [full|incremental]
                                        Mark element as scanned at current commit
 ```
 
+Stale reasons:
+
+| Reason | Meaning |
+|---|---|
+| `source_file` | A tracked source file changed |
+| `source_glob` | A file matching a tracked glob changed |
+| `orphaned_source` | A tracked source file no longer exists (renamed, deleted, or refactored out) |
+| `glob_coverage_changed` | A glob now matches different files (new files added or old ones deleted) |
+| `no_source_tracking` | Element has no source_files/globs; inherits staleness from parent |
+| `source_file_mtime` | Source file modified more recently than last scan (no git baseline) |
+
 ### Architecture repository
 
 ```bash
@@ -204,7 +215,7 @@ Query patterns: `"what connects X to Y"`, `"who imports X"`, `"cycles"`, `"hotsp
 
 ```bash
 omm tour [dir] [--limit n]             Guided tour (read in dependency order)
-omm wiki [--out dir]                    Generate crawlable markdown wiki
+omm wiki [--out dir]                    Generate crawlable markdown wiki (default: .omm/.wiki/)
 ```
 
 ### Collaboration

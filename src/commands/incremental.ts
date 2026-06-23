@@ -208,6 +208,14 @@ Options:
   --replace         With --mark, replace existing source files / globs
                     instead of appending.
   --recursive       With --mark, also mark all children of the element.
+
+Stale reasons:
+  source_file           A tracked source file changed
+  source_glob           A file matching a tracked glob changed
+  orphaned_source       A tracked source file no longer exists on disk (renamed, deleted, or refactored)
+  glob_coverage_changed A glob now matches different files (new files added or old ones deleted)
+  no_source_tracking    Element has no source_files/globs; inherits staleness from parent
+  source_file_mtime     Source file modified more recently than last scan (no git baseline)
 `;
 
 export async function commandIncremental(args: string[]): Promise<void> {
