@@ -96,6 +96,16 @@ function sanitizeMermaid(src: string): string {
   // Reserved keywords that cannot be used as node IDs
   const RESERVED = /^(graph|flowchart|subgraph|end|class|click|style|linkStyle|interpolate|init|beta|accTitle|accDescr|\|)$/i;
 
+  // Replace @ in node IDs with _at_ (Mermaid treats @ as directive prefix)
+  // Match @word at start of line (after optional whitespace) followed by [ or -->
+  out = out.replace(/^(\s*)@([\w-]+)/gm, (match, indent, name) => {
+    return `${indent}_at_${name}`;
+  });
+  // Also replace @ in edge targets: --> @node or --> @node[
+  out = out.replace(/-->(?:\|[^|]*\|)?\s*@([\w-]+)/g, (match, name) => {
+    return match.replace(`@${name}`, `_at_${name}`);
+  });
+
   // Replace @ in label text with → (Mermaid treats @ as directive prefix)
   out = out.replace(/\["(.*?)"\]/g, (match, label) => {
     const fixed = label.replace(/@/g, '→ ');
