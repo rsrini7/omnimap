@@ -146,4 +146,33 @@ describe('validateDiagram', () => {
     const refIssues = result.issues.filter(i => i.rule === 'ref-exists' || i.rule === 'ref-self');
     expect(refIssues).toHaveLength(0);
   });
+
+  it('errors on reserved-word for node IDs matching reserved keywords (both start of line and inline)', () => {
+    const diagram = [
+      'graph LR',
+      '    graph["The Graph"]',
+      '    A --> subgraph["The Subgraph"]',
+      '    end["The End"] --> B',
+    ].join('\n');
+    const result = validateDiagram(diagram);
+    expect(result.valid).toBe(false);
+    const issues = result.issues.filter(i => i.rule === 'reserved-word');
+    expect(issues).toHaveLength(3);
+    expect(issues[0].line).toBe(2);
+    expect(issues[1].line).toBe(3);
+    expect(issues[2].line).toBe(4);
+  });
+
+  it('warns on special-char-label with @ and <> (both simple and with brackets inside quotes)', () => {
+    const diagram = [
+      'graph LR',
+      '    A["label with [brackets] @ref"]',
+      '    B[simple <path>]',
+    ].join('\n');
+    const result = validateDiagram(diagram);
+    const issues = result.issues.filter(i => i.rule === 'special-char-label');
+    expect(issues).toHaveLength(2);
+    expect(issues[0].line).toBe(2);
+    expect(issues[1].line).toBe(3);
+  });
 });

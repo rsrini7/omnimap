@@ -115,4 +115,41 @@ describe('fixDiagram', () => {
     expect(result.changed).toBe(false);
     expect(result.fixed).toBe(text);
   });
+
+  it('fixes reserved-word node IDs and edge references without corrupting headers or comments', () => {
+    const text = [
+      'graph LR',
+      '    graph["The Graph"] %% comment containing graph keyword',
+      '    client --> graph',
+      '    subgraph section',
+      '        A --> B',
+      '    end',
+    ].join('\n');
+    const issues: ValidationIssue[] = [
+      { level: 'error', rule: 'reserved-word', message: 'reserved', line: 2 },
+    ];
+    const result = fixDiagram(text, issues);
+    expect(result.changed).toBe(true);
+    expect(result.fixed).toContain('graph LR'); // diagram header preserved
+    expect(result.fixed).toContain('graph-node["The Graph"]'); // declaration renamed
+    expect(result.fixed).toContain('client --> graph-node'); // reference renamed
+    expect(result.fixed).toContain('%% comment containing graph keyword'); // comment preserved
+    expect(result.fixed).toContain('    end'); // subgraph end keyword preserved
+  });
+
+  it('fixes special-char-label (both simple and brackets inside quotes)', () => {
+    const text = [
+      'graph LR',
+      '    A["label with [brackets] @ref"]',
+      '    B[simple <path>]',
+    ].join('\n');
+    const issues: ValidationIssue[] = [
+      { level: 'warning', rule: 'special-char-label', message: 'at', line: 2 },
+      { level: 'warning', rule: 'special-char-label', message: 'angle', line: 3 },
+    ];
+    const result = fixDiagram(text, issues);
+    expect(result.changed).toBe(true);
+    expect(result.fixed).toContain('A["label with [brackets] →ref"]');
+    expect(result.fixed).toContain('B[simple &lt;path&gt;]');
+  });
 });

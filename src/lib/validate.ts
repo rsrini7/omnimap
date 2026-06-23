@@ -18,6 +18,61 @@ export const CLASSDEF_PALETTE: Record<string, Record<string, string>> = {
 const GRAPH_DECL = /^(graph|flowchart)\s+(LR|RL|TD|TB|BT)\s*$/i;
 const DIRECTIVE_LINE = /^(graph|flowchart|classDef|class |click |style |linkStyle|subgraph|end$|%%)/i;
 
+// --- Mermaid reserved words (cannot be used as node IDs) ---
+export const MERMAID_RESERVED_WORDS = new Set([
+  'graph', 'flowchart', 'subgraph', 'end', 'class', 'click', 'style',
+  'linkStyle', 'classDef', 'direction', 'interpolate',
+]);
+
+/**
+ * Extract all declared node IDs from a line, ignoring content inside double quotes.
+ */
+export function extractDeclaredNodeIds(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('%%') || trimmed.startsWith('classDef ')) return [];
+
+  const parts = trimmed.split('"');
+  const ids: string[] = [];
+  const pattern = /\b(\w+)\s*[\[\({]/g;
+
+  for (let i = 0; i < parts.length; i += 2) {
+    let match: RegExpExecArray | null;
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(parts[i])) !== null) {
+      ids.push(match[1]);
+    }
+  }
+  return ids;
+}
+
+/**
+ * Extract all label contents from a line, handling double quotes and brackets.
+ */
+export function extractLabels(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('%%') || trimmed.startsWith('classDef ')) return [];
+
+  const parts = trimmed.split('"');
+  const labels: string[] = [];
+
+  // Odd parts are text inside double quotes
+  for (let i = 1; i < parts.length; i += 2) {
+    labels.push(parts[i]);
+  }
+
+  // Even parts are text outside double quotes (check bracket shapes)
+  const bracketPattern = /[\[({]([^\]})]*)[\]})]/g;
+  for (let i = 0; i < parts.length; i += 2) {
+    let match: RegExpExecArray | null;
+    bracketPattern.lastIndex = 0;
+    while ((match = bracketPattern.exec(parts[i])) !== null) {
+      labels.push(match[1]);
+    }
+  }
+
+  return labels;
+}
+
 // Edges we check for labels in v1: -->, ==>, -.->
 const EDGE_WITH_LABEL = /(-->|==>|-\.->)\s*$/;
 const EDGE_LINE = /(-->|==>|-.->)/;
@@ -81,6 +136,48 @@ export function validateDiagram(text: string, context?: ValidateContext): Valida
         level: 'error',
         rule: 'balanced-brackets',
         message: `Unbalanced brackets on line: ${trimmed}`,
+        line: i + 1,
+      });
+    }
+
+    // Rule: reserved-word — node IDs must not match Mermaid reserved keywords
+    const declaredIds = extractDeclaredNodeIds(trimmed);
+    for (const nodeId of declaredIds) {
+      if (MERMAID_RESERVED_WORDS.has(nodeId.toLowerCase())) {
+        issues.push({
+          level: 'error',
+          rule: 'reserved-word',
+          message: `Node ID "${nodeId}" is a Mermaid reserved keyword and will cause parse errors`,
+          line: i + 1,
+        });
+      }
+    }
+
+    // Rule: special-char-label — @ and <> in labels cause Mermaid parse errors
+    const labels = extractLabels(trimmed);
+    let hasAt = false;
+    let hasAngle = false;
+    for (const label of labels) {
+      if (label.includes('@')) {
+        hasAt = true;
+      }
+      if (label.includes('<') && label.includes('>')) {
+        hasAngle = true;
+      }
+    }
+    if (hasAt) {
+      issues.push({
+        level: 'warning',
+        rule: 'special-char-label',
+        message: `Label contains @ which conflicts with Mermaid directives: ${trimmed}`,
+        line: i + 1,
+      });
+    }
+    if (hasAngle) {
+      issues.push({
+        level: 'warning',
+        rule: 'special-char-label',
+        message: `Label contains <> which conflicts with Mermaid HTML parsing: ${trimmed}`,
         line: i + 1,
       });
     }

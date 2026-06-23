@@ -1,3 +1,4 @@
+import { MERMAID_RESERVED_WORDS, extractDeclaredNodeIds } from './validate.js';
 import type { ValidationIssue } from '../types.js';
 
 export interface FixResult {
@@ -18,6 +19,8 @@ export interface FixResult {
  *
  * Currently auto-fixes:
  * - `classdef-color` — replaces wrong color values with the canonical palette
+ * - `reserved-word` — renames node IDs that match Mermaid reserved keywords
+ * - `special-char-label` — replaces @ with → and escapes <> in labels
  *
  * Reports unfixable:
  * - `graph-declaration` — needs explicit graph type decision
@@ -42,6 +45,25 @@ export function fixDiagram(text: string, issues: ValidationIssue[]): FixResult {
         continue;
       }
     }
+
+    if (issue.rule === 'reserved-word' && issue.line) {
+      const before = fixed;
+      fixed = fixReservedWord(fixed, issue.line);
+      if (before !== fixed) {
+        fixedIssues.push(issue);
+        continue;
+      }
+    }
+
+    if (issue.rule === 'special-char-label' && issue.line) {
+      const before = fixed;
+      fixed = fixSpecialCharLabel(fixed, issue.line);
+      if (before !== fixed) {
+        fixedIssues.push(issue);
+        continue;
+      }
+    }
+
     unfixedIssues.push(issue);
   }
 
@@ -55,6 +77,35 @@ export function fixDiagram(text: string, issues: ValidationIssue[]): FixResult {
 }
 
 const CLASSDEF_LINE_RE = /^(\s*classDef\s+\w+\s+)(.+)$/i;
+
+/**
+ * Helper to replace node references in a line while avoiding comments, headers, strings/quotes.
+ */
+function replaceNodeReferencesInLine(line: string, nodeId: string, newNodeId: string): string {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('%%')) return line;
+  if (/^(graph|flowchart)\s+(LR|RL|TD|TB|BT)\s*$/i.test(trimmed)) return line;
+  if (/^subgraph\s+/i.test(trimmed)) return line;
+  if (trimmed === 'end' || trimmed.startsWith('end ')) return line;
+  if (trimmed.startsWith('classDef ')) return line;
+
+  // Split line by '%%' to separate comment
+  const commentIndex = line.indexOf('%%');
+  let codePart = commentIndex !== -1 ? line.slice(0, commentIndex) : line;
+  const commentPart = commentIndex !== -1 ? line.slice(commentIndex) : '';
+
+  // Split codePart by double quotes
+  const parts = codePart.split('"');
+  const escapedId = nodeId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const refPattern = new RegExp(`\\b${escapedId}\\b`, 'g');
+
+  for (let i = 0; i < parts.length; i += 2) {
+    parts[i] = parts[i].replace(refPattern, newNodeId);
+  }
+
+  return parts.join('"') + commentPart;
+}
+
 const COLOR_ATTR_RE = /(fill|stroke|color)\s*:\s*#([0-9a-fA-F]{3,8})/g;
 
 /** Canonical palette (must match lib/validate.ts) */
@@ -64,6 +115,70 @@ const CLASSDEF_PALETTE: Record<string, Record<string, string>> = {
   entry:    { fill: '#89b4fa', stroke: '#89b4fa', color: '#1e1e2e' },
   store:    { fill: '#a6e3a1', stroke: '#a6e3a1', color: '#1e1e2e' },
 };
+
+/**
+ * Fix a node ID that matches a Mermaid reserved keyword.
+ * Appends '-node' to the ID to avoid conflicts.
+ */
+function fixReservedWord(text: string, lineNum: number): string {
+  const lines = text.split('\n');
+  const idx = lineNum - 1;
+  if (idx < 0 || idx >= lines.length) return text;
+  const line = lines[idx];
+
+  // Find which reserved word was declared on this line
+  const declaredIds = extractDeclaredNodeIds(line);
+  const reservedId = declaredIds.find(id => MERMAID_RESERVED_WORDS.has(id.toLowerCase()));
+  if (!reservedId) return text;
+
+  const newNodeId = `${reservedId}-node`;
+
+  // Update all lines in the diagram
+  for (let i = 0; i < lines.length; i++) {
+    lines[i] = replaceNodeReferencesInLine(lines[i], reservedId, newNodeId);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Fix special characters in labels:
+ * - Replace @ with → (cross-reference arrow)
+ * - Escape < > with HTML entities (&lt; &gt;)
+ */
+function fixSpecialCharLabel(text: string, lineNum: number): string {
+  const lines = text.split('\n');
+  const idx = lineNum - 1;
+  if (idx < 0 || idx >= lines.length) return text;
+
+  const line = lines[idx];
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('%%') || trimmed.startsWith('classDef ')) return text;
+
+  const parts = line.split('"');
+
+  // Fix odd parts (inside double quotes)
+  for (let i = 1; i < parts.length; i += 2) {
+    parts[i] = parts[i]
+      .replace(/@/g, '→')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // Fix even parts (outside double quotes, inside bracket shapes)
+  for (let i = 0; i < parts.length; i += 2) {
+    parts[i] = parts[i].replace(/([\[({])([^\]})]*)([\]})])/g, (_match, open, content, close) => {
+      const fixedContent = content
+        .replace(/@/g, '→')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return `${open}${fixedContent}${close}`;
+    });
+  }
+
+  lines[idx] = parts.join('"');
+  return lines.join('\n');
+}
 
 function fixClassdefColor(text: string, lineNum: number): string {
   const lines = text.split('\n');
