@@ -1235,19 +1235,21 @@ function buildCanvas(classes, classesData, refsData) {
   // Build outgoing ref counts to handle circular references
   const outCount = {}; // cls -> number of outgoing @refs to other classes
   const inCount = {};  // cls -> number of incoming @refs from other classes
-  for (const cls of classes) { outCount[cls] = 0; inCount[cls] = 0; }
+  const referrers = {};
+  for (const cls of classes) { outCount[cls] = 0; inCount[cls] = 0; referrers[cls] = new Set(); }
   for (const cls of classes) {
     const diagram = classesData[cls]?.diagram || '';
     const refs = [...new Set([...diagram.matchAll(/@([\w-]+)/g)].map(m=>m[1]).filter(r => classes.includes(r)))];
     outCount[cls] = refs.length;
-    refs.forEach(r => { inCount[r]++; });
+    refs.forEach(r => {
+      inCount[r]++;
+      referrers[r].add(cls);
+    });
   }
-  // Top-level = not referenced, OR referenced but has more outgoing refs than any referrer (cycle breaker)
-  let topLevel = classes.filter(c => inCount[c] === 0);
-  if (!topLevel.length) {
-    // All classes have incoming refs (circular). Render all as independent groups.
-    topLevel = [...classes];
-  }
+  // All perspectives are always top-level groups.
+  // @ref cross-links only control sub-group expansion within a diagram,
+  // not whether a perspective gets its own top-level canvas group.
+  let topLevel = [...classes];
   const roots = topLevel;
 
   // Render each top-level group
@@ -1392,7 +1394,7 @@ function buildNavTree() {
         var childScoped = parentScopedPath + '/' + child;
         addNavItem(childScoped, basePrefix, isLast, child);
         // Recurse: check if this child has sub-children in classesData
-        var childData = classesData[child];
+        var childData = classesData[childScoped] || classesData[child];
         if (childData && childData.children && childData.children.length > 0) {
           var subPrefix = basePrefix + (isLast ? '   ' : '│  ');
           addNavChildren(childScoped, childData.children, subPrefix);

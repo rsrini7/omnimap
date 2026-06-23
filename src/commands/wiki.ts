@@ -9,7 +9,7 @@ omm wiki [options]
 Generate a crawlable markdown wiki from .omm/ documentation.
 
 Usage:
-  omm wiki                      Generate wiki in .omm/wiki/
+  omm wiki                      Generate wiki in .omm/.wiki/
   omm wiki --out <dir>          Output to custom directory
   omm wiki --stdout             Print to stdout (single file)
 
@@ -26,7 +26,7 @@ export function commandWiki(args: string[]): void {
     process.exit(1);
   }
 
-  let outDir = path.join(ommDir, 'wiki');
+  let outDir = path.join(ommDir, '.wiki');
   let stdout = false;
   let help = false;
 
