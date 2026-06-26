@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+// @ts-ignore — JS file without declarations
 import { decideReleaseAction } from '../../scripts/release-decision.js';
 
 describe('decideReleaseAction', () => {

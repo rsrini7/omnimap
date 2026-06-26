@@ -54,7 +54,7 @@ describe('omp platform', () => {
     expect(omp.isSetup()).toBe(true);
   });
 
-  it('setup() creates symlink when target missing', async () => {
+  it('setup() creates skill copy when target missing', async () => {
     const { omp } = await import('../lib/platforms/omp.js');
 
     await omp.setup();
@@ -64,7 +64,7 @@ describe('omp platform', () => {
     expect(fs.statSync(targetDir).isDirectory()).toBe(true);
   });
 
-  it('setup() recreates copy when target already exists', async () => {
+  it('setup() replaces existing target with fresh copy', async () => {
     const targetDir = path.join(tmpDir, '.omp', 'agent', 'skills', 'oh-my-mermaid');
     fs.mkdirSync(path.dirname(targetDir), { recursive: true });
     fs.symlinkSync(skillsSource, targetDir, 'dir');

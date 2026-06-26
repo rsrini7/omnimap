@@ -22,15 +22,18 @@ import { commandValidate } from './commands/validate.js';
 import { commandTree } from './commands/tree.js';
 import { commandRead, commandWrite } from './commands/read-write.js';
 import { commandConfig } from './commands/config.js';
+import { commandIncremental } from './commands/incremental.js';
+import { commandExport } from './commands/export.js';
+import { commandTag } from './commands/tag.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'help'];
 
 function printHelp(): void {
   const help = `
 oh-my-mermaid (omm) — Architecture mirror for vibe coding
 
 Usage:
-  omm init                          Initialize .omm/ directory (usually not needed)
+  omm init [--template <name>]      Initialize .omm/ directory or scaffold from template
   omm setup [platform]              Register skills with AI coding tools
   omm setup --list                  Show detected platforms
   omm setup --teardown              Unregister from all platforms
@@ -45,7 +48,11 @@ Usage:
   omm diff <path>                   Compare current vs previous diagram
   omm refs <path>                   Show elements that reference this element
   omm validate [path]               Validate diagram(s) for syntax and conventions
+  omm validate --changed [--json]   Validate only changed elements (for CI)
   omm view [--port <port>]         Start web viewer (default: 3000)
+  omm incremental [--json|--mark|--record]  Plan or record incremental scan updates
+  omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
+  omm tag <element> [add|remove|set] [tags]         Manage element tags
 
 Cloud:
   omm login                         Log in to omm.dev
@@ -84,7 +91,7 @@ async function main(): Promise<void> {
 
   switch (cmd) {
     case 'init':
-      commandInit();
+      commandInit(args.slice(1));
       return;
 
     case 'setup':
@@ -143,9 +150,13 @@ async function main(): Promise<void> {
       commandDiff(args[1]);
       return;
 
-    case 'validate':
-      commandValidate(args[1]);
+    case 'validate': {
+      const valArgs = args.slice(1);
+      const valFlags = valArgs.filter(a => a.startsWith('--'));
+      const valClass = valArgs.find(a => !a.startsWith('--'));
+      commandValidate(valClass, valFlags);
       return;
+    }
 
     case 'refs': {
       let reverse = false;
@@ -201,6 +212,18 @@ async function main(): Promise<void> {
 
     case 'org':
       await commandOrg(args[1], args[2]);
+      return;
+
+    case 'incremental':
+      await commandIncremental(args.slice(1));
+      return;
+
+    case 'export':
+      await commandExport(args.slice(1));
+      return;
+
+    case 'tag':
+      commandTag(args.slice(1));
       return;
 
     default:

@@ -25,6 +25,22 @@ export interface ClassMeta {
   title?: string;
   children?: string[];
   parentPath?: string[];
+  tags?: string[];
+  diagram_history?: Array<{ diagram: string; at: string; commit?: string }>;
+
+  /**
+   * Incremental analysis metadata.
+   *
+   * Stored per element/class (including nested elements) to enable selecting
+   * only affected subtrees on the next /omm-scan.
+   */
+  source_files?: string[];
+  source_globs?: string[];
+  scan_generation?: {
+    mode?: 'full' | 'incremental';
+    git_commit?: string;
+    at?: string;
+  };
 }
 
 export interface ClassData {

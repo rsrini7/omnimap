@@ -141,6 +141,9 @@ export function writeNodeField(
       const meta = readNodeMeta(perspective, nodePath, cwd);
       if (meta) {
         meta.prev_diagram = prev;
+        if (!meta.diagram_history) meta.diagram_history = [];
+        meta.diagram_history.push({ diagram: prev, at: new Date().toISOString(), commit: meta.git_commit });
+        if (meta.diagram_history.length > 20) meta.diagram_history = meta.diagram_history.slice(-20);
         writeNodeMeta(perspective, nodePath, meta, cwd);
       }
     }
@@ -205,7 +208,7 @@ export function readNodeMeta(perspective: string, nodePath: string[], cwd?: stri
   return YAML.parse(fs.readFileSync(filePath, 'utf-8')) as ClassMeta;
 }
 
-function writeNodeMeta(perspective: string, nodePath: string[], meta: ClassMeta, cwd?: string): void {
+export function writeNodeMeta(perspective: string, nodePath: string[], meta: ClassMeta, cwd?: string): void {
   const dir = nodePath.length === 0
     ? ensureClassDir(perspective, cwd)
     : ensureNodeDir(perspective, nodePath, cwd);
@@ -260,6 +263,10 @@ export function writeField(className: string, field: Field, content: string, cwd
       const meta = readMeta(className, cwd);
       if (meta) {
         meta.prev_diagram = prev;
+        // Push to history (keep last 20 versions)
+        if (!meta.diagram_history) meta.diagram_history = [];
+        meta.diagram_history.push({ diagram: prev, at: new Date().toISOString(), commit: meta.git_commit });
+        if (meta.diagram_history.length > 20) meta.diagram_history = meta.diagram_history.slice(-20);
         writeMeta(className, meta, cwd);
       }
     }

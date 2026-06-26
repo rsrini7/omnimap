@@ -79,7 +79,20 @@ Each element carries up to 7 fields: `description`, `diagram`, `context`, `const
 
 ```bash
 omm setup                          # Register skills with your AI tools
+omm init --template list           # Show available diagram templates
+omm init --template microservices  # Scaffold from a template
 omm view                           # Open interactive viewer
+omm list                           # List all perspectives
+omm show <element>                 # Show all fields for an element
+omm tree [perspective]             # Print element tree
+omm validate [element]             # Validate diagram(s)
+omm validate --changed             # Validate only changed elements (CI)
+omm validate --changed --json      # JSON output for CI pipelines
+omm diff <element>                 # Show diagram diff (added/removed nodes)
+omm refs <element>                 # Show incoming/outgoing references
+omm export <element> [--format svg|png] [-o file]  # Export diagram
+omm tag <element> [add|remove|set] [tags]          # Manage element tags
+omm incremental                    # Plan a scoped re-scan based on git diff
 omm config language ko             # Set content language
 omm update                         # Update to latest version
 ```
@@ -93,7 +106,32 @@ Skills are commands you run **inside your AI coding tool** (not the terminal). T
 | Skill | What it does |
 | --- | --- |
 | `/omm-scan` | Analyze codebase → generate architecture docs |
+| `/omm-guide` | Walk through existing architecture interactively |
 | `/omm-push` | Login + link + push to cloud in one step |
+| `/omm-view` | Open the web viewer |
+| `/omm-tag` | Tag elements with labels for categorization |
+
+## Viewer Features
+
+The web viewer (`omm view`) includes:
+
+| Feature | Description |
+| --- | --- |
+| **Diagram + Code tabs** | Toggle between rendered SVG and syntax-highlighted mermaid source |
+| **Search** | Full-text search with fuzzy matching, `tag:` filter, and markdown-rendered snippets |
+| **Validate** | Click "Validate Diagram" in sidebar to check for errors/warnings inline |
+| **Export** | Download diagrams as SVG or PNG with project title. Theme-aware background |
+| **Visual diff** | Show added/removed nodes between diagram versions |
+| **Relationship graph** | Bird's-eye view of cross-perspective connections (◈ button) |
+| **Version history** | Timeline slider to scrub through past diagram versions |
+| **Keyboard shortcuts** | `/` search, `F` fit, `T` theme, `←→` navigate, `Esc` close |
+| **Resizable panels** | Drag to resize left nav and right sidebar |
+| **Element tags** | Categorize elements with labels, filter by tag in search |
+| **Element metrics** | Word count, field coverage %, diagram complexity, children count |
+| **Cross-perspective nav** | "In" section shows which perspectives contain the element |
+| **Auto-width nav** | Left panel auto-sizes to fit the longest perspective name |
+| **Viewport-responsive fonts** | Font sizes scale with monitor width for readability |
+| **Diagram templates** | Scaffold from pre-built architectures via `omm init --template` |
 
 ## Cloud
 

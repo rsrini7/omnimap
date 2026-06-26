@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+// @ts-ignore — JS file without declarations
 import { collectVersionInfo, getVersionMismatchMessages } from '../../scripts/check-version-sync.js';
 
 let tmpDir: string | null = null;

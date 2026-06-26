@@ -1,11 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { listClasses, showClass, readMeta, readField, listNodes, showNode } from '../lib/store.js';
 import { diffMermaid } from '../lib/diff.js';
-import { getIncomingRefs, getOutgoingRefs } from '../lib/refs.js';
+import { validateDiagram } from '../lib/validate.js';
+import { getIncomingRefs, getOutgoingRefs, buildRefGraph } from '../lib/refs.js';
+import { searchOmm } from './search.js';
 
 function json(res: ServerResponse, data: unknown, status = 200): void {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify(data));
+}
+
+function numParam(v: string | null): number | undefined {
+  if (v === null) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
@@ -64,8 +72,40 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
     return true;
   }
 
+  // GET /api/search?q=...&limit=&offset=&minScore=
+  if (path === '/api/search') {
+    const q = url.searchParams.get('q') || '';
+    const limit = numParam(url.searchParams.get('limit'));
+    const offset = numParam(url.searchParams.get('offset'));
+    const minScore = numParam(url.searchParams.get('minScore'));
+    json(res, searchOmm(q, { limit, offset, minScore }));
+    return true;
+  }
+
+  // GET /api/refs/graph
+  if (path === '/api/refs/graph') {
+    json(res, buildRefGraph());
+    return true;
+  }
+
+  // GET /api/class/:name/validate
+  const validateMatch = path.match(/^\/api\/class\/([^/]+)\/validate$/);
+  if (validateMatch) {
+    const className = validateMatch[1];
+    const diagram = readField(className, 'diagram');
+    if (!diagram) {
+      json(res, { valid: true, issues: [], element: className });
+      return true;
+    }
+    const allClasses = listClasses();
+    const result = validateDiagram(diagram, { className, allClasses });
+    json(res, { ...result, element: className });
+    return true;
+  }
+
   // GET /api/class/:perspective/node/:path+
   const nodeMatch = path.match(/^\/api\/class\/([^/]+)\/node\/(.+)$/);
+
   if (nodeMatch) {
     const perspective = nodeMatch[1];
     const nodePath = nodeMatch[2].split('/');

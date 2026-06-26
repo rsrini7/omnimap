@@ -83,6 +83,7 @@ Her element en fazla 7 alan taşıyabilir: `description`, `diagram`, `context`, 
 omm setup                          # Yetenekleri AI araçlarına kaydet
 omm view                           # Etkileşimli görüntüleyiciyi aç
 omm config language ko             # İçerik dilini ayarla
+omm incremental                    # git diff'e dayalı kademeli yeniden tarama planla
 omm update                         # En güncel sürüme geç
 ```
 

@@ -41,7 +41,7 @@ export function commandConfig(args: string[]): void {
   // omm config <key> — read
   if (!value) {
     const config = readConfig();
-    const val = (config as Record<string, unknown>)[key];
+    const val = (config as unknown as Record<string, unknown>)[key];
     if (val !== undefined) {
       process.stdout.write(String(val) + '\n');
     } else {
@@ -54,7 +54,7 @@ export function commandConfig(args: string[]): void {
 
   // omm config <key> <value> — write
   const config = readConfig();
-  (config as Record<string, unknown>)[key] = value;
+  (config as unknown as Record<string, unknown>)[key] = value;
   writeConfig(config);
   process.stderr.write(`config: ${key}=${value}\n`);
 }

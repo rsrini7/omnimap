@@ -33,8 +33,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsc --noEmit && tsup",
     "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check-version-sync": "node scripts/check-version-sync.js",
     "sync-version": "node scripts/sync-version.js",

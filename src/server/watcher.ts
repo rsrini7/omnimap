@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import type { ServerResponse } from 'node:http';
 import { getOmmDir } from '../lib/store.js';
+import { invalidateSearchIndex } from './search.js';
 
 const clients = new Set<ServerResponse>();
 
@@ -38,6 +39,7 @@ export function startWatcher(): void {
     // Debounce rapid changes
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
+      invalidateSearchIndex();
       broadcast('change', JSON.stringify({ file: filename, time: Date.now() }));
     }, 300);
   });

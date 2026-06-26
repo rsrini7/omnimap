@@ -8,19 +8,21 @@ import { addSSEClient, startWatcher } from './watcher.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function getViewerHtml(): string {
-  // Try dist/ first, then src/server/ for dev
+function getViewerHtmlPath(): string {
   const candidates = [
     path.join(__dirname, 'viewer.html'),
     path.join(__dirname, '..', 'server', 'viewer.html'),
     path.join(__dirname, '..', 'src', 'server', 'viewer.html'),
   ];
   for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      return fs.readFileSync(p, 'utf-8');
-    }
+    if (fs.existsSync(p)) return p;
   }
-  return '<html><body><h1>viewer.html not found</h1></body></html>';
+  return '';
+}
+
+function getViewerHtml(): string {
+  const p = getViewerHtmlPath();
+  return p ? fs.readFileSync(p, 'utf-8') : '<html><body><h1>viewer.html not found</h1></body></html>';
 }
 
 export function startServer(port: number): void {
@@ -51,6 +53,17 @@ export function startServer(port: number): void {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
+    }
+
+    // Serve static JS files from viewer directory
+    if (url.pathname.endsWith('.js') && !url.pathname.includes('..')) {
+      const viewerDir = path.dirname(getViewerHtmlPath());
+      const filePath = path.join(viewerDir, url.pathname.slice(1));
+      if (fs.existsSync(filePath) && filePath.startsWith(viewerDir)) {
+        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+        res.end(fs.readFileSync(filePath, 'utf-8'));
+        return;
+      }
     }
 
     res.writeHead(404);

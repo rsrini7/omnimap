@@ -10,5 +10,5 @@ export default defineConfig({
   clean: true,
   splitting: false,
   sourcemap: true,
-  onSuccess: 'cp src/server/viewer.html dist/ 2>/dev/null || true',
+  onSuccess: 'cp src/server/viewer.html dist/ 2>/dev/null || true && cp src/server/viewer-app.js dist/ 2>/dev/null || true && cp -r src/server/viewer dist/ 2>/dev/null || true',
 });

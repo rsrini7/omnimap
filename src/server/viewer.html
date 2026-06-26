@@ -24,31 +24,123 @@ html, body { height: 100%; overflow: hidden; }
 body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
 
 /* Nav sidebar */
+:root { --nav-w: 200px; --sb-font: clamp(12px, 1vw, 16px); }
 #nav-sidebar {
-  position: fixed; top: 0; left: 0; bottom: 0; width: 200px;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--nav-w); min-width: 140px; max-width: 420px;
   background: #000; border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   z-index: 200;
+  transition: width .18s ease, border-color .18s;
+}
+/* Drag resize handle */
+#nav-resize {
+  position: absolute; top: 0; right: -3px; bottom: 0; width: 6px;
+  cursor: col-resize; z-index: 210;
+  background: transparent;
+  transition: background .15s;
+}
+#nav-resize:hover, #nav-resize.dragging { background: rgba(129,140,248,0.3); }
+
+#nav-title-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 10px 10px 14px;
+  flex-shrink: 0;
 }
 #nav-title {
-  padding: 14px 16px;
-  font-size: 13px; font-weight: 600; color: #fff;
-  font-family: var(--mono);
+  flex: 1; font-size: 13px; font-weight: 600; color: #fff;
+  font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Search */
+#search-box {
+  position: relative;
+  padding: 0 10px 10px;
+  flex-shrink: 0;
+}
+#search-input {
+  width: 100%; height: calc(var(--sb-font) + 16px);
+  background: #0d0d0d; border: 1px solid #222; border-radius: 5px;
+  color: #ccc; font-size: var(--sb-font); font-family: var(--font);
+  padding: 0 8px 0 28px;
+  outline: none; transition: border-color .15s;
+}
+#search-input:focus { border-color: #555; }
+#search-input::placeholder { color: #444; }
+#search-icon {
+  position: absolute; left: 18px; top: 8px;
+  color: #444; font-size: 13px; pointer-events: none;
+}
+/* Results dropdown: fixed position so it extends wider than the sidebar */
+#search-results {
+  position: fixed; top: 52px; left: var(--nav-w);
+  width: 420px; max-height: 400px;
+  background: #0a0a0a; border: 1px solid #222; border-radius: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #1a1a1a transparent;
+  display: none; z-index: 350;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+}
+#search-results.open { display: block; }
+.sr-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 14px; cursor: pointer;
+  border-bottom: 1px solid #151515;
+  transition: background .1s;
+}
+.sr-item:last-child { border-bottom: none; }
+.sr-item:hover, .sr-item.active { background: #161616; }
+.sr-item-header { display: flex; align-items: center; gap: 8px; }
+.sr-path {
+  font-size: 12px; font-family: var(--mono); color: #aaa;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+}
+.sr-field {
+  display: inline-block; font-size: 9px; text-transform: uppercase;
+  letter-spacing: .1em; color: #666; background: #141414;
+  padding: 2px 6px; border-radius: 3px; flex-shrink: 0;
+}
+.sr-snippet {
+  font-size: 12px; color: #999; line-height: 1.6;
+  word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sr-snippet mark {
+  background: rgba(129,140,248,0.15); color: #c7d2fe;
+  border-radius: 2px; padding: 0 2px; font-weight: 600;
+}
+.sr-snippet strong { color: #e2e8f0; font-weight: 600; }
+.sr-snippet em { color: #a5b4fc; font-style: italic; }
+.sr-snippet code { background: #1e1e2e; color: #c4b5fd; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; font-family: var(--mono); }
+.sr-snippet a { color: #93c5fd; text-decoration: none; }
+.sr-snippet a:hover { text-decoration: underline; }
+.sr-empty {
+  padding: 20px 14px; font-size: 12px; color: #555; text-align: center;
+}
+.sr-featured {
+  padding: 6px 14px 4px; font-size: 9px; text-transform: uppercase;
+  letter-spacing: .1em; color: #555;
+}
+.sr-count {
+  padding: 6px 14px; font-size: 10px; color: #444;
+  border-top: 1px solid #151515; text-align: right;
+}
+
 #nav-list {
   flex: 1; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: #1a1a1a transparent;
 }
 .nav-item {
-  display: flex; align-items: center; width: 100%; height: 24px;
+  display: flex; align-items: center; width: 100%; height: calc(var(--sb-font) + 12px);
   padding: 0 16px 0 0;
-  font-size: 11.5px; font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', var(--mono);
+  font-size: var(--sb-font); font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', var(--mono);
   color: #666; cursor: pointer;
   border: none; background: none; text-align: left;
   transition: color .12s, background .12s;
   white-space: nowrap; overflow: hidden;
 }
-.nav-item.nav-root { color: #bbb; font-size: 12px; height: 28px; padding-left: 16px; margin-top: 2px; }
+.nav-item.nav-root { color: #bbb; font-size: calc(var(--sb-font) + 1px); height: calc(var(--sb-font) + 16px); padding-left: 16px; margin-top: 2px; }
 .nav-pre { display: flex; align-self: stretch; align-items: stretch; flex-shrink: 0; padding-left: 16px; }
 .nav-slot { width: 12px; position: relative; flex-shrink: 0; }
 .nav-slot-line::before {
@@ -91,12 +183,13 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 }
 .hbtn { background: none; border: 1px solid var(--border-hi); color: var(--text-mid); height: 26px; min-width: 26px; padding: 0 8px; border-radius: 5px; cursor: pointer; font-size: 13px; font-family: var(--font); transition: border-color .12s, color .12s; }
 .hbtn:hover { border-color: #3a3a3a; color: var(--text); }
+.hbtn.active { border-color: #818cf8; color: #818cf8; }
 #zoom-label { font-size: 11px; color: var(--text-dim); width: 38px; text-align: center; font-family: var(--mono); }
 .float-controls.sidebar-open { right: calc(var(--sidebar-w) + 12px); }
 @media (max-width: 768px) { .float-controls.sidebar-open { right: 12px; } }
 
 #canvas-wrap {
-  flex: 1; position: relative; overflow: hidden; cursor: grab; margin-left: 200px;
+  flex: 1; position: relative; overflow: hidden; cursor: grab; margin-left: var(--nav-w);
   background-color: var(--bg);
   background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
   background-size: 28px 28px;
@@ -116,6 +209,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 .reg-node:hover .nshape { stroke: #ffffff !important; stroke-width: 2.5px; filter: drop-shadow(0 0 6px rgba(255,255,255,0.5)); }
 /* Edge highlight on node hover */
 .edge-path.edge-hl { stroke: #ffffff !important; stroke-width: 2.5px; opacity: 1; transition: all .15s; }
+.edge-label-dim { transition: opacity .15s; pointer-events: all; }
+.edge-label-dim:hover { opacity: 1 !important; }
 .reg-node.selected .nshape { stroke: #818cf8 !important; stroke-width: 2.5px; filter: drop-shadow(0 0 8px rgba(129,140,248,0.6)); }
 /* Overview mode: per-element fade — borders + edges stay visible */
 .grp-inner { transition: opacity .25s; }
@@ -165,35 +260,80 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 
 /* Sidebar */
 #sidebar {
-  position: fixed; top: 0; right: 0; bottom: 0; width: var(--sidebar-w);
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: var(--sidebar-w); min-width: 280px; max-width: 700px;
   background: #000; border-left: 1px solid var(--border);
   transform: translateX(100%);
-  transition: transform .22s cubic-bezier(.4,0,.2,1);
+  transition: transform .22s cubic-bezier(.4,0,.2,1), width .18s ease;
   z-index: 300; display: flex; flex-direction: column;
 }
 #sidebar.open { transform: translateX(0); }
+#sb-resize {
+  position: absolute; top: 0; left: -3px; bottom: 0; width: 6px;
+  cursor: col-resize; z-index: 310;
+  background: transparent;
+  transition: background .15s;
+}
+#sb-resize:hover, #sb-resize.dragging { background: rgba(129,140,248,0.3); }
 #sb-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-#sb-title { flex: 1; font-size: 14px; font-weight: 600; color: #fff; font-family: var(--mono); }
+#sb-title { flex: 1; font-size: calc(var(--sb-font) + 2px); font-weight: 600; color: #fff; font-family: var(--mono); }
 #sb-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 22px; line-height: 1; padding: 0; }
 #sb-close:hover { color: #888; }
 #sb-body { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1a1a1a transparent; }
 
-.sb-diagram { padding: 16px; border-bottom: 1px solid var(--border); background: #030303; }
+.sb-diagram { padding: 0; border-bottom: 1px solid var(--border); background: #030303; }
 .sb-diagram svg { display: block; width: 100%; height: auto; overflow: visible; }
+.sb-diagram-view { padding: 16px; }
+.sb-diagram-toggle { display: flex; border-bottom: 1px solid #1a1a1a; }
+.sb-diagram-tab { background: none; border: none; color: #666; padding: 8px 16px; font-size: 11px; font-family: var(--mono); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+.sb-diagram-tab:hover { color: #aaa; }
+.sb-diagram-tab.active { color: #ccc; border-bottom-color: #818cf8; }
+.sb-code-view { padding: 0; max-height: 300px; overflow: auto; scrollbar-width: thin; scrollbar-color: #1a1a1a transparent; }
+.sb-code-pre { margin: 0; padding: 12px 16px; font-family: var(--mono); font-size: 11px; line-height: 1.6; color: #aaa; white-space: pre; }
+.sb-timeline { padding: 8px 16px 12px; border-top: 1px solid #1a1a1a; }
+.sb-timeline-label { font-size: 10px; color: #666; margin-bottom: 6px; font-family: var(--mono); }
+.sb-timeline-slider { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+.sb-timeline-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #818cf8; border-radius: 50%; cursor: pointer; }
+.sb-timeline-slider::-moz-range-thumb { width: 14px; height: 14px; background: #818cf8; border-radius: 50%; cursor: pointer; border: none; }
+.sb-timeline-info { font-size: 10px; color: #555; margin-top: 4px; font-family: var(--mono); }
+.sb-validate-ok { padding: 6px 0; font-size: 11px; color: #22c55e; font-family: var(--mono); }
+.sb-validate-section { padding: 4px 0; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+.sb-validate-errors { color: #ef4444; }
+.sb-validate-warnings { color: #fbbf24; }
+.sb-validate-issue { padding: 3px 0; font-size: 11px; color: #999; line-height: 1.5; }
+.sb-validate-error { color: #fca5a5; }
+.sb-validate-warning { color: #fde68a; }
+.sb-validate-rule { font-family: var(--mono); font-size: 10px; color: #666; margin-right: 4px; }
+.mk-keyword { color: #c084fc; font-weight: 600; }
+.mk-direction { color: #67e8f9; }
+.mk-arrow { color: #fbbf24; }
+.mk-node { color: #818cf8; }
+.mk-label { color: #a3e635; }
+.mk-class { color: #fb923c; }
+.mk-comment { color: #555; font-style: italic; }
+.mk-ref { color: #f472b6; font-weight: 600; }
 .sb-fields { padding: 16px 20px; }
 .sb-sec { margin-bottom: 20px; }
-.sb-sec-title { font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: #888; padding-bottom: 7px; border-bottom: 1px solid #1e1e1e; margin-bottom: 9px; font-weight: 600; }
-.sb-sec-body { font-size: 12px; line-height: 1.72; color: #bbb; }
+.sb-sec-title { font-size: calc(var(--sb-font) - 2px); text-transform: uppercase; letter-spacing: .14em; color: #888; padding-bottom: 7px; border-bottom: 1px solid #1e1e1e; margin-bottom: 9px; font-weight: 600; }
+.sb-sec-body { font-size: var(--sb-font); line-height: 1.72; color: #bbb; }
 .sb-sec-body p { margin-bottom: 6px; }
 .sb-sec-body ul, .sb-sec-body ol { padding-left: 16px; }
 .sb-sec-body li { margin-bottom: 3px; }
-.sb-sec-body code { background: #111; padding: 1px 5px; border-radius: 2px; font-size: 11px; color: #ccc; font-family: var(--mono); }
+.sb-sec-body code { background: #111; padding: 1px 5px; border-radius: 2px; font-size: calc(var(--sb-font) - 1px); color: #ccc; font-family: var(--mono); }
 .sb-sec-body strong { color: #eee; }
 .sb-concern .sb-sec-body { border-left: 2px solid #444; padding-left: 10px; }
-.sb-meta-text { font-size: 10px; color: #777; line-height: 1.9; font-family: var(--mono); }
+.sb-meta-text { font-size: calc(var(--sb-font) - 1px); color: #777; line-height: 1.9; font-family: var(--mono); }
+.sb-metrics { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.sb-metric { font-size: 11px; color: #888; font-family: var(--mono); }
+.sb-metric-value { color: #ccc; font-weight: 600; }
+.sb-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sb-tag { display: inline-block; padding: 3px 10px; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 12px; font-size: calc(var(--sb-font) - 1px); color: #818cf8; font-family: var(--mono); letter-spacing: 0.02em; }
 .sb-refs { display: flex; flex-direction: column; gap: 4px; }
-.sb-ref { font-size: 11px; color: #999; padding: 5px 10px; background: #090909; border: 1px solid #1e1e1e; border-radius: 4px; cursor: pointer; display: block; font-family: var(--mono); transition: border-color .12s, color .12s; }
+.sb-ref { font-size: calc(var(--sb-font) - 1px); color: #999; padding: 5px 10px; background: #090909; border: 1px solid #1e1e1e; border-radius: 4px; cursor: pointer; display: block; font-family: var(--mono); transition: border-color .12s, color .12s; }
 .sb-ref:hover { border-color: #333; color: #bbb; }
+.sb-diff-toggle { background: none; border: 1px solid #333; color: #888; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: calc(var(--sb-font) - 1px); font-family: var(--mono); transition: all .15s; width: 100%; }
+.sb-diff-toggle:hover { border-color: #555; color: #ccc; }
+.sb-diff-toggle.active { border-color: #22c55e; color: #22c55e; }
 .empty-state { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
 .empty-state p { font-size: 12px; color: #444; line-height: 1.9; }
 /* Light mode */
@@ -201,20 +341,73 @@ body.light { --bg: #f0f0f0; --border: #ddd; --border-hi: #bbb; --text: #1a1a1a; 
 body.light header { background: #fff; }
 body.light #canvas-wrap { background-color: #f0f0f0; background-image: radial-gradient(circle, #ccc 1px, transparent 1px); }
 body.light #sidebar { background: #fafafa; }
+body.light #sb-title { color: #333; }
+body.light #sb-close { color: #999; }
+body.light #sb-close:hover { color: #333; }
+body.light #sb-resize:hover, body.light #sb-resize.dragging { background: rgba(79,70,229,0.2); }
 body.light #sb-body { scrollbar-color: #ddd transparent; }
 body.light .hbtn { border-color: #ccc; color: #666; }
 body.light .hbtn:hover { border-color: #aaa; color: #222; }
 body.light .sb-diagram { background: #f5f5f5; }
+body.light .sb-diagram-toggle { border-bottom-color: #ddd; }
+body.light .sb-diagram-tab { color: #999; }
+body.light .sb-diagram-tab:hover { color: #333; }
+body.light .sb-diagram-tab.active { color: #333; border-bottom-color: #4f46e5; }
+body.light .sb-timeline { border-top-color: #ddd; }
+body.light .sb-timeline-label { color: #999; }
+body.light .sb-timeline-slider { background: #ddd; }
+body.light .sb-timeline-slider::-webkit-slider-thumb { background: #4f46e5; }
+body.light .sb-timeline-slider::-moz-range-thumb { background: #4f46e5; }
+body.light .sb-timeline-info { color: #999; }
+body.light .sb-validate-ok { color: #16a34a; }
+body.light .sb-validate-errors { color: #dc2626; }
+body.light .sb-validate-warnings { color: #d97706; }
+body.light .sb-validate-issue { color: #555; }
+body.light .sb-validate-error { color: #b91c1c; }
+body.light .sb-validate-warning { color: #92400e; }
+body.light .sb-validate-rule { color: #999; }
+body.light .sb-code-pre { color: #555; }
+body.light .mk-keyword { color: #7c3aed; }
+body.light .mk-direction { color: #0891b2; }
+body.light .mk-arrow { color: #d97706; }
+body.light .mk-node { color: #4f46e5; }
+body.light .mk-label { color: #65a30d; }
+body.light .mk-class { color: #ea580c; }
+body.light .mk-comment { color: #aaa; }
+body.light .mk-ref { color: #db2777; }
 body.light .sb-sec-title { color: #aaa; border-color: #ddd; }
 body.light .sb-sec-body { color: #555; }
 body.light .sb-sec-body code { background: #e5e5e5; color: #333; }
 body.light .sb-sec-body strong { color: #222; }
 body.light .sb-concern .sb-sec-body { border-color: #ccc; }
 body.light .sb-meta-text { color: #999; }
+body.light .sb-metric { color: #888; }
+body.light .sb-metric-value { color: #333; }
+body.light .sb-tag { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
 body.light .sb-ref { background: #eee; border-color: #ddd; color: #555; }
 body.light .sb-ref:hover { border-color: #aaa; color: #111; }
+body.light .sb-diff-toggle { border-color: #ddd; color: #888; }
+body.light .sb-diff-toggle:hover { border-color: #aaa; color: #333; }
+body.light .sb-diff-toggle.active { border-color: #16a34a; color: #16a34a; }
 body.light .empty-state p { color: #bbb; }
 body.light #nav-sidebar { background: #fff; }
+body.light #nav-title { color: #333; }
+body.light #nav-resize:hover, body.light #nav-resize.dragging { background: rgba(79,70,229,0.2); }
+body.light #search-input { background: #f5f5f5; border-color: #ddd; color: #333; }
+body.light #search-input:focus { border-color: #aaa; }
+body.light #search-input::placeholder { color: #bbb; }
+body.light #search-icon { color: #bbb; }
+body.light #search-results { background: #fff; border-color: #ddd; box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+body.light .sr-item:hover, body.light .sr-item.active { background: #f5f5f5; }
+body.light .sr-item { border-color: #eee; }
+body.light .sr-path { color: #555; }
+body.light .sr-field { color: #888; background: #eee; }
+body.light .sr-snippet { color: #666; }
+body.light .sr-snippet mark { background: rgba(79,70,229,0.1); color: #4338ca; }
+body.light .sr-snippet strong { color: #1e293b; }
+body.light .sr-snippet em { color: #6366f1; }
+body.light .sr-snippet code { background: #e0e7ff; color: #4338ca; }
+body.light .sr-snippet a { color: #2563eb; }
 body.light .nav-item { color: #999; }
 body.light .nav-item.nav-root { color: #333; }
 body.light .nav-slot-line::before { background: #ddd; }
@@ -239,12 +432,16 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
+  :root { --nav-w: 0px; --sb-font: 12px; }
   #nav-sidebar {
     transform: translateX(-100%);
-    transition: transform .22s cubic-bezier(.4,0,.2,1);
+    transition: transform .22s cubic-bezier(.4,0,.2,1), width 0s;
     z-index: 500;
+    width: 260px !important; min-width: 260px; max-width: 260px;
   }
   #nav-sidebar.mobile-open { transform: translateX(0); }
+  #nav-resize { display: none; }
+  #search-results { left: 0; width: 100vw; border-radius: 0; }
   #canvas-wrap { left: 0 !important; margin-left: 0 !important; }
   #mobile-nav-btn {
     display: flex; align-items: center; gap: 8px;
@@ -287,9 +484,17 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
 </head>
 <body>
 <div id="nav-sidebar">
-  <div id="nav-title">omm</div>
+  <div id="nav-resize"></div>
+  <div id="nav-title-bar">
+    <div id="nav-title">omm</div>
+  </div>
+  <div id="search-box">
+    <span id="search-icon">⌕</span>
+    <input id="search-input" type="text" placeholder="Search elements…" autocomplete="off" />
+  </div>
   <div id="nav-list"></div>
 </div>
+<div id="search-results"></div>
 
 <div id="mobile-nav-btn" onclick="toggleMobileNav()"><span>☰</span><span id="mobile-title">omm</span></div>
 <div id="mobile-overlay" onclick="toggleMobileNav()"></div>
@@ -300,11 +505,14 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
     <button class="hbtn" onclick="zoomIn()">+</button>
     <button class="hbtn" onclick="resetView()" style="font-size:11px">fit</button>
     <button class="hbtn" id="theme-btn" onclick="toggleTheme()" style="font-size:13px">○</button>
+    <button class="hbtn" id="export-btn" onclick="exportDiagram()" title="Export diagram" style="font-size:12px">↓</button>
+    <button class="hbtn" id="graph-btn" onclick="toggleGraphView()" title="Relationship graph" style="font-size:11px">◈</button>
   </div>
   <div id="canvas"></div>
 </div>
 
 <div id="sidebar">
+  <div id="sb-resize"></div>
   <div id="sb-head"><div id="sb-title"></div><button id="sb-close" onclick="closeSidebar()">×</button></div>
   <div id="sb-body">
     <div class="sb-diagram" id="sb-diagram"></div>
@@ -312,1319 +520,6 @@ body.light .reg-node:hover .nshape { stroke: #000 !important; }
   </div>
 </div>
 
-<script type="module">
-// ── theme ─────────────────────────────────────────────────
-function safeStorageGet(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-function safeStorageSet(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {}
-}
-let isDark = safeStorageGet('omm-theme') !== 'light';
-function applyTheme() {
-  document.body.classList.toggle('light', !isDark);
-  const btn = document.getElementById('theme-btn');
-  if (btn) btn.textContent = isDark ? '○' : '●';
-}
-window.toggleTheme = function() {
-  isDark = !isDark;
-  safeStorageSet('omm-theme', isDark ? 'dark' : 'light');
-  applyTheme();
-  rebuildCanvas();
-};
-function theme() {
-  return isDark ? {
-    groupFill:'#0a0a0a', groupStroke:'#666666',
-    subFill:'#111111', subStroke:'#666666', subLabelFill:'#ffffff',
-    edgeColor0:'#909090', edgeColor1:'#787878',
-    edgeLabelBg:'#000000', edgeLabelText:'#aaaaaa',
-    grpLabelFill:'#ffffff', grpLabelCenterFill:'#dddddd',
-  } : {
-    groupFill:'#f8f8f8', groupStroke:'#bbb',
-    subFill:'#efefef', subStroke:'#bbb', subLabelFill:'#888',
-    edgeColor0:'#94a3b8', edgeColor1:'#bbb',
-    edgeLabelBg:'#e8e8e8', edgeLabelText:'#475569',
-    grpLabelFill:'#475569', grpLabelCenterFill:'#222',
-  };
-}
-
-// ── helpers ──────────────────────────────────────────────
-const _tm = document.createElement('canvas').getContext('2d');
-function tw(t, f) { _tm.font = f || '11px Inter,system-ui'; return Math.ceil(_tm.measureText(t).width); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function r1(n) { return +n.toFixed(1); }
-function fmtLabel(s) { return s.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '); }
-
-// ── flowchart parser ──────────────────────────────────────
-function parseFlowchart(raw) {
-  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('%%'));
-  let rankdir = 'LR';
-  const nodesMap = new Map(), edges = [], classOf = {};
-
-  function cleanLabel(s) { return s.replace(/<br\s*\/?>/gi, '\n').replace(/\\n/g, '\n'); }
-  function refFromLabel(label) {
-    // Detect @class-name at start of label (e.g. "@channel-system" or "@auth-flow\nsome path")
-    const m = label.match(/^@([\w-]+)/);
-    return m ? m[1] : null;
-  }
-  function tok(t) {
-    t = t.trim();
-    let m;
-    m = t.match(/^(@?[\w-]+)\["([^"]+)"\]$/); if (m) { const lbl=cleanLabel(m[2]),r=refFromLabel(lbl),idR=m[1].startsWith('@'); return {id:m[1].replace(/^@/,''),label:lbl,shape:'rect',isRef:idR||!!r,refTarget:r||(idR?m[1].replace(/^@/,''):null)}; }
-    m = t.match(/^(@?[\w-]+)\[([^\]]+)\]$/);  if (m) { const lbl=cleanLabel(m[2]),r=refFromLabel(lbl),idR=m[1].startsWith('@'); return {id:m[1].replace(/^@/,''),label:lbl,shape:'rect',isRef:idR||!!r,refTarget:r||(idR?m[1].replace(/^@/,''):null)}; }
-    m = t.match(/^(@?[\w-]+)\(\(([^)]+)\)\)$/); if (m) { const lbl=cleanLabel(m[2]),r=refFromLabel(lbl),idR=m[1].startsWith('@'); return {id:m[1].replace(/^@/,''),label:lbl,shape:'stadium',isRef:idR||!!r,refTarget:r||(idR?m[1].replace(/^@/,''):null)}; }
-    m = t.match(/^(@?[\w-]+)\(([^)]+)\)$/);   if (m) { const lbl=cleanLabel(m[2]),r=refFromLabel(lbl),idR=m[1].startsWith('@'); return {id:m[1].replace(/^@/,''),label:lbl,shape:'round',isRef:idR||!!r,refTarget:r||(idR?m[1].replace(/^@/,''):null)}; }
-    m = t.match(/^(@?[\w-]+)\{([^}]+)\}$/);   if (m) { const lbl=cleanLabel(m[2]),r=refFromLabel(lbl),idR=m[1].startsWith('@'); return {id:m[1].replace(/^@/,''),label:lbl,shape:'diamond',isRef:idR||!!r,refTarget:r||(idR?m[1].replace(/^@/,''):null)}; }
-    if (/^@?[\w-]+$/.test(t)) { const id=t.replace(/^@/,''); return {id,label:id,shape:'rect',isRef:t.startsWith('@')}; }
-    return null;
-  }
-
-  // Edge pattern: A --> B, A -->|label| B, A -- "label" --> B, etc.
-  const edgeLineRe = /^(.+?)\s+--\s+"([^"]+)"\s+-->\s+(.+)$/;
-  const arrowRe = /(-->(?:\|[^|]*\|)?|--o|--x|---|-.->|==>|~~>)/;
-  for (const line of lines) {
-    const dir = line.match(/^(?:graph|flowchart)\s+([A-Z]{2})/i);
-    if (dir) { const d=dir[1].toUpperCase(); rankdir=(d==='TD'||d==='TB')?'TB':d; continue; }
-    if (/^(classDef|click |style |linkStyle|subgraph|end$)/i.test(line)) continue;
-    const ca = line.match(/^class\s+([\w\-,\s]+)\s+(\w+)$/);
-    if (ca) { ca[1].split(',').map(s=>s.trim()).forEach(id=>classOf[id]=ca[2]); continue; }
-    // Try "-- label -->" syntax first (e.g., APP -- "HTTP API" --> SERVER)
-    const labelEdge = line.match(edgeLineRe);
-    if (labelEdge) {
-      const src=tok(labelEdge[1]), dst=tok(labelEdge[3]);
-      if (src&&dst) {
-        if (!nodesMap.has(src.id)) nodesMap.set(src.id,src);
-        if (!nodesMap.has(dst.id)) nodesMap.set(dst.id,dst);
-        edges.push({from:src.id,to:dst.id,label:labelEdge[2].replace(/<br\s*\/?>/gi,' ')});
-      }
-      continue;
-    }
-    const parts = line.split(arrowRe);
-    if (parts.length >= 3) {
-      const src=tok(parts[0]), dst=tok(parts[2]);
-      if (src&&dst) {
-        if (!nodesMap.has(src.id)) nodesMap.set(src.id,src);
-        if (!nodesMap.has(dst.id)) nodesMap.set(dst.id,dst);
-        const lm=parts[1].match(/\|([^|]+)\|/);
-        edges.push({from:src.id,to:dst.id,label:lm?lm[1].replace(/<br\s*\/?>/gi,' '):''});
-      }
-    } else {
-      const n=tok(line); if (n&&!nodesMap.has(n.id)) nodesMap.set(n.id,n);
-    }
-  }
-  for (const [id,cls] of Object.entries(classOf)) { const n=nodesMap.get(id); if (n) n.cls=cls; }
-  return {rankdir, nodes:[...nodesMap.values()], edges};
-}
-
-// ── node style ────────────────────────────────────────────
-function nodeStyle(node) {
-  const c = node.cls||'';
-  if (isDark) {
-    if (c==='external') return {bg:'#0a0a0a',border:'#666666',dash:null,text:'#cccccc'};
-    if (c==='lib')      return {bg:'#0a0a0a',border:'#666666',dash:null, text:'#cccccc'};
-    return                    {bg:'#0a0a0a',border:'#666666',dash:null, text:'#ffffff'};
-  } else {
-    if (c==='external') return {bg:'#e0e0e0',border:'#bbb',dash:null,text:'#64748b'};
-    if (c==='lib')      return {bg:'#e8e8e8',border:'#c0c0c0',dash:null, text:'#553388'};
-    return                    {bg:'#f0f0f0',border:'#999',    dash:null, text:'#1a1a1a'};
-  }
-}
-
-// ── smooth path through all Dagre waypoints ───────────────
-// Uses quadratic bezier spline so edges respect Dagre's obstacle routing
-function smoothPath(pts) {
-  if (!pts || pts.length < 2) return '';
-  if (pts.length === 2) {
-    // Simple S-curve for two-point edges
-    const [a, b] = pts;
-    const mx = r1((a.x+b.x)/2), my = r1((a.y+b.y)/2);
-    return `M${r1(a.x)},${r1(a.y)} C${mx},${r1(a.y)} ${mx},${r1(b.y)} ${r1(b.x)},${r1(b.y)}`;
-  }
-  // Quadratic bezier spline: smooth through all waypoints
-  let d = `M${r1(pts[0].x)},${r1(pts[0].y)}`;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mid = { x: (pts[i].x + pts[i+1].x) / 2, y: (pts[i].y + pts[i+1].y) / 2 };
-    d += ` Q${r1(pts[i].x)},${r1(pts[i].y)} ${r1(mid.x)},${r1(mid.y)}`;
-  }
-  const last = pts[pts.length-1];
-  d += ` L${r1(last.x)},${r1(last.y)}`;
-  return d;
-}
-
-// ── render one class group (recursive) ────────────────────
-// _expandedGlobal prevents same class from expanding in multiple branches
-let _expandedGlobal = new Set();
-
-function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scopedPath) {
-  if (seen.has(cls)) return null;
-  seen = new Set(seen); seen.add(cls);
-  if (!scopedPath) scopedPath = cls; // level 0: scopedPath = perspective name
-  let labelOverlay = ''; // centered labels for sub-groups, rendered outside grp-inner
-
-  const data = classesData[cls];
-  if (!data?.diagram) return null;
-
-  const parsed = parseFlowchart(data.diagram);
-  const {rankdir, nodes, edges} = parsed;
-  if (!nodes.length) return null;
-
-  // padding around the group content
-  const PAD_L = 16, PAD_R = 20, PAD_T = 20, PAD_B = 16;
-
-  // For level 0: expand @ref nodes as sub-groups
-  const subGroups = {}; // nodeId -> { cls, W, H, svgContent }
-  const nodeDims  = {}; // nodeId -> { width, height }
-
-  // Determine children of current element for subgroup resolution
-  const currentChildren = (level === 0 ? (childrenByPerspective[cls] || []) : (classesData[cls]?.children || []));
-
-  for (const n of nodes) {
-    // Resolve subgroup: @ref (legacy) OR node ID is a child of current element with its own diagram
-    const refCls = n.isRef ? (n.refTarget || n.id) : (currentChildren.includes(n.id) && classesData[n.id]?.diagram ? n.id : null);
-    if (level < maxDepth && refCls && classesData[refCls]?.diagram && !seen.has(refCls) && !_expandedGlobal.has(refCls)) {
-      _expandedGlobal.add(refCls);
-      const childScopedPath = scopedPath + '/' + refCls;
-      const sub = renderGroup(refCls, classesData, allClasses, level+1, seen, childScopedPath);
-      if (sub) {
-        // Scale down to fit max box. At small scales, edge overflow becomes negligible.
-        const MAX_W = 320, MAX_H = 220, PAD = 12;
-        const fs = Math.min((MAX_W - PAD*2) / sub.W, (MAX_H - PAD*2) / sub.H, 1);
-        subGroups[n.id] = { cls: refCls, scopedPath: childScopedPath, ...sub, fitScale: fs };
-        nodeDims[n.id] = { width: sub.W * fs + PAD * 2, height: sub.H * fs + PAD * 2 };
-      }
-    }
-    if (!nodeDims[n.id]) {
-      const lbl = n.label.replace(/^@/,'');
-      const [mainLbl] = lbl.split('\n');
-      const hasPath = lbl.includes('\n');
-      const maxW = nodes.length > 10 ? 160 : 220;
-      const w = Math.min(maxW, Math.max(80, tw(mainLbl, '12px Inter,system-ui') + 44));
-      const baseH = n.shape==='diamond' ? 42 : 38;
-      nodeDims[n.id] = {width: w, height: hasPath ? baseH + 14 : baseH};
-    }
-  }
-
-  // Pre-process: identify fan-out groups for compact grid layout
-  const maxPerRow = 3;
-  const _gridGroups = {};  // virtualId -> { parentId, children[], cols, cellW, cellH }
-  const _gridExcluded = new Set();  // node IDs replaced by virtual nodes
-  const _gridPositions = {};  // childId -> { x, y } (filled after dagre)
-
-  for (const n of nodes) {
-    const outEdges = edges.filter(e => e.from === n.id);
-    const leafTargets = outEdges
-      .map(e => e.to)
-      .filter(tid => !edges.some(e2 => e2.from === tid) && !subGroups[tid]);
-    if (leafTargets.length > maxPerRow) {
-      const cols = maxPerRow;
-      const rows = Math.ceil(leafTargets.length / cols);
-      const maxCW = Math.max(...leafTargets.map(id => nodeDims[id].width));
-      const maxCH = Math.max(...leafTargets.map(id => nodeDims[id].height));
-      const cellW = maxCW + 16;
-      const cellH = maxCH + 10;
-      const vid = `__grid_${n.id}`;
-      _gridGroups[vid] = { parentId: n.id, children: leafTargets, cols, cellW, cellH };
-      nodeDims[vid] = { width: cols * cellW, height: rows * cellH };
-      leafTargets.forEach(id => _gridExcluded.add(id));
-    }
-  }
-
-  // Dagre layout with virtual grid nodes
-  const dense = nodes.length > 10;
-  function buildGraph(rd) {
-    const g = new dagre.graphlib.Graph();
-    const nsep = dense ? 20 : 32;
-    const rsep = dense ? 28 : 44;
-    g.setGraph({rankdir: rd, nodesep:nsep, ranksep:rsep, marginx:PAD_L, marginy:PAD_T});
-    g.setDefaultEdgeLabel(() => ({}));
-    for (const n of nodes) {
-      if (!_gridExcluded.has(n.id)) g.setNode(n.id, nodeDims[n.id]);
-    }
-    for (const vid of Object.keys(_gridGroups)) g.setNode(vid, nodeDims[vid]);
-    const _addedVirtEdges = new Set();
-    for (const e of edges) {
-      let from = e.from, to = e.to;
-      if (_gridExcluded.has(from)) continue;
-      if (_gridExcluded.has(to)) {
-        const vEntry = Object.entries(_gridGroups).find(([,gr]) => gr.children.includes(to));
-        if (!vEntry) continue;
-        to = vEntry[0];
-        const ek = `${from}->${to}`;
-        if (_addedVirtEdges.has(ek)) continue;
-        _addedVirtEdges.add(ek);
-      }
-      if (g.hasNode(from) && g.hasNode(to)) g.setEdge(from, to, {label: e.label});
-    }
-    try { dagre.layout(g); return g; } catch { return null; }
-  }
-
-  let g = buildGraph(rankdir);
-  if (!g) return null;
-  const gi0 = g.graph();
-  const aspectThreshold = nodes.length > 12 ? 1.4 : nodes.length > 7 ? 1.6 : 2.0;
-  if (gi0.width > 0 && gi0.height > 0 && gi0.width / gi0.height > aspectThreshold && rankdir !== 'TB') {
-    const gTB = buildGraph('TB');
-    if (gTB) g = gTB;
-  }
-
-  // Expand virtual grid nodes into child positions
-  for (const [vid, group] of Object.entries(_gridGroups)) {
-    const vNode = g.node(vid);
-    if (!vNode) continue;
-    const { children, cols, cellW, cellH } = group;
-    const rows = Math.ceil(children.length / cols);
-    const startX = vNode.x - ((cols - 1) * cellW) / 2;
-    const startY = vNode.y - ((rows - 1) * cellH) / 2;
-    children.forEach((childId, i) => {
-      _gridPositions[childId] = {
-        x: startX + (i % cols) * cellW,
-        y: startY + Math.floor(i / cols) * cellH
-      };
-    });
-  }
-
-  const gi = g.graph();
-  const W = r1(gi.width + PAD_R);
-  const H = r1(gi.height + PAD_B);
-
-  const uid = `${cls.replace(/[^a-z0-9]/gi,'')}_l${level}_`;
-  const th = theme();
-  let svg = '';
-
-  // edges
-  edges.forEach((e,i) => {
-    if (_gridExcluded.has(e.from)) return; // skip edges from grid children
-    let pts, d, mid;
-    const srcPos = g.node(e.from) || _gridPositions[e.from];
-    const tgtPos = _gridPositions[e.to] || g.node(e.to);
-    if (!srcPos || !tgtPos) return;
-    if (_gridPositions[e.to]) {
-      // Edge to grid child: direct path from parent to child grid position
-      const mx = (srcPos.x + tgtPos.x) / 2, my = (srcPos.y + tgtPos.y) / 2;
-      pts = [{x:srcPos.x,y:srcPos.y},{x:mx,y:my},{x:tgtPos.x,y:tgtPos.y}];
-      d = smoothPath(pts);
-      mid = {x:mx, y:my};
-    } else {
-      const ed = g.edge(e.from, e.to); if (!ed?.points?.length) return;
-      pts = ed.points;
-      d = smoothPath(pts);
-      mid = pts[Math.floor(pts.length/2)];
-    }
-    const ec = th.edgeColor0;
-    const mk = `${uid}m${i}`;
-    svg += `<defs><marker id="${mk}" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0.5 L0,4.5 L6,2.5 z" fill="${ec}"/></marker></defs>
-      <path class="edge-path" d="${d}" stroke="${ec}" stroke-width="2" fill="none" marker-end="url(#${mk})" data-from="${esc(e.from)}" data-to="${esc(e.to)}"/>`;
-    if (e.label) {
-      const lw = tw(e.label,'9px Inter')+8;
-      const mx=r1(mid.x), my=r1(mid.y);
-      svg += `<g class="edge-label"><rect x="${mx-lw/2}" y="${my-6}" width="${lw}" height="12" rx="2" fill="${th.edgeLabelBg}"/>
-        <text x="${mx}" y="${my+3}" text-anchor="middle" font-family="Inter,system-ui" font-size="9" fill="${th.edgeLabelText}">${esc(e.label)}</text></g>`;
-    }
-  });
-
-  // nodes
-  for (const n of nodes) {
-    const pos = _gridPositions[n.id] || g.node(n.id); if (!pos) continue;
-    const dim = nodeDims[n.id];
-    const nx = r1(pos.x - dim.width/2);
-    const ny = r1(pos.y - dim.height/2);
-    const sg = subGroups[n.id];
-
-    if (sg) {
-      // ── sub-group: dashed boundary + nested content ──
-      const safeId = esc(sg.cls); // short name for display
-      const scopedId = esc(sg.scopedPath || sg.cls); // full path for selection
-      const refSubStroke = th.subStroke;
-      const fs = sg.fitScale;
-      const PAD = 12;
-      const boxW = sg.W * fs + PAD * 2, boxH = sg.H * fs + PAD * 2;
-      const clipId = `${uid}clip_${n.id}`;
-      svg += `<defs><clipPath id="${clipId}"><rect x="-2" y="-16" width="${r1(boxW+4)}" height="${r1(boxH+18)}" rx="6"/></clipPath></defs>`;
-      svg += `<g class="grp-node" clip-path="url(#${clipId})" onclick="event.stopPropagation();window.__openSb('${scopedId}')" data-cls="${scopedId}" data-depth="${level+1}" transform="translate(${nx},${ny})">`;
-      svg += `<rect class="grp-border" width="${r1(boxW)}" height="${r1(boxH)}" rx="5"
-        fill="${th.subFill}" stroke="${refSubStroke}" stroke-width="2"/>`;
-      const _slW = tw(fmtLabel(sg.cls), '600 9px "Plus Jakarta Sans",Inter,system-ui') + 12;
-      svg += `<rect class="grp-label-top grp-label-bg" x="5" y="-7" width="${_slW}" height="14" rx="2" fill="${th.subFill}" opacity="1"/>`;
-      svg += `<text class="grp-label-top" x="10" y="2" font-family="&quot;Plus Jakarta Sans&quot;,Inter,system-ui" font-size="9" font-weight="600"
-        fill="${th.subLabelFill}" letter-spacing="0.05em">${esc(fmtLabel(sg.cls))}</text>`;
-      svg += `<g class="grp-inner" transform="translate(${r1(PAD)},${r1(PAD)}) scale(${r1(fs)})">${sg.svgContent}</g>`;
-      svg += `<text class="grp-label-center" x="${r1(boxW/2)}" y="${r1(boxH/2)}" text-anchor="middle" dominant-baseline="central"
-        font-family="&quot;Plus Jakarta Sans&quot;,Inter,system-ui" font-size="9" font-weight="600" fill="${th.grpLabelCenterFill}" letter-spacing="0.05em">${esc(fmtLabel(sg.cls))}</text>`;
-      svg += `</g>`;
-      labelOverlay += `<text class="grp-label-center" x="${r1(nx + boxW/2)}" y="${r1(ny + boxH/2)}" text-anchor="middle" dominant-baseline="central"
-        font-family="&quot;Plus Jakarta Sans&quot;,Inter,system-ui" font-size="9" font-weight="600" fill="${th.grpLabelCenterFill}" letter-spacing="0.05em">${esc(fmtLabel(sg.cls))}</text>`;
-    } else {
-      // ── regular node ──
-      const st = nodeStyle(n);
-      if (n.label.startsWith('@')) {
-        // @ref nodes keep same border as default (white)
-        // @ref nodes keep solid border
-      }
-      const da = st.dash ? `stroke-dasharray="${st.dash}"` : '';
-      const rawLbl = n.label.replace(/^@/,'');
-      const [mainLbl, pathLbl] = rawLbl.split('\n');
-      const cx = r1(pos.x), cy = r1(pos.y);
-      const fs = 12;
-      const nodeScopedId = esc(scopedPath + '/' + n.id);
-      let shape = '';
-      if (n.shape==='diamond') {
-        shape = `<polygon class="nshape" points="${cx},${ny} ${nx+dim.width},${cy} ${cx},${ny+dim.height} ${nx},${cy}"
-          fill="${st.bg}" stroke="${st.border}" stroke-width="2" ${da}/>`;
-      } else if (n.shape==='stadium'||n.shape==='round') {
-        shape = `<rect class="nshape" x="${nx}" y="${ny}" width="${dim.width}" height="${dim.height}"
-          rx="${dim.height/2}" fill="${st.bg}" stroke="${st.border}" stroke-width="2" ${da}/>`;
-      } else {
-        shape = `<rect class="nshape" x="${nx}" y="${ny}" width="${dim.width}" height="${dim.height}"
-          rx="4" fill="${st.bg}" stroke="${st.border}" stroke-width="2" ${da}/>`;
-      }
-      if (pathLbl) {
-        svg += `<g class="reg-node" data-cls="${nodeScopedId}" onclick="event.stopPropagation();window.__openSb('${nodeScopedId}')">${shape}
-          <text class="node-lbl" x="${cx}" y="${r1(cy - 7)}" text-anchor="middle" dominant-baseline="central"
-            font-family="Inter,system-ui,sans-serif" font-size="${fs}" fill="${st.text}">${esc(mainLbl)}</text>
-          <text class="node-path" x="${cx}" y="${r1(cy + 7)}" text-anchor="middle" dominant-baseline="central"
-            font-family="'SF Mono','Fira Code',monospace" font-size="9" fill="${st.text}" opacity="0.45">${esc(pathLbl)}</text>
-        </g>`;
-      } else {
-        svg += `<g class="reg-node" data-cls="${nodeScopedId}" onclick="event.stopPropagation();window.__openSb('${nodeScopedId}')">${shape}
-          <text class="node-lbl" x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central"
-            font-family="Inter,system-ui,sans-serif" font-size="${fs}" fill="${st.text}">${esc(mainLbl)}</text>
-        </g>`;
-      }
-    }
-  }
-
-  return { svgContent: svg, W, H, labelOverlay };
-}
-
-// ── sidebar diagram renderer (flat, for sidebar only) ─────
-function renderFlatSVG(text) {
-  if (!text) return null;
-  let parsed; try { parsed = parseFlowchart(text); } catch { return null; }
-  const {rankdir, nodes, edges} = parsed;
-  if (!nodes.length) return null;
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({rankdir, nodesep:36, ranksep:48, marginx:18, marginy:14});
-  g.setDefaultEdgeLabel(() => ({}));
-  const dims = {};
-  for (const n of nodes) {
-    const lbl = n.label.replace(/^@/,'');
-    const [mainLbl] = lbl.split('\n');
-    const hasPath = lbl.includes('\n');
-    const w = Math.min(180,Math.max(60,tw(mainLbl,'11px Inter,system-ui')+28));
-    const h = (n.shape==='diamond'?34:28) + (hasPath ? 12 : 0);
-    dims[n.id]={w,h}; g.setNode(n.id,{width:w,height:h});
-  }
-  for (const e of edges) { if (g.hasNode(e.from)&&g.hasNode(e.to)) g.setEdge(e.from,e.to,{label:e.label}); }
-  try { dagre.layout(g); } catch { return null; }
-  const gi = g.graph();
-  const W = r1((gi.width||150)+36), H = r1((gi.height||80)+28);
-  let edg='', nds='';
-  const sth = theme();
-  edges.forEach((e,i) => {
-    const ed=g.edge(e.from,e.to); if (!ed?.points?.length) return;
-    const pts=ed.points, d=smoothPath(pts);
-    const mid=pts[Math.floor(pts.length/2)];
-    const mk=`sbm${i}${Math.random().toString(36).slice(2,5)}`;
-    edg+=`<defs><marker id="${mk}" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0.5 L0,4.5 L6,2.5 z" fill="${sth.edgeColor0}"/></marker></defs>
-      <path class="edge-path" d="${d}" stroke="${sth.edgeColor0}" stroke-width="2" fill="none" marker-end="url(#${mk})" data-from="${esc(e.from)}" data-to="${esc(e.to)}"/>`;
-    if (e.label) {
-      const lw=tw(e.label,'9px Inter')+8, mx=r1(mid.x), my=r1(mid.y);
-      edg+=`<rect x="${mx-lw/2}" y="${my-6}" width="${lw}" height="12" rx="2" fill="${sth.edgeLabelBg}"/>
-        <text x="${mx}" y="${my+3}" text-anchor="middle" font-family="Inter,system-ui" font-size="9" fill="${sth.edgeLabelText}">${esc(e.label)}</text>`;
-    }
-  });
-  for (const n of nodes) {
-    const pos=g.node(n.id); if (!pos) continue;
-    const {w,h}=dims[n.id];
-    const nx=r1(pos.x-w/2), ny=r1(pos.y-h/2), cx=r1(pos.x), cy=r1(pos.y);
-    const st=nodeStyle(n), da=st.dash?`stroke-dasharray="${st.dash}"`:'';
-    const rawLbl=n.label.replace(/^@/,'');
-    const [mainLbl, pathLbl]=rawLbl.split('\n');
-    let shape='';
-    if (n.shape==='diamond') shape=`<polygon points="${cx},${ny} ${nx+w},${cy} ${cx},${ny+h} ${nx},${cy}" fill="${st.bg}" stroke="${st.border}" stroke-width="2" ${da}/>`;
-    else if (n.shape==='stadium'||n.shape==='round') shape=`<rect x="${nx}" y="${ny}" width="${w}" height="${h}" rx="${h/2}" fill="${st.bg}" stroke="${st.border}" stroke-width="2" ${da}/>`;
-    else shape=`<rect x="${nx}" y="${ny}" width="${w}" height="${h}" rx="4" fill="${st.bg}" stroke="${st.border}" stroke-width="2" ${da}/>`;
-    if (pathLbl) {
-      nds+=`<g>${shape}
-        <text x="${cx}" y="${r1(cy-6)}" text-anchor="middle" dominant-baseline="central"
-          font-family="Inter,system-ui" font-size="11" fill="${st.text}">${esc(mainLbl)}</text>
-        <text x="${cx}" y="${r1(cy+6)}" text-anchor="middle" dominant-baseline="central"
-          font-family="'SF Mono','Fira Code',monospace" font-size="9" fill="${st.text}" opacity="0.45">${esc(pathLbl)}</text>
-      </g>`;
-    } else {
-      nds+=`<g>${shape}<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central"
-        font-family="Inter,system-ui" font-size="11" fill="${st.text}">${esc(mainLbl)}</text></g>`;
-    }
-  }
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible" xmlns="http://www.w3.org/2000/svg">${edg}${nds}</svg>`;
-}
-
-// ── canvas pan/zoom ───────────────────────────────────────
-const canvasWrap = document.getElementById('canvas-wrap');
-const canvasEl   = document.getElementById('canvas');
-const sidebar    = document.getElementById('sidebar');
-const sbTitle    = document.getElementById('sb-title');
-const sbDiagram  = document.getElementById('sb-diagram');
-const sbFields   = document.getElementById('sb-fields');
-const zoomLabel  = document.getElementById('zoom-label');
-const navTitle   = document.getElementById('nav-title');
-const navList    = document.getElementById('nav-list');
-
-let vpX=0, vpY=0, vpScale=0.7;
-let classes=[], classesData={}, refsData={};
-let selectedCls=null, svgW=0, svgH=0;
-const maxDepth = 6;  // always render all depths; visibility controlled per-group by CSS
-
-const api = p => fetch(p).then(r=>r.json()).catch(()=>({}));
-
-// ── transform ──────────────────────────────────────────────
-const MIN_SCALE = 0.02, MAX_SCALE = 30;
-
-function applyTransform() {
-  canvasEl.style.transform=`translate(${vpX}px,${vpY}px) scale(${vpScale})`;
-  const pct = Math.round(vpScale*100);
-  zoomLabel.textContent = pct >= 1000 ? `${(pct/100).toFixed(0)}k%` : `${pct}%`;
-
-  // Scale-compensated group labels: keep ~13px rendered size
-  const targetPx = 13;
-  const fs = Math.min(72, Math.max(10, targetPx / vpScale));
-  const fsStr = (Math.round(fs * 10) / 10).toString();
-  const labelFill = isDark ? (vpScale < 0.5 ? '#ccc' : '#cbd5e1') : (vpScale < 0.5 ? '#333' : '#475569');
-  document.querySelectorAll('#canvas .grp-label-top').forEach(el => {
-    if (el.tagName === 'text') {
-      el.setAttribute('font-size', fsStr);
-      el.setAttribute('fill', labelFill);
-    } else if (el.classList.contains('grp-label-bg')) {
-      // Scale background rect height to match font-size
-      el.setAttribute('height', String(Math.round(fs * 1.5)));
-    }
-  });
-  // Center label: keep ~20px rendered size in overview
-  const fsCtr = Math.min(120, Math.max(14, 20 / vpScale));
-  const fsCtrStr = (Math.round(fsCtr * 10) / 10).toString();
-  document.querySelectorAll('#canvas .grp-label-center').forEach(el => {
-    el.setAttribute('font-size', fsCtrStr);
-  });
-  // Scale-compensated node labels: keep ~11px rendered size at any zoom level
-  const fsNode = Math.min(60, Math.max(11, 11 / vpScale));
-  const fsNodeStr = (Math.round(fsNode * 10) / 10).toString();
-  document.querySelectorAll('#canvas .node-lbl').forEach(el => {
-    el.setAttribute('font-size', fsNodeStr);
-  });
-
-  canvasWrap.classList.toggle('zoom-overview', vpScale < 0.42);
-
-  // Viewport-relative expansion: measure group's own border rect
-  const vpW = canvasWrap.clientWidth;
-  document.querySelectorAll('#canvas [data-depth]').forEach(el => {
-    const border = el.querySelector(':scope > .grp-border');
-    if (!border) return;
-    const rect = border.getBoundingClientRect();
-    const depth = parseInt(el.getAttribute('data-depth') || '0', 10);
-
-    // Collapse: hide inner content when group is too small on screen (progressive reveal)
-    const collapseThreshold = vpW * 0.275;  // 27.5% of canvas viewport width
-    const collapsed = rect.width < collapseThreshold;
-    el.classList.toggle('grp-collapsed', collapsed);
-
-    // Expansion: label switching (existing logic)
-    // Root=50%, depth1=65%, depth2=80% of viewport width to expand
-    const threshold = 0.5 + depth * 0.15;
-    const expanded = rect.width >= vpW * threshold;
-    el.classList.toggle('grp-expanded', expanded);
-  });
-
-}
-
-function zoomTo(newScale, originX, originY) {
-  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
-  const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
-  const cW = canvasWrap.clientWidth, cH = canvasWrap.clientHeight;
-  const cx = originX ?? cW/2, cy = originY ?? cH/2;
-  vpX = cx - (cx - vpX) * (s / vpScale);
-  vpY = cy - (cy - vpY) * (s / vpScale);
-  vpScale = s;
-  applyTransform();
-}
-
-function centerView() {
-  if (!svgW) return;
-  if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
-  const cW=canvasWrap.clientWidth, cH=canvasWrap.clientHeight;
-  const s = Math.min(0.9, (cW-80)/svgW, (cH-80)/svgH);
-  vpScale = s;
-  vpX = cW/2 - (svgW/2)*s;
-  vpY = cH/2 - (svgH/2)*s;
-  applyTransform();
-}
-
-window.zoomIn    = () => zoomTo(vpScale * 1.25);
-window.zoomOut   = () => zoomTo(vpScale / 1.25);
-window.resetView = centerView;
-
-// ── animated transition ────────────────────────────────────
-let _raf = null;
-function animateTo(toX, toY, toScale, duration=380) {
-  if (_raf) cancelAnimationFrame(_raf);
-  const fromX = vpX, fromY = vpY, fromS = vpScale;
-  const t0 = performance.now();
-  function frame(now) {
-    const t = Math.min(1, (now - t0) / duration);
-    const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
-    vpX = fromX + (toX - fromX) * e;
-    vpY = fromY + (toY - fromY) * e;
-    vpScale = fromS + (toScale - fromS) * e;
-    applyTransform();
-    if (t < 1) _raf = requestAnimationFrame(frame);
-  }
-  _raf = requestAnimationFrame(frame);
-}
-
-function focusGroup(cls) {
-  // Mark focused group as exempt from blur
-  document.querySelectorAll('#canvas [data-cls].focus-exempt').forEach(el => el.classList.remove('focus-exempt'));
-  const el = document.querySelector(`#canvas [data-cls="${CSS.escape(cls)}"]`);
-  if (!el) return;
-  el.classList.add('focus-exempt');
-  // Also exempt all ancestor groups so parent blur doesn't hide focused child
-  let ancestor = el.parentElement;
-  while (ancestor) {
-    if (ancestor.hasAttribute && ancestor.hasAttribute('data-cls')) {
-      ancestor.classList.add('focus-exempt');
-    }
-    ancestor = ancestor.parentElement;
-  }
-
-  // Get group's SVG-space position directly from its transform attribute.
-  // Traverse up to root SVG to accumulate nested translates/scales.
-  function getSvgPoint(el) {
-    const rect = el.getBoundingClientRect();
-    const wrapRect = canvasWrap.getBoundingClientRect();
-    // Screen position of element center, relative to canvas-wrap top-left
-    const sx = rect.left + rect.width / 2 - wrapRect.left;
-    const sy = rect.top + rect.height / 2 - wrapRect.top;
-    // Convert to canvas SVG space (reverse pan+zoom transform)
-    const svgX = (sx - vpX) / vpScale;
-    const svgY = (sy - vpY) / vpScale;
-    // Get element dimensions in SVG space
-    const w = rect.width / vpScale;
-    const h = rect.height / vpScale;
-    return { svgX, svgY, w, h };
-  }
-
-  const border = el.querySelector(':scope > .grp-border') || el;
-  const { svgX, svgY, w, h } = getSvgPoint(border);
-
-  // Available viewport (account for sidebar: right panel on desktop, bottom drawer on mobile)
-  const isMobile = window.innerWidth <= 768;
-  const sbW = (!isMobile && sidebar.classList.contains('open')) ? 400 : 0;
-  const sbH = (isMobile && sidebar.classList.contains('open')) ? window.innerHeight * 0.5 : 0;
-  const availW = canvasWrap.clientWidth - sbW - 60;
-  const availH = canvasWrap.clientHeight - sbH - 60;
-
-  // Target scale to fit element with padding
-  const targetScale = Math.min(MAX_SCALE, Math.max(0.15, Math.min(availW / w, availH / h) * 0.85));
-
-  // Center in available viewport (account for sidebar/drawer)
-  const centerX = (canvasWrap.clientWidth - sbW) / 2;
-  const centerY = (canvasWrap.clientHeight - sbH) / 2;
-  const finalScale = vpScale >= targetScale ? vpScale : targetScale;
-
-  const toX = centerX - svgX * finalScale;
-  const toY = centerY - svgY * finalScale;
-  animateTo(toX, toY, finalScale);
-}
-
-// ── wheel: Figma-style ─────────────────────────────────────
-// trackpad two-finger scroll → pan
-// trackpad pinch (ctrlKey) / Ctrl+mousewheel → zoom
-canvasWrap.addEventListener('wheel', e => {
-  e.preventDefault();
-  clearFocusExempt();
-
-  if (e.ctrlKey || e.metaKey) {
-    // Zoom — trackpad pinch gives pixel deltas, mouse wheel gives line deltas
-    let factor;
-    if (e.deltaMode === 0) {
-      // trackpad pinch: more responsive
-      factor = Math.pow(0.993, e.deltaY);
-    } else {
-      // mouse wheel: snappier step
-      factor = e.deltaY < 0 ? 1.22 : 1/1.22;
-    }
-    zoomTo(vpScale * factor, e.clientX, e.clientY);
-  } else {
-    // Pan — respect both axes (trackpad two-finger swipe)
-    vpX -= e.deltaX;
-    vpY -= e.deltaY;
-    applyTransform();
-  }
-}, { passive: false });
-
-// ── pan: space+drag, middle-mouse, empty-area drag ─────────
-let spaceHeld = false;
-let panning = false, panA = {}, panV = {};
-let dragStarted = false;
-
-function updateCursor() {
-  if (panning)      canvasWrap.style.cursor = 'grabbing';
-  else if (spaceHeld) canvasWrap.style.cursor = 'grab';
-  else              canvasWrap.style.cursor = '';
-}
-
-window.addEventListener('keydown', e => {
-  if (e.code === 'Space' && document.activeElement === document.body) {
-    e.preventDefault();
-    spaceHeld = true;
-    updateCursor();
-  }
-  // Figma keyboard shortcuts
-  if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
-    if (e.key === '0') { e.preventDefault(); centerView(); }
-    if (e.key === '1') { e.preventDefault(); zoomTo(1); }
-    if (e.key === '2') { e.preventDefault(); zoomTo(2); }
-    if (e.key === '+' || e.key === '=') { e.preventDefault(); window.zoomIn(); }
-    if (e.key === '-') { e.preventDefault(); window.zoomOut(); }
-  }
-  if (e.key === 'Escape') closeSidebar();
-});
-window.addEventListener('keyup', e => {
-  if (e.code === 'Space') { spaceHeld = false; updateCursor(); }
-});
-
-canvasWrap.addEventListener('mousedown', e => {
-  const isMiddle = e.button === 1;
-  const isSpaceDrag = e.button === 0 && spaceHeld;
-  const isLeftDrag = e.button === 0 && !spaceHeld;
-
-  if (isMiddle || isSpaceDrag || isLeftDrag) {
-    // Only prevent default for middle-click/space-drag;
-    // left-click must NOT preventDefault so browser can dispatch dblclick.
-    if (isMiddle || isSpaceDrag) e.preventDefault();
-    panning = true;
-    // Middle-click and space-drag pan immediately; left-drag waits for threshold
-    dragStarted = isMiddle || isSpaceDrag;
-    window.__ommDidPan = false;
-    panA = { x: e.clientX, y: e.clientY };
-    panV = { x: vpX, y: vpY };
-    updateCursor();
-  }
-});
-
-window.addEventListener('mousemove', e => {
-  if (!panning) return;
-  if (!dragStarted) {
-    const dx = Math.abs(e.clientX - panA.x);
-    const dy = Math.abs(e.clientY - panA.y);
-    if (dx > 8 || dy > 8) { dragStarted = true; window.__ommDidPan = true; }
-  }
-  if (dragStarted) {
-    vpX = panV.x + (e.clientX - panA.x);
-    vpY = panV.y + (e.clientY - panA.y);
-    applyTransform();
-  }
-});
-
-window.addEventListener('mouseup', () => {
-  if (panning) { panning = false; updateCursor(); }
-  if (window.__ommDidPan) {
-    setTimeout(() => { window.__ommDidPan = false; }, 0);
-  }
-});
-
-// Touch: pan + pinch zoom
-(function() {
-  var touchStart = null, touchDist = null, touchScale = null;
-  canvasWrap.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 1) {
-      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, vpX: vpX, vpY: vpY };
-    } else if (e.touches.length === 2) {
-      touchStart = null;
-      var dx = e.touches[1].clientX - e.touches[0].clientX;
-      var dy = e.touches[1].clientY - e.touches[0].clientY;
-      touchDist = Math.hypot(dx, dy);
-      touchScale = vpScale;
-    }
-  }, { passive: true });
-  canvasWrap.addEventListener('touchmove', function(e) {
-    if (e.touches.length === 1 && touchStart) {
-      e.preventDefault();
-      vpX = touchStart.vpX + (e.touches[0].clientX - touchStart.x);
-      vpY = touchStart.vpY + (e.touches[0].clientY - touchStart.y);
-      applyTransform();
-    } else if (e.touches.length === 2 && touchDist) {
-      e.preventDefault();
-      var dx = e.touches[1].clientX - e.touches[0].clientX;
-      var dy = e.touches[1].clientY - e.touches[0].clientY;
-      var newDist = Math.hypot(dx, dy);
-      var scale = touchScale * (newDist / touchDist);
-      vpScale = Math.min(10, Math.max(0.05, scale));
-      applyTransform();
-    }
-  }, { passive: false });
-  canvasWrap.addEventListener('touchend', function() {
-    touchStart = null; touchDist = null; touchScale = null;
-  });
-})();
-
-// close sidebar when clicking empty canvas area
-canvasWrap.addEventListener('click', e => {
-  if (window.__ommDidPan) {
-    e.stopImmediatePropagation();
-    return;
-  }
-  if (!e.target.closest('[onclick]')) closeSidebar();
-}, true);
-
-// double-click: zoom to focused group (node), reset on empty area
-canvasWrap.addEventListener('dblclick', e => {
-  const node = e.target.closest('.grp-node');
-  if (node) {
-    const cls = node.dataset.cls;
-    if (cls) focusGroup(cls);
-  } else {
-    centerView();
-  }
-});
-
-// ── sidebar ───────────────────────────────────────────────
-window.__openSb = function(cls) {
-  // Resolve: try full scoped path, then short name, then fallback to parent perspective
-  var shortName = cls.includes('/') ? cls.split('/').pop() : cls;
-  var dataKey = classesData[cls] ? cls : (classesData[shortName] ? shortName : null);
-  if (!dataKey && cls.includes('/')) {
-    // Fallback: show parent perspective for nodes without their own element data
-    dataKey = cls.split('/')[0];
-  }
-  if (!dataKey || !classesData[dataKey]) return;
-  // highlight using scoped cls for DOM, dataKey for data
-  document.querySelectorAll('.grp-node,.reg-node').forEach(el=>el.classList.remove('selected'));
-  document.querySelectorAll(`[data-cls="${CSS.escape(cls)}"]`).forEach(el=>el.classList.add('selected'));
-  selectedCls=cls;
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.getAttribute('data-nav') === cls);
-  });
-  var sidebarAlreadyOpen = sidebar.classList.contains('open');
-  openSidebar(dataKey);
-  if (sidebarAlreadyOpen) {
-    focusGroup(cls);
-  } else {
-    setTimeout(() => focusGroup(cls), 260);
-  }
-  // Cloud mode: notify parent frame of selection
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'class-selected', className: cls }, '*');
-  }
-};
-
-const floatControls = document.querySelector('.float-controls');
-
-function openSidebar(cls) {
-  const data=classesData[cls]||{}, refs=refsData[cls]||{};
-  sbTitle.textContent=fmtLabel(cls);
-  sbDiagram.innerHTML = '';
-  const md=t=>t?marked.parse(t):'';
-  const sec=(title,body,ex='')=>body?`<div class="sb-sec ${ex}"><div class="sb-sec-title">${title}</div><div class="sb-sec-body">${body}</div></div>`:'';
-  let html='';
-  if (data.meta) {
-    const t=data.meta.updated?new Date(data.meta.updated).toLocaleString():'';
-    html+=`<div class="sb-sec"><div class="sb-sec-title">Meta</div><div class="sb-meta-text">${t?t+'<br>':''}${data.meta.update_count||0} updates${data.meta.git_branch?` · ${data.meta.git_branch}`:''}${data.meta.git_commit?` · ${data.meta.git_commit}`:''}</div></div>`;
-  }
-  html+=sec('Description',md(data.description));
-  html+=sec('Constraints',md(data.constraint));
-  html+=sec('Concerns',md(data.concern),'sb-concern');
-  html+=sec('Context',md(data.context));
-  html+=sec('Todo',md(data.todo));
-  html+=sec('Notes',md(data.note));
-  const inc=refs.incoming||[], out=refs.outgoing||[];
-  if (inc.length||out.length) {
-    const links=[
-      ...inc.map(r=>{const n=typeof r==='string'?r:r.source_class;return `<span class="sb-ref" onclick="window.__openSb('${esc(n)}')">← ${esc(n)}</span>`;}),
-      ...out.map(r=>{const n=typeof r==='string'?r:r.target_class;return `<span class="sb-ref" onclick="window.__openSb('${esc(n)}')">→ ${esc(n)}</span>`;}),
-    ].join('');
-    html+=`<div class="sb-sec"><div class="sb-sec-title">References</div><div class="sb-refs">${links}</div></div>`;
-  }
-
-  // Cross-perspective links: show which perspectives contain this element
-  var _shortName = cls.includes('/') ? cls.split('/').pop() : cls;
-  var _parents = (parentMap[cls] || parentMap[_shortName]) || [];
-  if (_parents.length > 0) {
-    var _pLinks = _parents.map(function(p) {
-      return `<span class="sb-ref" onclick="window.__openSb('${esc(p)}/${esc(_shortName)}')">${esc(fmtLabel(p))} / ${esc(fmtLabel(_shortName))}</span>`;
-    }).join('');
-    html += `<div class="sb-sec"><div class="sb-sec-title">In</div><div class="sb-refs">${_pLinks}</div></div>`;
-  }
-  sbFields.innerHTML=html;
-  sidebar.classList.add('open');
-  if (floatControls) floatControls.classList.add('sidebar-open');
-}
-
-function closeSidebar() {
-  sidebar.classList.remove('open');
-  if (floatControls) floatControls.classList.remove('sidebar-open');
-  document.querySelectorAll('.grp-node,.reg-node').forEach(el=>el.classList.remove('selected'));
-  document.querySelectorAll('#canvas [data-cls].focus-exempt').forEach(el => el.classList.remove('focus-exempt'));
-  selectedCls=null;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-}
-
-// Mobile: swipe down to close drawer
-(function() {
-  var startY = 0, currentY = 0, dragging = false;
-  sidebar.addEventListener('touchstart', function(e) {
-    if (!sidebar.classList.contains('open')) return;
-    var t = e.touches[0];
-    startY = t.clientY;
-    currentY = startY;
-    dragging = true;
-    sidebar.style.transition = 'none';
-  }, { passive: true });
-  sidebar.addEventListener('touchmove', function(e) {
-    if (!dragging) return;
-    currentY = e.touches[0].clientY;
-    var dy = currentY - startY;
-    if (dy > 0) {
-      sidebar.style.transform = 'translateY(' + dy + 'px)';
-    }
-  }, { passive: true });
-  sidebar.addEventListener('touchend', function() {
-    if (!dragging) return;
-    dragging = false;
-    sidebar.style.transition = '';
-    var dy = currentY - startY;
-    if (dy > 80) {
-      closeSidebar();
-    } else {
-      sidebar.style.transform = '';
-    }
-  });
-})();
-function clearFocusExempt() {
-  document.querySelectorAll('#canvas [data-cls].focus-exempt').forEach(el => el.classList.remove('focus-exempt'));
-}
-window.closeSidebar=closeSidebar;
-
-// ── build full canvas SVG ─────────────────────────────────
-function buildCanvas(classes, classesData, refsData) {
-  _expandedGlobal = new Set(); // reset per render
-  // Find top-level classes: those with no incoming @refs from other classes
-  // Build outgoing ref counts to handle circular references
-  const outCount = {}; // cls -> number of outgoing @refs to other classes
-  const inCount = {};  // cls -> number of incoming @refs from other classes
-  for (const cls of classes) { outCount[cls] = 0; inCount[cls] = 0; }
-  for (const cls of classes) {
-    const diagram = classesData[cls]?.diagram || '';
-    const refs = [...new Set([...diagram.matchAll(/@([\w-]+)/g)].map(m=>m[1]).filter(r => classes.includes(r)))];
-    outCount[cls] = refs.length;
-    refs.forEach(r => { inCount[r]++; });
-  }
-  // Top-level = not referenced, OR referenced but has more outgoing refs than any referrer (cycle breaker)
-  let topLevel = classes.filter(c => inCount[c] === 0);
-  if (!topLevel.length) {
-    // All classes have incoming refs (circular). Pick the one with most outgoing refs as root.
-    const maxOut = Math.max(...classes.map(c => outCount[c]));
-    topLevel = classes.filter(c => outCount[c] === maxOut);
-  }
-  const roots = topLevel;
-
-  // Render each top-level group
-  const groups = [];
-  for (const cls of roots) {
-    const g = renderGroup(cls, classesData, classes, 0);
-    if (g) groups.push({ cls, ...g });
-  }
-  if (!groups.length) return null;
-
-  // Grid layout — ceil(sqrt(N)) columns for balanced aspect ratio
-  const COLS = Math.max(1, Math.ceil(Math.sqrt(groups.length)));
-  const GAP_X = 70, GAP_Y = 90, OUTER_PAD = 60;
-
-  // Assign grid positions
-  groups.forEach((g, i) => { g._col = i % COLS; g._row = Math.floor(i / COLS); });
-  const numRows = Math.ceil(groups.length / COLS);
-
-  // Column widths = max group width in that column
-  const colW = Array.from({length: COLS}, (_, c) =>
-    Math.max(...groups.filter(g => g._col === c).map(g => g.W)));
-  // Row heights = max group height in that row
-  const rowH = Array.from({length: numRows}, (_, r) =>
-    Math.max(...groups.filter(g => g._row === r).map(g => g.H)));
-
-  // Compute offsets
-  const colX = colW.reduce((acc, w, i) => { acc.push(i===0 ? 0 : acc[i-1]+colW[i-1]+GAP_X); return acc; }, []);
-  const rowY = rowH.reduce((acc, h, i) => { acc.push(i===0 ? 0 : acc[i-1]+rowH[i-1]+GAP_Y); return acc; }, []);
-
-  const totalW = colX[COLS-1] + colW[COLS-1];
-  const totalH = rowY[numRows-1] + rowH[numRows-1];
-  const canvasW = r1(totalW + OUTER_PAD*2);
-  const canvasH = r1(totalH + OUTER_PAD*2);
-
-  const th = theme();
-  let innerSVG = '';
-  for (const g of groups) {
-    const tx = r1(OUTER_PAD + colX[g._col]);
-    const ty = r1(OUTER_PAD + rowY[g._row]);
-    innerSVG += `<g class="grp-node" data-cls="${esc(g.cls)}" data-depth="0" transform="translate(${tx},${ty})" onclick="event.stopPropagation();window.__openSb('${esc(g.cls)}')">`;
-    innerSVG += `<rect class="grp-border" width="${g.W}" height="${g.H}" rx="8"
-      fill="${th.groupFill}" stroke="${th.groupStroke}" stroke-width="2"/>`;
-    const _lblW = tw(fmtLabel(g.cls), '600 10px "Plus Jakarta Sans",Inter,system-ui') + 14;
-    innerSVG += `<rect class="grp-label-top grp-label-bg" x="6" y="-10" width="${_lblW}" height="20" rx="2" fill="${th.groupFill}" opacity="1"/>`;
-    innerSVG += `<text class="grp-label-top" x="12" y="3" font-family="&quot;Plus Jakarta Sans&quot;,Inter,system-ui" font-size="10" font-weight="600"
-      fill="${th.grpLabelFill}" letter-spacing="0.05em">${esc(fmtLabel(g.cls))}</text>`;
-    innerSVG += `<g class="grp-inner">${g.svgContent}</g>`;
-    if (g.labelOverlay) innerSVG += `<g class="grp-sub-labels">${g.labelOverlay}</g>`;
-    innerSVG += `<text class="grp-label-center" x="${r1(g.W/2)}" y="${r1(g.H/2)}" text-anchor="middle" dominant-baseline="central"
-      font-family="&quot;Plus Jakarta Sans&quot;,Inter,system-ui" font-size="10" font-weight="600" fill="${th.grpLabelCenterFill}" letter-spacing="0.05em">${esc(fmtLabel(g.cls))}</text>`;
-    innerSVG += `</g>`;
-  }
-
-  return { html: `<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">${innerSVG}</svg>`, W: canvasW, H: canvasH };
-}
-
-// ── post-render: glow filter + edge hover delegation ──────
-let _hoverListenerAttached = false;
-function postRender() {
-  // Insert glow filter into the first SVG's <defs> in #canvas
-  const svg = canvasEl.querySelector('svg');
-  if (svg) {
-    let defs = svg.querySelector('defs');
-    if (!defs) { defs = document.createElementNS('http://www.w3.org/2000/svg','defs'); svg.prepend(defs); }
-    // Remove existing glow filter if present (from prior render)
-    const existing = defs.querySelector('#glow');
-    if (existing) existing.remove();
-    defs.insertAdjacentHTML('beforeend',
-      '<filter id="glow"><feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>' +
-      '<feFlood flood-color="#818cf8" flood-opacity="0.4" result="color"/>' +
-      '<feComposite in="color" in2="blur" operator="in" result="shadow"/>' +
-      '<feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-    );
-  }
-
-  // Attach edge-hover event delegation once (survives innerHTML replacements on canvasEl)
-  if (!_hoverListenerAttached) {
-    _hoverListenerAttached = true;
-    canvasWrap.addEventListener('mouseover', e => {
-      const node = e.target.closest('.reg-node, .grp-node');
-      if (!node) return;
-      const nodeId = node.dataset.cls;
-      if (!nodeId) return;
-      // Only highlight edges in the same parent group (sibling edges)
-      const parentGroup = node.parentElement?.closest('[data-cls]') || node.closest('svg');
-      if (!parentGroup) return;
-      parentGroup.querySelectorAll('.edge-path').forEach(path => {
-        const from = path.dataset.from, to = path.dataset.to;
-        const match = from === nodeId || to === nodeId || from === '@'+nodeId || to === '@'+nodeId;
-        const edgeParentGroup = path.closest('[data-cls]') || path.closest('svg');
-        if (edgeParentGroup !== parentGroup) return;
-        if (match) {
-          path.classList.add('edge-hl');
-        }
-      });
-    });
-    canvasWrap.addEventListener('mouseout', e => {
-      const node = e.target.closest('.reg-node, .grp-node');
-      if (!node) return;
-      document.querySelectorAll('#canvas .edge-path.edge-hl').forEach(path => {
-        path.classList.remove('edge-hl');
-      });
-    });
-  }
-}
-
-// ── rebuild canvas (depth change) ─────────────────────────
-function rebuildCanvas() {
-  const result = buildCanvas(classes, classesData, refsData);
-  if (!result) return;
-  canvasEl.innerHTML = result.html;
-  svgW = result.W; svgH = result.H;
-  applyTransform(); // re-sync label sizes / blur state
-  postRender();
-  // restore selected highlight only (no re-focus — user controls viewport after initial focus)
-  if (selectedCls) {
-    document.querySelectorAll(`[data-cls="${CSS.escape(selectedCls)}"]`)
-      .forEach(el => el.classList.add('selected'));
-  }
-}
-
-// ── nav sidebar tree ─────────────────────────────────────
-function buildNavTree() {
-  navList.innerHTML = '';
-  if (!classes.length) return;
-
-  const navOutCount = {}, navInCount = {};
-  for (const c of classes) { navOutCount[c] = 0; navInCount[c] = 0; }
-  for (const name of classes) {
-    const out = refsData[name]?.outgoing || [];
-    const targets = [...new Set(out.map(o => typeof o === 'string' ? o : (o.target_class || o)).filter(r => classes.includes(r)))];
-    navOutCount[name] = targets.length;
-    targets.forEach(r => { navInCount[r]++; });
-  }
-
-  // v2: if any perspective has children, use perspective nav with nested items
-  const hasNested = Object.values(childrenByPerspective).some(c => c && c.length > 0);
-  if (hasNested) {
-    function addNavChildren(parentScopedPath, children, basePrefix) {
-      children.forEach(function(child, j) {
-        var isLast = j === children.length - 1;
-        var childScoped = parentScopedPath + '/' + child;
-        addNavItem(childScoped, basePrefix, isLast, child);
-        // Recurse: check if this child has sub-children in classesData
-        var childData = classesData[child];
-        if (childData && childData.children && childData.children.length > 0) {
-          var subPrefix = basePrefix + (isLast ? '   ' : '│  ');
-          addNavChildren(childScoped, childData.children, subPrefix);
-        }
-      });
-    }
-    originalPerspectives.forEach((persp, i) => {
-      const isLastPersp = i === originalPerspectives.length - 1;
-      const children = childrenByPerspective[persp] || [];
-      const hasChildren = children.length > 0;
-
-      // Create perspective row with expand/fold toggle
-      const btn = document.createElement('button');
-      btn.setAttribute('data-nav', persp);
-      btn.className = 'nav-item nav-root';
-      btn.onclick = () => { window.__openSb(persp); if(window.innerWidth<=768){var n=document.getElementById('nav-sidebar'),o=document.getElementById('mobile-overlay');if(n)n.classList.remove('mobile-open');if(o)o.classList.remove('show');} };
-
-      if (hasChildren) {
-        const toggle = document.createElement('span');
-        toggle.className = 'nav-toggle';
-        toggle.textContent = '▾';
-        toggle.style.cssText = 'cursor:pointer;margin-right:6px;font-size:13px;color:inherit;user-select:none';
-        toggle.onclick = function(e) {
-          e.stopPropagation();
-          const container = btn.nextElementSibling;
-          if (!container) return;
-          const collapsed = container.style.display === 'none';
-          container.style.display = collapsed ? '' : 'none';
-          toggle.textContent = collapsed ? '▾' : '▸';
-        };
-        btn.appendChild(toggle);
-      }
-
-      const labelSpan = document.createElement('span');
-      labelSpan.textContent = persp;
-      btn.appendChild(labelSpan);
-      navList.appendChild(btn);
-
-      if (hasChildren) {
-        const container = document.createElement('div');
-        container.className = 'nav-persp-children';
-        var childPrefix = isLastPersp ? '   ' : '│  ';
-        // Collect children into container by temporarily redirecting addNavItem
-        const origAppend = navList.appendChild.bind(navList);
-        const tempItems = [];
-        addNavChildren(persp, children, childPrefix);
-        // Move the just-appended children from navList into container
-        while (navList.lastChild && navList.lastChild !== btn) {
-          container.insertBefore(navList.lastChild, container.firstChild);
-        }
-        navList.appendChild(container);
-      }
-    });
-    return;
-  }
-
-  let roots = classes.filter(c => navInCount[c] === 0);
-  if (roots.length === 0) {
-    // Circular refs — pick class with most outgoing refs as root
-    const maxOut = Math.max(...classes.map(c => navOutCount[c]));
-    roots = classes.filter(c => navOutCount[c] === maxOut);
-  }
-  if (roots.length === classes.length) {
-    classes.forEach(c => addNavItem(c, '', true));
-    return;
-  }
-
-  const globalSeen = new Set();
-  function renderNode(name, prefix, isLast) {
-    if (globalSeen.has(name)) return;
-    globalSeen.add(name);
-    addNavItem(name, prefix, isLast);
-    const out = (refsData[name]?.outgoing || [])
-      .map(o => typeof o === 'string' ? o : (o.target_class || o))
-      .filter(ref => classes.includes(ref) && !globalSeen.has(ref));
-    out.forEach((ref, i) => {
-      renderNode(ref, prefix + (isLast ? '   ' : '│  '), i === out.length - 1);
-    });
-  }
-  roots.forEach((r, i) => renderNode(r, '', i === roots.length - 1));
-}
-
-function addNavItem(name, prefix, isLast, displayLabel) {
-  const btn = document.createElement('button');
-  btn.setAttribute('data-nav', name);
-  btn.onclick = () => { window.__openSb(name); if(window.innerWidth<=768){var n=document.getElementById('nav-sidebar'),o=document.getElementById('mobile-overlay');if(n)n.classList.remove('mobile-open');if(o)o.classList.remove('show');} };
-
-  if (prefix === '') {
-    btn.className = 'nav-item nav-root';
-    btn.textContent = displayLabel || name;
-  } else {
-    btn.className = 'nav-item';
-    const pre = document.createElement('span');
-    pre.className = 'nav-pre';
-    // Each slot is 3 chars ("│  " or "   ")
-    for (let i = 0; i < prefix.length; i += 3) {
-      const slot = document.createElement('span');
-      slot.className = 'nav-slot' + (prefix[i] === '│' ? ' nav-slot-line' : '');
-      pre.appendChild(slot);
-    }
-    const conn = document.createElement('span');
-    conn.className = 'nav-conn' + (isLast ? ' nav-conn-last' : '');
-    pre.appendChild(conn);
-    btn.appendChild(pre);
-    const label = document.createElement('span');
-    label.className = 'nav-label';
-    label.textContent = displayLabel || name;
-    btn.appendChild(label);
-  }
-
-  navList.appendChild(btn);
-}
-
-// ── nested element support ────────────────────────────────
-var childrenByPerspective = {};
-var parentMap = {};
-var originalPerspectives = []; // top-level only, before short names pollute classes
-
-async function loadNodeData(perspective, childName) {
-  var key = perspective + '/' + childName;
-  if (classesData[key]) return classesData[key];
-  var data = await api('/api/class/' + perspective + '/node/' + childName);
-  if (data && !data.error) {
-    classesData[key] = data;
-    // Short name in classesData ONLY for renderGroup ref lookup
-    // Do NOT add to classes array — only perspectives belong there
-    classesData[childName] = data;
-    // Also load this element's children (depth 2+)
-    if (data.children && data.children.length > 0) {
-      var subLoads = [];
-      for (var sub of data.children) {
-        subLoads.push(loadSubNodeData(perspective, childName + '/' + sub, sub));
-      }
-      await Promise.all(subLoads);
-    }
-  }
-  return data;
-}
-
-async function loadSubNodeData(perspective, subPath, shortName) {
-  if (classesData[perspective + '/' + subPath]) return;
-  var data = await api('/api/class/' + perspective + '/node/' + subPath);
-  if (data && !data.error) {
-    classesData[perspective + '/' + subPath] = data;
-    classesData[shortName] = data;
-    // Recurse for deeper children
-    if (data.children && data.children.length > 0) {
-      var deepLoads = [];
-      for (var sub of data.children) {
-        deepLoads.push(loadSubNodeData(perspective, subPath + '/' + sub, sub));
-      }
-      await Promise.all(deepLoads);
-    }
-  }
-}
-
-// ── init ──────────────────────────────────────────────────
-async function init() {
-  applyTheme();
-  classes = await api('/api/classes');
-  if (!classes.length) {
-    canvasEl.innerHTML=`<div class="empty-state" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%)"><p>No perspectives found.<br>Run <code>/omm-scan</code> in Claude Code.</p></div>`;
-    return;
-  }
-  const [da,ra,na] = await Promise.all([
-    Promise.all(classes.map(c=>api(`/api/class/${c}`))),
-    Promise.all(classes.map(c=>api(`/api/class/${c}/refs`))),
-    Promise.all(classes.map(c=>api(`/api/class/${c}/nodes`))),
-  ]);
-  originalPerspectives = [...classes];
-  classes.forEach((c,i)=>{
-    classesData[c]=da[i];
-    refsData[c]=ra[i];
-    childrenByPerspective[c]=(na[i]&&na[i].children)||[];
-  });
-
-  // Build reverse map: child -> [parent perspectives] for cross-linking -- uses module-scoped parentMap
-  for (var persp of Object.keys(childrenByPerspective)) {
-    for (var child of childrenByPerspective[persp]) {
-      if (!parentMap[child]) parentMap[child] = [];
-      parentMap[child].push(persp);
-    }
-  }
-
-  // Pre-load nested element data for all children
-  var nodeLoads = [];
-  for (var persp of Object.keys(childrenByPerspective)) {
-    for (var child of childrenByPerspective[persp]) {
-      nodeLoads.push(loadNodeData(persp, child));
-    }
-  }
-  await Promise.all(nodeLoads);
-
-  // Set project name and build nav tree
-  var projName = window.__projectName || 'omm';
-  navTitle.textContent = projName;
-  var mobileTitle = document.getElementById('mobile-title');
-  if (mobileTitle) mobileTitle.textContent = projName;
-  buildNavTree();
-
-  const result = buildCanvas(originalPerspectives, classesData, refsData);
-  if (result) {
-    canvasEl.innerHTML = result.html;
-    svgW = result.W; svgH = result.H;
-  }
-  postRender();
-  requestAnimationFrame(centerView);
-
-  // Cloud mode: notify parent frame of available classes
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'classes-loaded', classes: classes, refs: refsData }, '*');
-  }
-
-  // Cloud mode: listen for parent frame messages
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'select-class') {
-      var className = e.data.className;
-      if (typeof window.__openSb === 'function') {
-        window.__openSb(className);
-      }
-    }
-  });
-}
-
-window.toggleMobileNav = function() {
-  const nav = document.getElementById('nav-sidebar');
-  const overlay = document.getElementById('mobile-overlay');
-  const isOpen = nav.classList.contains('mobile-open');
-  nav.classList.toggle('mobile-open', !isOpen);
-  overlay.classList.toggle('show', !isOpen);
-};
-
-function setupLiveReload() {
-  if (!window.EventSource) return;
-
-  try {
-    const sse = new EventSource('/events');
-    sse.addEventListener('change', async () => {
-      const sel = selectedCls;
-      await init();
-      if (sel && classes.includes(sel)) window.__openSb(sel);
-    });
-  } catch {}
-}
-
-setupLiveReload();
-init();
-</script>
+<script type="module" src="./viewer-app.js"></script>
 </body>
 </html>

@@ -33,6 +33,17 @@ export async function commandSetup(args: string[]): Promise<void> {
       process.stderr.write(`${platform.name}: teardown complete.\n`);
     } else {
       if (platform.isSetup()) {
+        // Check if skills need updating
+        if (platform.needsUpdate) {
+          const { needed, changes } = platform.needsUpdate();
+          if (needed) {
+            process.stderr.write(`${platform.name}: already configured. Updating skills...\n`);
+            for (const c of changes.slice(0, 10)) process.stderr.write(`  ${c}\n`);
+            if (changes.length > 10) process.stderr.write(`  ... and ${changes.length - 10} more\n`);
+            await platform.setup();
+            return;
+          }
+        }
         process.stderr.write(`${platform.name}: already configured.\n`);
         return;
       }
@@ -58,6 +69,16 @@ export async function commandSetup(args: string[]): Promise<void> {
       continue;
     }
     if (platform.isSetup()) {
+      if (platform.needsUpdate) {
+        const { needed, changes } = platform.needsUpdate();
+        if (needed) {
+          process.stderr.write(`${platform.name}: already configured. Updating skills...\n`);
+          for (const c of changes.slice(0, 10)) process.stderr.write(`  ${c}\n`);
+          if (changes.length > 10) process.stderr.write(`  ... and ${changes.length - 10} more\n`);
+          await platform.setup();
+          continue;
+        }
+      }
       process.stderr.write(`${platform.name}: already configured.\n`);
       continue;
     }

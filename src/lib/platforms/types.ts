@@ -7,6 +7,8 @@ export interface Platform {
   detect(): boolean;
   /** Are omm skills already registered? */
   isSetup(): boolean;
+  /** Check if installed skills need updating (optional — only for copy-based platforms) */
+  needsUpdate?(): { needed: boolean; changes: string[] };
   /** Register omm skills/plugin */
   setup(): Promise<void>;
   /** Unregister omm skills/plugin */
