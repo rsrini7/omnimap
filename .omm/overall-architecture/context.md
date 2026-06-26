@@ -1,1 +1,0 @@
-Built as a TypeScript ESM package with zero runtime dependencies beyond `yaml`. Uses tsup for bundling. Published to npm as `oh-my-mermaid` with both a CLI binary (`omm`) and a library API. Designed to be invoked by AI coding assistants via skills/plugins, with the `/omm-scan` skill being the primary entry point for generating architecture docs.

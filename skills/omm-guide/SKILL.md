@@ -25,7 +25,16 @@ If `omm list` shows no perspectives, tell the user:
 
 ---
 
-## Step 0: Pick a starting point
+## Step 0: Detect arch repo vs regular project
+
+Run `omm list`. If it shows "Architecture repository (N projects)":
+- Ask which project to explore
+- Use `--project <name>` for all subsequent `omm show` calls
+- Example: `omm show command-surface --project ArcClawInternal`
+
+---
+
+## Step 1: Pick a starting point
 
 1. If user passed `[topic]`, choose the most relevant perspective/class by scanning these fields (in order):
    - description
@@ -33,11 +42,11 @@ If `omm list` shows no perspectives, tell the user:
    - constraint
    - todo
 2. If no topic, start from `overall-architecture` if it exists.
-3. If `overall-architecture` doesn’t exist, pick the first perspective returned by `omm list`.
+3. If `overall-architecture` doesn't exist, pick the first perspective returned by `omm list`.
 
 ---
 
-## Step 1: Explain the “shape” of the docs
+## Step 2: Explain the "shape" of the docs
 
 Show:
 - how to navigate in the viewer (`omm view`)
@@ -45,13 +54,13 @@ Show:
 
 ---
 
-## Step 2: Guided walkthrough (interactive)
+## Step 3: Guided walkthrough (interactive)
 
 Repeat this loop for 3–6 steps (based on availability and user interest):
 
 For the current selected element `<E>`:
 1. Run:
-   - `omm show <E>`
+   - `omm show <E>` (add `--project <name>` if arch repo)
 2. Present:
    - Description (short)
    - Context (why/decisions)
@@ -69,10 +78,10 @@ Then ask the user to choose:
 - (d) Finish
 
 ---
-## Step 3: How to go deeper
+## Step 4: How to go deeper
 
 When the user selects a referenced element `<R>`:
-- Call `omm show <R>` and continue from Step 2.
+- Call `omm show <R>` (add `--project <name>` if arch repo) and continue from Step 3.
 - The recursion is agent-driven (the user picks a branch), not a fresh scan.
 
 ---
@@ -81,4 +90,4 @@ When the user selects a referenced element `<R>`:
 - Do not invent architecture facts.
 - Only describe what exists in `.omm/` files.
 - If something is missing (e.g., no constraint.md), say so plainly and move on.
-
+- When in an arch repo, always use `--project <name>` for `omm show` calls.

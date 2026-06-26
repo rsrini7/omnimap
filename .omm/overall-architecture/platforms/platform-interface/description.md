@@ -1,1 +1,0 @@
-TypeScript interface that all platform adapters must implement: name (display), id (CLI-facing), detect() (is binary installed), isSetup() (are skills registered), setup() (register skills/plugin), teardown() (unregister).

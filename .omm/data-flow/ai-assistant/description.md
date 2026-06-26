@@ -1,1 +1,0 @@
-External AI coding assistants (Claude Code, Codex, Cursor, OpenClaw, Antigravity) that invoke omm CLI commands via skills/plugins. The primary write path starts here — AI assistants call `omm write <class> <field> - <<'CONTENT'` to generate architecture documentation.

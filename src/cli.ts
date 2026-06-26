@@ -9,15 +9,10 @@ import { commandStatus } from './commands/status.js';
 import { commandDiff } from './commands/diff.js';
 import { commandRefs } from './commands/refs.js';
 import { commandView } from './commands/view.js';
-import { commandLogin } from './commands/login.js';
-import { commandLogout } from './commands/logout.js';
 import { commandPush } from './commands/push.js';
 import { commandPull } from './commands/pull.js';
-import { commandLink } from './commands/link.js';
-import { commandShare } from './commands/share.js';
 import { commandSetup } from './commands/setup.js';
 import { commandUpdate } from './commands/update.js';
-import { commandOrg } from './commands/org.js';
 import { commandValidate } from './commands/validate.js';
 import { commandTree } from './commands/tree.js';
 import { commandRead, commandWrite } from './commands/read-write.js';
@@ -25,8 +20,11 @@ import { commandConfig } from './commands/config.js';
 import { commandIncremental } from './commands/incremental.js';
 import { commandExport } from './commands/export.js';
 import { commandTag } from './commands/tag.js';
+import { commandArch } from './commands/arch.js';
+import { commandShare } from './commands/share.js';
+import { commandOrg } from './commands/org.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'login', 'logout', 'push', 'pull', 'link', 'share', 'org', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -54,16 +52,13 @@ Usage:
   omm export <element> [--format svg|png] [-o file]  Export diagram as SVG or PNG
   omm tag <element> [add|remove|set] [tags]         Manage element tags
 
-Cloud:
-  omm login                         Log in to omm.dev
-  omm logout                        Log out
-  omm link [org/slug]                Link project to a cloud slug
-  omm push                          Push .omm/ to cloud
-  omm pull                          Pull .omm/ from cloud
-  omm share                         Print the shareable URL
-  omm org list                      List your organizations
-  omm org switch <slug>             Set default organization
-  omm org members [slug]            View members (opens web)
+Architecture Repository:
+  omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
+  omm pull [--from repo] [--all]     Pull .omm/ from architecture repository
+  omm arch init [--remote <url>]     Initialize architecture repository with git
+  omm share                          Print the arch repo URL (GitHub/GitLab)
+  omm org list                       List configured architecture repositories
+  omm org switch <name>              Switch active architecture repository
 
 Paths: use / for nested elements (e.g. overall-architecture/main-process)
 Fields: description, diagram, constraint, concern, context, todo, note
@@ -91,7 +86,7 @@ async function main(): Promise<void> {
 
   switch (cmd) {
     case 'init':
-      commandInit(args.slice(1));
+      await commandInit(args.slice(1));
       return;
 
     case 'setup':
@@ -103,7 +98,7 @@ async function main(): Promise<void> {
       return;
 
     case 'list':
-      commandList();
+      commandList(args.slice(1));
       return;
 
     case 'tree':
@@ -127,7 +122,7 @@ async function main(): Promise<void> {
         process.stderr.write('error: omm show <path>\n');
         process.exit(1);
       }
-      commandShow(args[1]);
+      await commandShow(args[1], args.slice(2));
       return;
 
     case 'delete':
@@ -182,36 +177,16 @@ async function main(): Promise<void> {
           process.exit(1);
         }
       }
-      commandView(port);
+      commandView(port, args.slice(1));
       return;
     }
 
-    case 'login':
-      await commandLogin();
-      return;
-
-    case 'logout':
-      commandLogout();
-      return;
-
-    case 'link':
-      await commandLink(args[1]);
-      return;
-
     case 'push':
-      await commandPush();
+      await commandPush(args.slice(1));
       return;
 
     case 'pull':
-      await commandPull();
-      return;
-
-    case 'share':
-      commandShare();
-      return;
-
-    case 'org':
-      await commandOrg(args[1], args[2]);
+      commandPull(args.slice(1));
       return;
 
     case 'incremental':
@@ -224,6 +199,18 @@ async function main(): Promise<void> {
 
     case 'tag':
       commandTag(args.slice(1));
+      return;
+
+    case 'arch':
+      commandArch(args.slice(1));
+      return;
+
+    case 'share':
+      commandShare();
+      return;
+
+    case 'org':
+      commandOrg(args.slice(1));
       return;
 
     default:

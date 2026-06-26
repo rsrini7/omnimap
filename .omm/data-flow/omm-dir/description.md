@@ -1,1 +1,0 @@
-The .omm/ directory in the project root. Contains config.yaml at top level and one subdirectory per class. Each class directory holds field files (description.md, diagram.mmd, constraint.md, concern.md, context.md, todo.md, note.md) and meta.yaml. This is the single source of truth for all architecture documentation.

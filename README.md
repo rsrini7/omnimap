@@ -80,10 +80,10 @@ Each element carries up to 7 fields: `description`, `diagram`, `context`, `const
 ```bash
 omm setup                          # Register skills with your AI tools
 omm init --template list           # Show available diagram templates
-omm init --template microservices  # Scaffold from a template
-omm view                           # Open interactive viewer
-omm list                           # List all perspectives
-omm show <element>                 # Show all fields for an element
+omm init --template microservices  # Scaffold from a template (+ .gitignore + skills update)
+omm view [--port <p>] [--project <n>]  Open interactive viewer
+omm list [--project <name>]         List perspectives (auto-detects arch repo)
+omm show <element> [--project <n>]  Show all fields for an element
 omm tree [perspective]             # Print element tree
 omm validate [element]             # Validate diagram(s)
 omm validate --changed             # Validate only changed elements (CI)
@@ -92,6 +92,10 @@ omm diff <element>                 # Show diagram diff (added/removed nodes)
 omm refs <element>                 # Show incoming/outgoing references
 omm export <element> [--format svg|png] [-o file]  # Export diagram
 omm tag <element> [add|remove|set] [tags]          # Manage element tags
+omm push [--to repo] [--commit]    # Push to architecture repository
+omm pull [--from repo] [--all]     # Pull from architecture repository
+omm share                          # Print arch repo URL (GitHub/GitLab)
+omm org list|switch|add|edit|remove  # Manage architecture repositories
 omm incremental                    # Plan a scoped re-scan based on git diff
 omm config language ko             # Set content language
 omm update                         # Update to latest version
@@ -107,7 +111,7 @@ Skills are commands you run **inside your AI coding tool** (not the terminal). T
 | --- | --- |
 | `/omm-scan` | Analyze codebase → generate architecture docs |
 | `/omm-guide` | Walk through existing architecture interactively |
-| `/omm-push` | Login + link + push to cloud in one step |
+| `/omm-push` | Push architecture docs to shared repository |
 | `/omm-view` | Open the web viewer |
 | `/omm-tag` | Tag elements with labels for categorization |
 
@@ -135,13 +139,111 @@ The web viewer (`omm view`) includes:
 
 ## Cloud
 
-You can store your architecture in the cloud via [ohmymermaid.com](https://ohmymermaid.com).
+You can store architecture docs in a **dedicated git repo** — no external service needed.
+
+### Setup (one-time)
 
 ```bash
-omm login && omm link && omm push
+# Set the shared arch repo (global — works from any project)
+omm config arch-repo ~/ws/my-mm-docs
+
+# Set the git remote (for auto-push)
+omm config arch-remote git@github.com:rsrini7/my-mm-docs.git
 ```
 
-It's private by default. Share with your team, or make it public like [this example](https://ohmymermaid.com/share/c47e20a7063c231760361ed9cb9ec4b6).
+### Teams (multiple arch repos)
+
+```bash
+# Register team repos
+omm org add team-alpha ~/ws/alpha-repo --remote git@github.com:team/alpha.git
+omm org add team-beta ~/ws/beta-repo --remote git@github.com:team/beta.git
+
+# List all
+omm org list
+
+# Switch active repo
+omm org switch team-beta
+
+# Edit (change path or remote)
+omm org edit team-alpha --remote git@github.com:team/new-alpha.git
+
+# Remove
+omm org remove team-beta
+```
+
+### Share
+
+```bash
+# Print the GitHub/GitLab URL for the arch repo
+omm share
+```
+
+### Push
+
+```bash
+# Copy .omm/ to arch repo (local file copy only, no git)
+omm push
+
+# Copy + git commit + push to remote
+omm push --commit -m "add auth-service docs"
+
+# Preview what would change
+omm push --dry-run
+```
+
+| Command | Copy files | Git commit | Git push to remote |
+|---------|-----------|------------|--------------------|
+| `omm push` | ✓ | ✗ | ✗ |
+| `omm push --commit` | ✓ | ✓ | ✗ |
+| `omm push --commit-push` | ✓ | ✓ | ✓ |
+| `omm push --dry-run` | preview | ✗ | ✗ |
+
+### Pull
+
+```bash
+# Pull current project from arch repo
+omm pull
+
+# Pull all projects
+omm pull --all
+
+# Pull a specific project
+omm pull --project ArcClawInternal
+```
+
+### View from arch repo directly
+
+```bash
+cd ~/ws/my-mm-docs
+
+# List all projects and their perspectives
+omm list
+
+# View a specific project
+omm view --project ArcClawInternal
+
+# Show an element from a specific project
+omm show command-surface --project ArcClawInternal
+```
+
+When in an arch repo with multiple projects, use `--project <name>` to specify which project to work with. If only one project exists, it's auto-selected.
+
+### Dedicated repo structure
+
+```
+~/arch/team-architecture/       ← shared git repo
+├── .omm/
+│   ├── project-a/              ← auto-created per project
+│   │   ├── auth-service/
+│   │   └── api-gateway/
+│   ├── project-b/
+│   │   └── storage/
+│   └── project-c/
+│       └── ...
+└── .git/
+```
+
+Each `omm push` syncs the local `.omm/` to the arch repo under the project name. Team members run `omm pull` to get the latest docs.
 
 ## Supported AI Tools
 

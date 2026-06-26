@@ -1,5 +1,0 @@
-- Single runtime dependency (yaml) — keep the dependency footprint minimal
-- Must work as both CLI and programmatic library (dual entry points)
-- Cloud paths must be validated to prevent path traversal attacks
-- Platform integrations must be detect-based (no hard requirement on any AI tool)
-- All storage is filesystem-based (.omm/ directory) — no database

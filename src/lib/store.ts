@@ -8,12 +8,67 @@ const OMM_DIR = '.omm';
 const CONFIG_FILE = 'config.yaml';
 const META_FILE = 'meta.yaml';
 
+/** Global override for omm directory (used by arch repo view). */
+let _ommDirOverride: string | null = null;
+export function setOmmDirOverride(dir: string | null) { _ommDirOverride = dir; }
+export function getOmmDirOverride(): string | null { return _ommDirOverride; }
+
 export function getOmmDir(cwd: string = process.cwd()): string {
+  if (_ommDirOverride) return _ommDirOverride;
   return path.join(cwd, OMM_DIR);
 }
 
 export function ommExists(cwd?: string): boolean {
   return fs.existsSync(getOmmDir(cwd));
+}
+
+/**
+ * Detect if the current .omm/ is an architecture repository.
+ * Checks for arch_repo: true flag in config.yaml (set by `omm arch init`).
+ */
+export function isArchRepo(cwd: string = process.cwd()): boolean {
+  const ommDir = getOmmDir(cwd);
+  if (!fs.existsSync(ommDir)) return false;
+  const configPath = path.join(ommDir, 'config.yaml');
+  if (!fs.existsSync(configPath)) return false;
+  try {
+    const config = YAML.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+    return config?.arch_repo === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * List projects in an architecture repo.
+ */
+export function listProjects(cwd: string = process.cwd()): string[] {
+  const ommDir = getOmmDir(cwd);
+  if (!fs.existsSync(ommDir)) return [];
+  return fs.readdirSync(ommDir, { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'config.yaml')
+    .map(d => d.name)
+    .sort();
+}
+
+/**
+ * Resolve the effective .omm/ directory for a project within an arch repo.
+ * If project is specified, returns .omm/{project}/.
+ * If not specified but we're in an arch repo with one project, auto-selects it.
+ * Returns null if ambiguous (multiple projects, none specified).
+ */
+export function resolveProjectOmmDir(project?: string, cwd: string = process.cwd()): string | null {
+  const ommDir = getOmmDir(cwd);
+  if (!project) {
+    // Auto-detect: if only one project, use it
+    const projects = listProjects(cwd);
+    if (projects.length === 1) return path.join(ommDir, projects[0]);
+    if (projects.length === 0) return ommDir; // regular project, not arch repo
+    return null; // ambiguous
+  }
+  const projectDir = path.join(ommDir, project);
+  if (!fs.existsSync(projectDir)) return null;
+  return projectDir;
 }
 
 /**
@@ -73,8 +128,15 @@ export function classExists(className: string, cwd?: string): boolean {
   return fs.existsSync(classDir(className, cwd));
 }
 
-export function listClasses(cwd?: string): string[] {
-  const dir = getOmmDir(cwd);
+export function listClasses(dirOrCwd?: string): string[] {
+  // If the path IS an .omm directory (e.g., .omm/ArcClawInternal/), use it directly
+  // Otherwise, resolve via getOmmDir(cwd)
+  let dir: string;
+  if (dirOrCwd && (path.basename(dirOrCwd) === '.omm' || fs.existsSync(path.join(dirOrCwd, 'config.yaml')))) {
+    dir = dirOrCwd;
+  } else {
+    dir = getOmmDir(dirOrCwd);
+  }
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true })
     .filter(d => d.isDirectory() && !d.name.startsWith('.'))

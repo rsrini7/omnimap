@@ -1,1 +1,0 @@
-Registers omm skills/plugins with AI coding tools. Auto-detects installed platforms, or targets a specific one via `omm setup <platform>`. Supports --list (show detected) and --teardown (unregister all).

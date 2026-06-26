@@ -1,34 +1,60 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import YAML from 'yaml';
-import { getApiUrl, getDefaultOrg } from '../lib/cloud.js';
-import { ensureOmmForRead, getOmmDir } from '../lib/store.js';
+/**
+ * omm share — Print the shareable URL for the architecture repository
+ *
+ * Usage:
+ *   omm share                  Print the GitHub/GitLab URL for the arch repo
+ *   omm share --open           Open in browser
+ */
+
+import { getArchRepo, getArchRemote } from '../lib/arch.js';
+import { listProjects } from '../lib/store.js';
+import { execSync } from 'node:child_process';
+
+function git(cmd: string, cwd: string): string {
+  try {
+    return execSync(`git ${cmd}`, { cwd, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }).trim();
+  } catch {
+    return '';
+  }
+}
+
+/** Convert git SSH URL to HTTPS for browser viewing. */
+function toHttps(url: string): string {
+  // git@github.com:user/repo.git → https://github.com/user/repo
+  const sshMatch = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}`;
+  // https://github.com/user/repo.git → https://github.com/user/repo
+  return url.replace(/\.git$/, '');
+}
 
 export function commandShare(): void {
-  if (!ensureOmmForRead()) return;
-
-  const configPath = path.join(getOmmDir(), 'config.yaml');
-  if (!fs.existsSync(configPath)) {
-    process.stderr.write("error: .omm/config.yaml not found. Run /omm-scan in Claude Code first.\n");
+  const archRepo = getArchRepo();
+  if (!archRepo) {
+    process.stderr.write('error: no architecture repository configured.\n');
+    process.stderr.write('  Run: omm config arch-repo <path>\n');
     process.exit(1);
   }
 
-  const raw = fs.readFileSync(configPath, 'utf-8');
-  const config = YAML.parse(raw) as Record<string, unknown>;
-  const cloud = config.cloud as Record<string, unknown> | undefined;
-  const slug = cloud?.project_slug as string | undefined;
-  const orgSlug = (cloud?.org_slug as string | undefined) ?? getDefaultOrg() ?? undefined;
+  const remote = getArchRemote();
+  const isRepo = !!remote || !!git('remote get-url origin', archRepo);
 
-  if (!slug) {
-    process.stderr.write("error: no project slug set. Run 'omm link' first.\n");
-    process.exit(1);
+  if (!isRepo) {
+    process.stderr.write('Architecture repository has no remote configured.\n');
+    process.stderr.write(`  Local path: ${archRepo}\n`);
+    process.stderr.write('  Run: omm config arch-remote <git-url>\n');
+    return;
   }
 
-  if (!orgSlug) {
-    process.stderr.write("warning: no org set. URL may be incomplete. Run 'omm org switch <slug>' or 'omm link org/project'.\n");
-  }
-  const urlPath = orgSlug ? `/p/${orgSlug}/${slug}` : `/p/${slug}`;
-  const viewUrl = `${getApiUrl()}${urlPath}`;
-  process.stdout.write(`View:         ${viewUrl}\n`);
-  process.stdout.write(`Public share: use the Share button on the dashboard (Personal/Team)\n`);
+  const remoteUrl = remote || git('remote get-url origin', archRepo);
+  const httpsUrl = toHttps(remoteUrl);
+  const branch = git('branch --show-current', archRepo) || 'main';
+  const projects = listProjects(archRepo);
+
+  process.stdout.write(`Architecture Repository\n`);
+  process.stdout.write(`  Remote:   ${remoteUrl}\n`);
+  process.stdout.write(`  Branch:   ${branch}\n`);
+  process.stdout.write(`  Projects: ${projects.length} (${projects.join(', ')})\n`);
+  process.stdout.write(`\n`);
+  process.stdout.write(`  View online: ${httpsUrl}\n`);
+  process.stdout.write(`  Tree:        ${httpsUrl}/tree/${branch}\n`);
 }

@@ -1,7 +1,7 @@
 ---
 name: omm-view
 description: Start the omm web viewer to explore architecture diagrams in the browser. Use when the user says "omm view", "open viewer", "show diagrams", "view architecture", or "open architecture".
-argument-hint: "[--port <port>]"
+argument-hint: "[--port <port>] [--project <name>]"
 ---
 
 # omm-view — Architecture Viewer
@@ -23,17 +23,21 @@ If the install command fails (permission denied), tell the user:
 
 ## Steps
 
-### Step 1: Verify .omm/ exists
+### Step 1: Check if arch repo or regular project
+
+Run `omm list`. If it shows "Architecture repository (N projects)", the user is in an arch repo.
+
+### Step 2a: Arch repo — select project
+
+If multiple projects exist, ask which one to view:
 
 ```bash
-omm list
+omm view --project <name>
 ```
 
-If no classes found, tell the user:
-"No architecture docs found. Run `/omm-scan` first to generate them."
-Then stop.
+If only one project, `omm view` auto-selects it.
 
-### Step 2: Start the viewer
+### Step 2b: Regular project — just launch
 
 ```bash
 omm view
@@ -54,5 +58,6 @@ The viewer auto-refreshes when `.omm/` files change.
 ## Rules
 
 - Always check for existing classes before starting the viewer
+- If in an arch repo with multiple projects, always ask which project to view
 - If no classes exist, suggest `/omm-scan` instead of starting an empty viewer
 - The viewer is read-only — it does not modify `.omm/` files

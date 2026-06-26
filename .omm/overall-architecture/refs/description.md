@@ -1,1 +1,0 @@
-Cross-reference tracker that finds @class-name mentions in Mermaid diagram text. extractRefs() parses @mentions from a diagram. getOutgoingRefs() returns what a class references. getIncomingRefs() scans all classes to find who references a given class. buildRefGraph() constructs the full reference graph across all classes.

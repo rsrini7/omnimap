@@ -1,106 +1,185 @@
-import { getToken, getDefaultOrg, saveDefaultOrg, saveHandle, apiRequest } from '../lib/cloud.js';
+/**
+ * omm org — Manage architecture repositories (teams)
+ *
+ * Usage:
+ *   omm org list                 List all configured arch repos
+ *   omm org switch <name>        Switch to a different arch repo
+ *   omm org add <name> <path> [--remote <url>]   Add a new arch repo
+ *   omm org remove <name>        Remove an arch repo
+ */
 
-export async function commandOrg(subcommand?: string, arg?: string): Promise<void> {
-  const token = getToken();
-  if (!token) {
-    process.stderr.write("error: not logged in. Run 'omm login' first.\n");
-    process.exit(1);
-  }
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import YAML from 'yaml';
+import { getArchRepo, setArchRepo, getArchRemote, setArchRemote } from '../lib/arch.js';
 
-  switch (subcommand) {
-    case 'list':
-      await orgList();
-      return;
-    case 'switch':
-      await orgSwitch(arg);
-      return;
-    case 'members':
-      await orgMembers(arg);
-      return;
-    default:
-      printOrgHelp();
-      return;
+const GLOBAL_CONFIG_PATH = path.join(os.homedir(), '.omm', 'config.yaml');
+
+interface OrgEntry {
+  name: string;
+  path: string;
+  remote?: string;
+}
+
+function readOrgs(): OrgEntry[] {
+  if (!fs.existsSync(GLOBAL_CONFIG_PATH)) return [];
+  try {
+    const config = YAML.parse(fs.readFileSync(GLOBAL_CONFIG_PATH, 'utf-8')) as Record<string, unknown>;
+    return (config['orgs'] as OrgEntry[]) || [];
+  } catch {
+    return [];
   }
 }
 
-async function orgList(): Promise<void> {
-  const res = await apiRequest('GET', '/api/cli/orgs');
-  if (!res.ok) {
-    process.stderr.write(`error: failed to fetch orgs (${res.status})\n`);
-    process.exit(1);
+function writeOrgs(orgs: OrgEntry[]): void {
+  let config: Record<string, unknown> = {};
+  if (fs.existsSync(GLOBAL_CONFIG_PATH)) {
+    try {
+      config = YAML.parse(fs.readFileSync(GLOBAL_CONFIG_PATH, 'utf-8')) as Record<string, unknown> || {};
+    } catch {}
   }
+  config['orgs'] = orgs;
+  fs.mkdirSync(path.dirname(GLOBAL_CONFIG_PATH), { recursive: true });
+  fs.writeFileSync(GLOBAL_CONFIG_PATH, YAML.stringify(config), 'utf-8');
+}
 
-  const data = await res.json() as {
-    orgs?: Array<{ slug: string; name: string; plan: string; role: string; is_personal: boolean }>
-    handle?: string
-  };
+const HELP = `
+omm org — Manage architecture repositories (teams).
 
-  if (data.handle) {
-    saveHandle(data.handle);
-  }
+Usage:
+  omm org list                                List all configured arch repos
+  omm org switch <name>                       Switch active arch repo
+  omm org add <name> <path> [--remote <url>]  Register a new arch repo
+  omm org edit <name> [--path <p>] [--remote <url>]  Edit an existing arch repo
+  omm org remove <name>                       Remove an arch repo
 
-  const orgs = data.orgs ?? [];
-  const defaultOrg = getDefaultOrg();
+Examples:
+  omm org add team-alpha ~/arch/alpha --remote git@github.com:team/alpha.git
+  omm org add team-beta ~/arch/beta
+  omm org switch team-alpha
+  omm org edit team-alpha --remote git@github.com:team/new-alpha.git
+  omm org list
+`;
 
-  if (orgs.length === 0) {
-    process.stderr.write('No organizations found.\n');
+export function commandOrg(args: string[]): void {
+  const sub = args[0];
+
+  if (!sub || sub === '--help' || sub === '-h') {
+    process.stdout.write(HELP);
     return;
   }
 
-  for (const org of orgs) {
-    const isDefault = org.slug === defaultOrg;
-    const marker = isDefault ? '* ' : '  ';
-    const label = org.is_personal ? ' (personal)' : '';
-    process.stdout.write(`${marker}${org.slug}${label} [${org.plan}] — ${org.role}\n`);
-  }
+  if (sub === 'list') {
+    const orgs = readOrgs();
+    const currentRepo = getArchRepo();
 
-  process.stderr.write(`\n* = active org. Use 'omm org switch <slug>' to change.\n`);
-}
-
-async function orgSwitch(slug?: string): Promise<void> {
-  if (!slug) {
-    process.stderr.write("error: omm org switch <slug>\n");
-    process.exit(1);
-  }
-
-  // Validate the org exists and user has access
-  const res = await apiRequest('GET', '/api/cli/orgs');
-  if (res.ok) {
-    const data = await res.json() as { orgs?: Array<{ slug: string }>; handle?: string };
-    if (data.handle) {
-      saveHandle(data.handle);
+    if (orgs.length === 0) {
+      // Show current config if no orgs defined
+      if (currentRepo) {
+        process.stdout.write('No named orgs configured. Current arch repo:\n');
+        process.stdout.write(`  ${currentRepo}\n`);
+        const remote = getArchRemote();
+        if (remote) process.stdout.write(`  Remote: ${remote}\n`);
+      } else {
+        process.stdout.write('No architecture repositories configured.\n');
+        process.stdout.write('  Run: omm org add <name> <path>\n');
+      }
+      return;
     }
-    const orgs = data.orgs ?? [];
-    if (!orgs.some(o => o.slug === slug)) {
-      process.stderr.write(`error: org '${slug}' not found or you don't have access.\n`);
+
+    process.stdout.write('Architecture repositories:\n\n');
+    for (const org of orgs) {
+      const isActive = org.path === currentRepo;
+      const marker = isActive ? '* ' : '  ';
+      process.stdout.write(`${marker}${org.name.padEnd(20)} ${org.path}\n`);
+      if (org.remote) process.stdout.write(`  ${''.padEnd(20)} remote: ${org.remote}\n`);
+    }
+    process.stdout.write('\n* = active. Use `omm org switch <name>` to change.\n');
+    return;
+  }
+
+  if (sub === 'switch') {
+    const name = args[1];
+    if (!name) {
+      process.stderr.write('error: omm org switch <name>\n');
       process.exit(1);
     }
+    const orgs = readOrgs();
+    const org = orgs.find(o => o.name === name);
+    if (!org) {
+      process.stderr.write(`error: org '${name}' not found.\n`);
+      if (orgs.length > 0) process.stderr.write(`  Available: ${orgs.map(o => o.name).join(', ')}\n`);
+      process.exit(1);
+    }
+    setArchRepo(org.path);
+    if (org.remote) setArchRemote(org.remote);
+    process.stderr.write(`Switched to: ${name} (${org.path})\n`);
+    return;
   }
 
-  saveDefaultOrg(slug);
-  process.stderr.write(`Switched to org: ${slug}\n`);
-}
+  if (sub === 'add') {
+    const name = args[1];
+    const repoPath = args[2];
+    if (!name || !repoPath) {
+      process.stderr.write('error: omm org add <name> <path> [--remote <url>]\n');
+      process.exit(1);
+    }
+    const remoteIdx = args.indexOf('--remote');
+    const remote = remoteIdx >= 0 ? args[remoteIdx + 1] : undefined;
 
-async function orgMembers(slug?: string): Promise<void> {
-  const orgSlug = slug ?? getDefaultOrg();
-  if (!orgSlug) {
-    process.stderr.write("error: specify an org or set a default with 'omm org switch <slug>'\n");
-    process.exit(1);
+    const orgs = readOrgs();
+    const existing = orgs.findIndex(o => o.name === name);
+    const entry: OrgEntry = { name, path: path.resolve(repoPath), remote };
+    if (existing >= 0) {
+      orgs[existing] = entry;
+    } else {
+      orgs.push(entry);
+    }
+    writeOrgs(orgs);
+    process.stderr.write(`Added: ${name} → ${entry.path}${remote ? ` (${remote})` : ''}\n`);
+    return;
   }
 
-  // This endpoint requires Supabase session token, not CLI token.
-  // For now, show a message directing to the web UI.
-  process.stderr.write(`View members at: ${process.env.OMM_API_URL || 'https://ohmymermaid.com'}/org/${orgSlug}/settings\n`);
-}
+  if (sub === 'edit') {
+    const name = args[1];
+    if (!name) {
+      process.stderr.write('error: omm org edit <name> [--path <p>] [--remote <url>]\n');
+      process.exit(1);
+    }
+    const orgs = readOrgs();
+    const org = orgs.find(o => o.name === name);
+    if (!org) {
+      process.stderr.write(`error: org '${name}' not found.\n`);
+      if (orgs.length > 0) process.stderr.write(`  Available: ${orgs.map(o => o.name).join(', ')}\n`);
+      process.exit(1);
+    }
+    const pathIdx = args.indexOf('--path');
+    const remoteIdx = args.indexOf('--remote');
+    if (pathIdx >= 0 && args[pathIdx + 1]) org.path = path.resolve(args[pathIdx + 1]);
+    if (remoteIdx >= 0 && args[remoteIdx + 1]) org.remote = args[remoteIdx + 1];
+    writeOrgs(orgs);
+    process.stderr.write(`Updated: ${name} → ${org.path}${org.remote ? ` (${org.remote})` : ''}\n`);
+    return;
+  }
 
-function printOrgHelp(): void {
-  const help = `
-omm org — Manage organizations
+  if (sub === 'remove') {
+    const name = args[1];
+    if (!name) {
+      process.stderr.write('error: omm org remove <name>\n');
+      process.exit(1);
+    }
+    const orgs = readOrgs();
+    const filtered = orgs.filter(o => o.name !== name);
+    if (filtered.length === orgs.length) {
+      process.stderr.write(`error: org '${name}' not found.\n`);
+      process.exit(1);
+    }
+    writeOrgs(filtered);
+    process.stderr.write(`Removed: ${name}\n`);
+    return;
+  }
 
-Usage:
-  omm org list               List your organizations
-  omm org switch <slug>      Set default organization for push/pull
-  omm org members [slug]     View members (opens web)
-`;
-  process.stdout.write(help.trim() + '\n');
+  process.stderr.write(`error: unknown subcommand '${sub}'. Run 'omm org --help'.\n`);
+  process.exit(1);
 }

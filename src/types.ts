@@ -27,6 +27,7 @@ export interface ClassMeta {
   parentPath?: string[];
   tags?: string[];
   diagram_history?: Array<{ diagram: string; at: string; commit?: string }>;
+  change_log?: Array<{ field: string; at: string; commit?: string }>;
 
   /**
    * Incremental analysis metadata.

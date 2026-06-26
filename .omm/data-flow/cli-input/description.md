@@ -1,1 +1,0 @@
-CLI entry point for data operations. Parses the class-field pattern from argv, reads content from arguments or stdin (when `-` is passed), and routes to writeField() or readField() in the store engine.

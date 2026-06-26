@@ -26,7 +26,7 @@ function getViewerHtml(): string {
 }
 
 export function startServer(port: number): void {
-  startWatcher();
+ startWatcher();
 
   const server = http.createServer((req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host}`);

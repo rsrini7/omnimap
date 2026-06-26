@@ -1,1 +1,0 @@
-Integration commands. `setup` auto-detects AI coding tools and registers omm skills/plugins with them. `update` upgrades the CLI and re-runs setup. `view` starts the local HTTP web viewer for browsing diagrams.
