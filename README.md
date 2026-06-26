@@ -137,6 +137,19 @@ The web viewer (`omm view`) includes:
 | **Viewport-responsive fonts** | Font sizes scale with monitor width for readability |
 | **Diagram templates** | Scaffold from pre-built architectures via `omm init --template` |
 
+## Project picker
+
+When you run `omm view` inside an arch repo with more than one project, a **project picker** auto-displays at `http://localhost:3000/` instead of loading a specific project directly.
+
+The picker lists every project with:
+- Perspective count
+- Element count
+- Last updated timestamp
+
+Click any project card to open it in the viewer. If you have multiple arch repos configured (`omm org add`), the org switcher appears at the top of the picker.
+
+Existing behavior is unchanged: `omm view --project <name>` still opens a specific project directly, bypassing the picker.
+
 ## Cloud
 
 You can store architecture docs in a **dedicated git repo** — no external service needed.

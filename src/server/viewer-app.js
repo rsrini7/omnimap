@@ -413,7 +413,13 @@ let classes=[], classesData={}, refsData={};
 let selectedCls=null, svgW=0, svgH=0;
 const maxDepth = 6;  // always render all depths; visibility controlled per-group by CSS
 
-const api = p => fetch(p).then(r=>r.json()).catch(()=>({}));
+const api = p => {
+  const sep = p.includes('?') ? '&' : '?';
+  // Only append ?project= when viewing from arch-repo (server sets __projectSource)
+  const proj = window.__projectSource === 'arch' ? window.__projectName : null;
+  const url = proj ? `${p}${sep}project=${encodeURIComponent(proj)}` : p;
+  return fetch(url).then(r=>r.json()).catch(()=>({}));
+};
 
 // ── transform ──────────────────────────────────────────────
 const MIN_SCALE = 0.02, MAX_SCALE = 30;
@@ -1927,5 +1933,12 @@ setupExport(() => selectedCls, () => classesData, renderFlatSVG);
 
 // ── init ──────────────────────────────────────────────────
 initTheme();
+
+// Show home button when viewing from arch-repo
+if (window.__projectSource === 'arch') {
+  const homeBtn = document.getElementById('home-btn');
+  if (homeBtn) homeBtn.style.display = '';
+}
+
 setupLiveReload();
 init();

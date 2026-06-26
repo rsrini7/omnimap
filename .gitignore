@@ -7,3 +7,4 @@ dist/
 .omm/*
 !.omm/config.yaml
 .DS_Store
+.kimchi/

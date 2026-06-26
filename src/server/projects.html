@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>oh-my-mermaid — Projects</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #000000;
+  --border: #333333;
+  --border-hi: #444;
+  --text: #ffffff;
+  --text-mid: #888888;
+  --text-dim: #555555;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', monospace;
+  --card-bg: #0d0d0d;
+}
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--text-mid);
+  font-size: 0.875rem;
+}
+
+.org-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  font-size: 0.8rem;
+  color: var(--text-mid);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.org-marker {
+  font-size: 0.7rem;
+  color: #818cf8;
+  font-family: var(--mono);
+}
+
+.org-name {
+  cursor: default;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: color .1s;
+}
+
+.org-name.active {
+  color: var(--text);
+  font-weight: 500;
+  background: rgba(255,255,255,0.05);
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color .15s, background .15s, transform .1s;
+}
+
+.project-card:hover {
+  border-color: var(--border-hi);
+  background: #111111;
+  transform: translateY(-1px);
+}
+
+.project-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', var(--font);
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.project-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-label {
+  color: var(--text-dim);
+}
+
+.meta-value {
+  color: var(--text-mid);
+  font-weight: 500;
+}
+
+.project-updated {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  padding: 40px;
+}
+
+.error {
+  text-align: center;
+  color: #f87171;
+  font-size: 0.875rem;
+  padding: 40px;
+}
+
+#org-switcher {
+  display: none;
+}
+
+#org-switcher.visible {
+  display: flex;
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>oh-my-mermaid</h1>
+  <p class="subtitle">Select a project to view</p>
+</div>
+
+<div id="org-switcher" class="org-switcher"></div>
+<div id="projects" class="projects-grid">
+  <p class="loading">Loading projects…</p>
+</div>
+
+<script>
+(async function() {
+  const projectsDiv = document.getElementById('projects');
+  const orgSwitcher = document.getElementById('org-switcher');
+
+  try {
+    const res = await fetch('/api/projects');
+    if (!res.ok) throw new Error('Failed to load projects');
+    const data = await res.json();
+
+    // Render org switcher if multiple orgs
+    if (data.orgs && data.orgs.length > 1) {
+      orgSwitcher.innerHTML = data.orgs.map(org =>
+        `<span class="org-name${org.isActive ? ' active' : ''}">${org.isActive ? '<span class="org-marker">✓</span> ' : ''}${org.name}</span>`
+      ).join('');
+      orgSwitcher.classList.add('visible');
+    }
+
+    if (!data.projects || data.projects.length === 0) {
+      projectsDiv.innerHTML = '<p class="loading">No projects found in this arch repo.</p>';
+      return;
+    }
+
+    projectsDiv.innerHTML = data.projects.map(p => {
+      const updated = p.updated ? relativeTime(p.updated) : 'never';
+      return `<a href="/?project=${encodeURIComponent(p.name)}" class="project-card">
+        <div class="project-name">${escHtml(p.name)}</div>
+        <div class="project-meta">
+          <span class="meta-item">
+            <span class="meta-label">perspectives</span>
+            <span class="meta-value">${p.perspectiveCount}</span>
+          </span>
+          <span class="meta-item">
+            <span class="meta-label">elements</span>
+            <span class="meta-value">${p.elementCount}</span>
+          </span>
+        </div>
+        <div class="project-updated">Updated ${updated}</div>
+      </a>`;
+    }).join('');
+  } catch (err) {
+    projectsDiv.innerHTML = `<p class="error">Could not load projects: ${escHtml(err.message)}</p>`;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function relativeTime(isoString) {
+    try {
+      const diff = Date.now() - new Date(isoString).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      if (days < 30) return `${days}d ago`;
+      return new Date(isoString).toLocaleDateString();
+    } catch {
+      return isoString;
+    }
+  }
+})();
+</script>
+</body>
+</html>

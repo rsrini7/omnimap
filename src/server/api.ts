@@ -1,5 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { listClasses, showClass, readMeta, readField, listNodes, showNode } from '../lib/store.js';
+import fs from 'node:fs';
+import * as nodePath from 'node:path';
+import { listClasses, showClass, readMeta, readField, listNodes, showNode, listProjects, getOmmDir, isArchRepo } from '../lib/store.js';
 import { diffMermaid } from '../lib/diff.js';
 import { validateDiagram } from '../lib/validate.js';
 import { getIncomingRefs, getOutgoingRefs, buildRefGraph } from '../lib/refs.js';
@@ -19,6 +21,7 @@ function numParam(v: string | null): number | undefined {
 export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
   const path = url.pathname;
+
 
   // GET /api/classes
   if (path === '/api/classes') {
@@ -67,7 +70,7 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
   // GET /api/class/:perspective/nodes
   const nodesMatch = path.match(/^\/api\/class\/([^/]+)\/nodes$/);
   if (nodesMatch) {
-    const children = listNodes(nodesMatch[1]);
+    const children = listNodes(nodesMatch[1], []);
     json(res, { perspective: nodesMatch[1], children });
     return true;
   }
@@ -79,6 +82,23 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
     const offset = numParam(url.searchParams.get('offset'));
     const minScore = numParam(url.searchParams.get('minScore'));
     json(res, searchOmm(q, { limit, offset, minScore }));
+    return true;
+  }
+
+  // GET /api/projects
+  if (path === '/api/projects') {
+    const projects = listProjects().map(name => {
+      const projectDir = nodePath.join(getOmmDir(), name);
+      let perspectiveCount = 0;
+      let elementCount = 0;
+      try {
+        const entries = fs.readdirSync(projectDir, { withFileTypes: true });
+        perspectiveCount = entries.filter(e => e.isDirectory() && !e.name.startsWith('.')).length;
+        elementCount = entries.length;
+      } catch {}
+      return { name, perspectiveCount, elementCount };
+    });
+    json(res, { isArchRepo: isArchRepo(), projects, orgs: [] });
     return true;
   }
 
