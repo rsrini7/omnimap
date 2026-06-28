@@ -155,7 +155,7 @@ export function handleRequest(req: McpRequest): McpResponse {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          serverInfo: { name: 'omm', version: '0.3.0' },
+          serverInfo: { name: 'omm', version: '0.1.0' },
         },
       };
     case 'tools/list':

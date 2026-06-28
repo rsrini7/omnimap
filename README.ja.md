@@ -1,4 +1,4 @@
-[English](./README.md) | [Türkçe](./README.tr.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md)
+[English](./README.md) | [Türkçe](./README.tr.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md) | [தமிழ்](./README.ta.md)
 
 > このドキュメントは英語のREADMEから翻訳されたものです。一部の表現が不自然な場合があります。
 
@@ -6,10 +6,10 @@
   <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
 </p>
 
-<h1 align="center">Oh-my-mermaid</h1>
+<h1 align="center">OmniMap</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/oh-my-mermaid"><img src="https://img.shields.io/npm/v/oh-my-mermaid" alt="npm version"/></a>
+  <a href="https://www.npmjs.com/package/omnimap"><img src="https://img.shields.io/npm/v/omnimap" alt="npm version"/></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
 </p>
 
@@ -26,7 +26,7 @@
 ターミナルに貼り付けてください：
 
 ```bash
-npm install -g oh-my-mermaid && omm setup
+npm install -g omnimap && omm setup
 ```
 
 AIコーディングツールを開き、`/omm-scan`スキルを実行：
@@ -161,8 +161,8 @@ omm login && omm link && omm push
 ## 開発 & 貢献
 
 ```bash
-git clone https://github.com/oh-my-mermaid/oh-my-mermaid.git
-cd oh-my-mermaid
+git clone https://github.com/omnimap/omnimap.git
+cd omnimap
 npm install && npm run build
 npm test
 ```

@@ -1,4 +1,4 @@
-[English](./README.md) | [Türkçe](./README.tr.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md)
+[English](./README.md) | [Türkçe](./README.tr.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md) | [தமிழ்](./README.ta.md)
 
 > 本文档翻译自英文 README。部分表述可能不够自然。
 
@@ -6,10 +6,10 @@
   <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
 </p>
 
-<h1 align="center">Oh-my-mermaid</h1>
+<h1 align="center">OmniMap</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/oh-my-mermaid"><img src="https://img.shields.io/npm/v/oh-my-mermaid" alt="npm version"/></a>
+  <a href="https://www.npmjs.com/package/omnimap"><img src="https://img.shields.io/npm/v/omnimap" alt="npm version"/></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
 </p>
 
@@ -26,7 +26,7 @@
 在终端中粘贴：
 
 ```bash
-npm install -g oh-my-mermaid && omm setup
+npm install -g omnimap && omm setup
 ```
 
 打开你的 AI 编码工具，使用 `/omm-scan` 技能：
@@ -162,8 +162,8 @@ omm login && omm link && omm push
 ## 开发 & 贡献
 
 ```bash
-git clone https://github.com/oh-my-mermaid/oh-my-mermaid.git
-cd oh-my-mermaid
+git clone https://github.com/omnimap/omnimap.git
+cd omnimap
 npm install && npm run build
 npm test
 ```

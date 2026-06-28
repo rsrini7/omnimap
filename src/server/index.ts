@@ -149,7 +149,7 @@ export function startServer(port: number, host: string = '127.0.0.1'): void {
 
   server.listen(port, host, () => {
     const displayHost = host === '0.0.0.0' ? 'your-ip' : 'localhost';
-    process.stderr.write(`oh-my-mermaid viewer running at http://${displayHost}:${port}\n`);
+    process.stderr.write(`omnimap viewer running at http://${displayHost}:${port}\n`);
     if (host === '0.0.0.0') {
       process.stderr.write(`  Shared on network — others can connect using your IP\n`);
     }

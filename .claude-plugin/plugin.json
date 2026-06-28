@@ -1,7 +1,7 @@
 {
   "name": "omnimap",
   "description": "Architecture visualization toolkit — supports Mermaid, D3, PlantUML, and more",
-  "version": "0.3.0",
+  "version": "0.1.0",
   "author": {
     "name": "rsrini7"
   },

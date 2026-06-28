@@ -6,5 +6,5 @@ export const pi = skillCopyPlatform(
   'pi',
   'pi (pi.dev)',
   'pi',
-  path.join(os.homedir(), '.pi', 'agent', 'skills', 'oh-my-mermaid'),
+  path.join(os.homedir(), '.pi', 'agent', 'skills', 'omnimap'),
 );

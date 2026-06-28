@@ -15,7 +15,7 @@ Use tags to categorize perspectives and nested elements for filtering, search, a
 ## Prerequisites
 
 ```bash
-command -v omm || npm install -g oh-my-mermaid
+command -v omm || npm install -g omnimap
 omm list
 ```
 

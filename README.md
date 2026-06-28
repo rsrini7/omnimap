@@ -1,4 +1,4 @@
-[English](./README.md) | [Türkçe](./README.tr.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md)
+[English](./README.md) | [Türkçe](./README.tr.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md) | [தமிழ்](./README.ta.md)
 
 <p align="center">
   <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
@@ -618,7 +618,7 @@ Issues and PRs welcome. Use [Conventional Commits](https://www.conventionalcommi
 
 ## Acknowledgments
 
-This project was originally forked from [oh-my-mermaid/oh-my-mermaid](https://github.com/oh-my-mermaid/oh-my-mermaid). We thank the original authors for their foundational work.
+This project was originally forked from [omnimap/omnimap](https://github.com/omnimap/omnimap). We thank the original authors for their foundational work.
 
 OmniMap has since evolved into an independent project with:
 - Multi-format diagram support (Mermaid, D3, PlantUML, and more)

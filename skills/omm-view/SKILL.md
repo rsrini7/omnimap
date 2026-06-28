@@ -15,11 +15,11 @@ Launch the interactive web viewer so the user can explore `.omm/` architecture d
 Ensure the `omm` CLI is available:
 
 ```bash
-command -v omm || npm install -g oh-my-mermaid
+command -v omm || npm install -g omnimap
 ```
 
 If the install command fails (permission denied), tell the user:
-"Please run `npm install -g oh-my-mermaid` in your terminal, then try again."
+"Please run `npm install -g omnimap` in your terminal, then try again."
 
 ## Steps
 

@@ -4,7 +4,7 @@ import os from 'node:os';
 import type { Platform } from './types.js';
 import { getSkillsSource, hasCommand } from './utils.js';
 
-const SKILLS_TARGET = path.join(os.homedir(), '.agents', 'skills', 'oh-my-mermaid');
+const SKILLS_TARGET = path.join(os.homedir(), '.agents', 'skills', 'omnimap');
 
 export const codex: Platform = {
   name: 'Codex',

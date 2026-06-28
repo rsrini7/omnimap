@@ -46,7 +46,7 @@ jobs:
           VERSION="${{ steps.version.outputs.new }}"
           TAG="v$VERSION"
 
-          if npm view "oh-my-mermaid@$VERSION" version >/dev/null 2>&1; then
+          if npm view "omnimap@$VERSION" version >/dev/null 2>&1; then
             echo "npm_published=true" >> "$GITHUB_OUTPUT"
           else
             echo "npm_published=false" >> "$GITHUB_OUTPUT"

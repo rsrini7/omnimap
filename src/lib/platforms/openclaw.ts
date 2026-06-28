@@ -4,7 +4,7 @@ import os from 'node:os';
 import type { Platform } from './types.js';
 import { getSkillsSource, hasCommand } from './utils.js';
 
-const SKILLS_TARGET = path.join(os.homedir(), '.openclaw', 'skills', 'oh-my-mermaid');
+const SKILLS_TARGET = path.join(os.homedir(), '.openclaw', 'skills', 'omnimap');
 
 export const openclaw: Platform = {
   name: 'OpenClaw',

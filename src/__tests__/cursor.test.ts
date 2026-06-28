@@ -39,7 +39,7 @@ describe('cursor platform version-aware setup detection', () => {
     fs.mkdirSync(path.join(tmpDir, '.cursor-plugin'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.cursor-plugin', 'plugin.json'),
-      JSON.stringify({ name: 'oh-my-mermaid', version: '0.1.4' }, null, 2) + '\n',
+      JSON.stringify({ name: 'omnimap', version: '0.1.4' }, null, 2) + '\n',
     );
 
     const { cursor } = await import('../lib/platforms/cursor.js');
@@ -51,7 +51,7 @@ describe('cursor platform version-aware setup detection', () => {
     fs.mkdirSync(path.join(tmpDir, '.cursor-plugin'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.cursor-plugin', 'plugin.json'),
-      JSON.stringify({ name: 'oh-my-mermaid', version: '0.1.5' }, null, 2) + '\n',
+      JSON.stringify({ name: 'omnimap', version: '0.1.5' }, null, 2) + '\n',
     );
 
     const { cursor } = await import('../lib/platforms/cursor.js');

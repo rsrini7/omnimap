@@ -46,7 +46,7 @@ describe('pi platform', () => {
   });
 
   it('isSetup() returns true when target exists', async () => {
-    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'oh-my-mermaid');
+    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'omnimap');
     fs.mkdirSync(path.dirname(targetDir), { recursive: true });
     fs.symlinkSync(skillsSource, targetDir, 'dir');
 
@@ -59,13 +59,13 @@ describe('pi platform', () => {
 
     await pi.setup();
 
-    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'oh-my-mermaid');
+    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'omnimap');
     expect(fs.existsSync(targetDir)).toBe(true);
     expect(fs.statSync(targetDir).isDirectory()).toBe(true);
   });
 
   it('setup() replaces existing target with fresh copy', async () => {
-    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'oh-my-mermaid');
+    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'omnimap');
     fs.mkdirSync(path.dirname(targetDir), { recursive: true });
     fs.symlinkSync(skillsSource, targetDir, 'dir');
 
@@ -84,7 +84,7 @@ describe('pi platform', () => {
   });
 
   it('teardown() removes target when it exists', async () => {
-    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'oh-my-mermaid');
+    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'omnimap');
     fs.mkdirSync(path.dirname(targetDir), { recursive: true });
     fs.symlinkSync(skillsSource, targetDir, 'dir');
 
@@ -95,7 +95,7 @@ describe('pi platform', () => {
   });
 
   it('teardown() is no-op when target missing', async () => {
-    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'oh-my-mermaid');
+    const targetDir = path.join(tmpDir, '.pi', 'agent', 'skills', 'omnimap');
 
     const { pi } = await import('../lib/platforms/pi.js');
     // Should not throw

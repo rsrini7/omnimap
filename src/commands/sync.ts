@@ -5,7 +5,7 @@ const HELP = `
 omm sync [--search <query>]
 
 Sync .omm/ flat files to SQLite database for full-text search.
-Requires better-sqlite3: npm install -g oh-my-mermaid (or install better-sqlite3 separately)
+Requires better-sqlite3: npm install -g omnimap (or install better-sqlite3 separately)
 
 Usage:
   omm sync                    Sync all elements to SQLite

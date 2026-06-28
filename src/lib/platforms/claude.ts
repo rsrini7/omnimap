@@ -74,10 +74,10 @@ function isInstalledDirect(): boolean {
 function getInstalledVersion(): string | null {
   const { ok, out } = run('claude plugin list 2>&1');
   if (!ok) return null;
-  // Match "Version: X.Y.Z" line after oh-my-mermaid
+  // Match "Version: X.Y.Z" line after omnimap
   const lines = out.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('oh-my-mermaid') && !lines[i].includes('oh-my-claudecode')) {
+    if (lines[i].includes('omnimap') && !lines[i].includes('oh-my-claudecode')) {
       // Look for Version line in next few lines
       for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
         const m = lines[j].match(/Version:\s*([\d.]+)/);
@@ -112,13 +112,13 @@ export const claude: Platform = {
     if (installed) {
       const current = getPackageVersion();
       process.stderr.write(`  Updating ${installed} -> ${current}...\n`);
-      run('claude plugin uninstall oh-my-mermaid 2>&1');
+      run('claude plugin uninstall omnimap 2>&1');
     }
 
     // Add marketplace (may already exist - ignore error)
-    run('claude plugin marketplace add oh-my-mermaid/oh-my-mermaid');
+    run('claude plugin marketplace add omnimap/omnimap');
 
-    const { ok, out } = run('claude plugin install oh-my-mermaid 2>&1');
+    const { ok, out } = run('claude plugin install omnimap 2>&1');
     if (ok) {
       process.stderr.write(`  ${out}\n`);
       return;
@@ -131,14 +131,14 @@ export const claude: Platform = {
       process.stderr.write(`  Skills installed to ~/.claude/skills/\n`);
     } else {
       process.stderr.write(`  Could not auto-install plugin. Run manually:\n`);
-      process.stderr.write(`    claude plugin marketplace add oh-my-mermaid/oh-my-mermaid\n`);
-      process.stderr.write(`    claude plugin install oh-my-mermaid\n`);
+      process.stderr.write(`    claude plugin marketplace add omnimap/omnimap\n`);
+      process.stderr.write(`    claude plugin install omnimap\n`);
     }
   },
 
   teardown(): void {
-    run('claude plugin uninstall oh-my-mermaid 2>&1');
-    run('claude plugin marketplace remove oh-my-mermaid 2>&1');
+    run('claude plugin uninstall omnimap 2>&1');
+    run('claude plugin marketplace remove omnimap 2>&1');
     removeSkillsDirect();
   },
 };

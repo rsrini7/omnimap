@@ -6,5 +6,5 @@ export const omp = skillCopyPlatform(
   'omp',
   'Oh my Pi (omp)',
   'omp',
-  path.join(os.homedir(), '.omp', 'agent', 'skills', 'oh-my-mermaid'),
+  path.join(os.homedir(), '.omp', 'agent', 'skills', 'omnimap'),
 );
