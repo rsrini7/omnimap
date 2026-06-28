@@ -67,16 +67,14 @@ export async function commandConfig(args: string[]): Promise<void> {
   if (key === 'plantuml-status') {
     const status = getPlantUMLStatus();
     process.stdout.write(`PlantUML Status:\n`);
+    process.stdout.write(`  Available:      ${status.available ? 'yes' : 'no'}\n`);
+    process.stdout.write(`  Native binary:  ${status.native ? 'yes (fast ~200ms)' : 'no'}\n`);
     process.stdout.write(`  Java installed: ${status.java ? 'yes' : 'no'}\n`);
-    process.stdout.write(`  JAR available:  ${status.available ? 'yes' : 'no'}\n`);
     if (status.path) {
-      process.stdout.write(`  JAR path:       ${status.path}\n`);
-    }
-    if (!status.java) {
-      process.stdout.write(`\nInstall Java: https://adoptium.net/\n`);
+      process.stdout.write(`  Path:           ${status.path}\n`);
     }
     if (!status.available) {
-      process.stdout.write(`Download JAR:  omm config plantuml-download\n`);
+      process.stdout.write(`\nDownload:  omm config plantuml-download\n`);
     }
     return;
   }

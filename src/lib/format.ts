@@ -92,7 +92,8 @@ export function isPlantUMLFormat(format: DiagramFormat): boolean {
 }
 
 /**
- * Render PlantUML source to SVG via Kroki or local jar.
+ * Render PlantUML source to SVG via server, local jar, or Kroki.
+ * Priority: server (fast) > local jar (cold start) > Kroki (network)
  */
 export async function renderPlantUML(
   source: string,
@@ -101,25 +102,27 @@ export async function renderPlantUML(
   const krokiUrl = options?.krokiUrl || 'https://kroki.io';
   let plantumlJar = options?.plantumlJar;
 
-  // Auto-detect jar if not provided
+  // Auto-detect binary/jar if not provided
   if (!plantumlJar) {
-    const { getConfiguredPlantUMLJar } = await import('./plantuml-setup.js');
-    plantumlJar = getConfiguredPlantUMLJar() || undefined;
+    const { getConfiguredPlantUML } = await import('./plantuml-setup.js');
+    plantumlJar = getConfiguredPlantUML() || undefined;
   }
 
-  // Try local jar first if configured
+  // 1. Native binary or local jar will be used below
+
+  // 2. Try local jar (cold start ~2s)
   if (plantumlJar && fs.existsSync(plantumlJar)) {
     return renderPlantUMLLocal(source, plantumlJar);
   }
 
-  // Use Kroki
+  // 3. Use Kroki (network)
   return renderPlantUMLKroki(source, krokiUrl);
 }
 
 /**
- * Render PlantUML using local plantuml.jar
+ * Render PlantUML using local binary or jar
  */
-async function renderPlantUMLLocal(source: string, jarPath: string): Promise<string> {
+async function renderPlantUMLLocal(source: string, plantumlPath: string): Promise<string> {
   const { execSync } = await import('node:child_process');
   const { writeFileSync, unlinkSync } = await import('node:fs');
   const os = await import('node:os');
@@ -129,11 +132,15 @@ async function renderPlantUMLLocal(source: string, jarPath: string): Promise<str
   const tmpFile = pathMod.join(tmpDir, `plantuml-${Date.now()}.puml`);
   const tmpSvg = tmpFile.replace('.puml', '.svg');
 
+  // Detect if native binary or JAR
+  const isNative = !plantumlPath.endsWith('.jar');
+  const cmd = isNative
+    ? `"${plantumlPath}" -tsvg -o "${tmpDir}" "${tmpFile}"`
+    : `java -jar "${plantumlPath}" -tsvg -o "${tmpDir}" "${tmpFile}"`;
+
   try {
     writeFileSync(tmpFile, source, 'utf-8');
-    execSync(`java -jar "${jarPath}" -tsvg -o "${tmpDir}" "${tmpFile}"`, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    execSync(cmd, { stdio: ['ignore', 'pipe', 'pipe'] });
     const svg = fs.readFileSync(tmpSvg, 'utf-8');
     return svg;
   } finally {

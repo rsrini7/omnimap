@@ -39,25 +39,33 @@ docker compose -f docker-compose.kroki.yml up -d
 omm config kroki-url http://localhost:8000
 ```
 
-### Option 3: Local plantuml.jar (Offline)
+### Option 3: Local PlantUML (Offline)
 
-**For air-gapped environments** — requires Java 11+.
+**For air-gapped environments** — native binary (no Java needed) or JAR.
 
 ```bash
-# Auto-download plantuml.jar to ~/.omnimap/
+# Auto-download native binary (~200ms render, 10x faster than JAR)
 omm config plantuml-download
 
 # Verify setup
 omm config plantuml-status
 ```
 
+**Supported platforms:**
+
+| OS | Architecture | Binary |
+|----|-------------|--------|
+| macOS | ARM64 (M1/M2) | `native-plantuml-macos-arm64` |
+| macOS | x86_64 (Intel) | `native-plantuml-macos-x86_64` |
+| Linux | x86_64 | `native-plantuml-linux-amd64` |
+| Linux | ARM64 | `native-plantuml-linux-arm64` |
+| Windows | x86_64 | `native-plantuml-windows-amd64` |
+
 **Manual download:**
 
-1. Download from https://plantuml.com/download
-2. Configure path:
-   ```bash
-   omm config plantuml-jar /path/to/plantuml.jar
-   ```
+1. Download from https://github.com/plantuml/plantuml/releases
+2. Place binary at `~/.omnimap/plantuml` (or `plantuml.exe` on Windows)
+3. Make executable: `chmod +x ~/.omnimap/plantuml`
 
 ## Configuration Commands
 

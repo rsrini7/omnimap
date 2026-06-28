@@ -381,21 +381,20 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
         return true;
       }
 
-      // Get config for Kroki URL and plantuml.jar
+      // Get config for Kroki URL
       const ommDir = getOmmDir();
       const configPath = nodePath.join(ommDir, 'config.yaml');
       let krokiUrl = 'https://kroki.io';
-      let plantumlJar: string | undefined;
 
       if (fs.existsSync(configPath)) {
         try {
           const config = YAML.parse(fs.readFileSync(configPath, 'utf-8'));
           krokiUrl = config?.kroki_url || krokiUrl;
-          plantumlJar = config?.plantuml_jar;
         } catch { /* ignore */ }
       }
 
-      const svg = await renderPlantUML(source, { krokiUrl, plantumlJar });
+      // renderPlantUML auto-detects plantuml.jar from config or ~/.omnimap/
+      const svg = await renderPlantUML(source, { krokiUrl });
       res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
       res.end(svg);
     } catch (err: any) {
