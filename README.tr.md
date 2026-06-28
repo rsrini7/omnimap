@@ -3,7 +3,7 @@
 > Bu belge İngilizce README'nin Türkçe çevirisidir. Bazı terimler bilinçli olarak İngilizce bırakılmıştır.
 
 <p align="center">
-  <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
+  <img src="./docs/omnimap-trans.png" alt="omm logo" width="80"/>
 </p>
 
 <h1 align="center">OmniMap</h1>

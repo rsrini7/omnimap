@@ -3,7 +3,7 @@
 > இந்த ஆவணம் ஆங்கில README-லிருந்து மொழிபெயர்க்கப்பட்டது. சில தொழில்நுட்பச் சொற்கள் இயந்திர மொழிபெயர்ப்பின் காரணமாக இயல்பாக இல்லாமல் இருக்கலாம்.
 
 <p align="center">
-  <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
+  <img src="./docs/omnimap-trans.png" alt="omm logo" width="80"/>
 </p>
 
 <h1 align="center">OmniMap</h1>

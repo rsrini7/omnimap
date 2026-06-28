@@ -3,7 +3,7 @@
 > 이 문서는 영어 README를 번역한 것입니다. 일부 표현이 부자연스러울 수 있습니다.
 
 <p align="center">
-  <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
+  <img src="./docs/omnimap-trans.png" alt="omm logo" width="80"/>
 </p>
 
 <h1 align="center">OmniMap</h1>
