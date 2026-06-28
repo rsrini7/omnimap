@@ -89,6 +89,18 @@ omm eval --explain <element> --json
 
 # Generate feedback report to share with maintainer
 omm feedback --include "your suggestion"
+
+# Check code ↔ docs coverage (find undocumented source files)
+omm treecode --stats
+
+# Detailed element inspection (score, fields, source tracking, links)
+omm inspect <element>
+
+# Check for structural drift (elements added/removed)
+omm signature --check
+
+# Reconcile .omm/ with source code (orphaned sources, broken refs)
+omm reconcile
 ```
 
 ## Step 2: Run Initial Evaluation

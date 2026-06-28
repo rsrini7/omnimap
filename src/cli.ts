@@ -44,8 +44,11 @@ import { commandWiki2Html } from './commands/wiki2html.js';
 import { commandWiki2Pdf } from './commands/wiki2pdf.js';
 import { commandInspect } from './commands/inspect.js';
 import { commandLinks } from './commands/links.js';
+import { commandTreecode } from './commands/treecode.js';
+import { commandSignature } from './commands/signature.js';
+import { commandReconcile } from './commands/reconcile.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'inspect', 'links', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'inspect', 'links', 'treecode', 'signature', 'reconcile', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -96,7 +99,11 @@ Usage:
   omm feedback [--format md|json] [--include <msg>]  Generate feedback report in .omm/
   omm tree --yaml [--compact]          Show element tree as YAML
   omm inspect <element> [--json]       Detailed element inspection
+  omm inspect <element> --links        Show @ref link resolution
   omm links <element> [--add|--remove] Manage external documentation links
+  omm treecode [dir] [--uncovered|--orphans|--stats]  Code ↔ docs coverage map
+  omm signature [--check|--update]     Structural signature for drift detection
+  omm reconcile [--fix|--non-interactive]  Sync reconciliation
 
 Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
@@ -363,6 +370,18 @@ async function main(): Promise<void> {
 
     case 'links':
       commandLinks(args.slice(1));
+      return;
+
+    case 'treecode':
+      commandTreecode(args.slice(1));
+      return;
+
+    case 'signature':
+      commandSignature(args.slice(1));
+      return;
+
+    case 'reconcile':
+      commandReconcile(args.slice(1));
       return;
 
     default:

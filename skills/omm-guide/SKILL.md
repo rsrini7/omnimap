@@ -71,6 +71,9 @@ For the current selected element `<E>`:
 1. Run:
    - `omm show <E>` (add `--project <name>` if arch repo)
    - `omm show <E> --type` to show element type (perspective/leaf/group)
+   - `omm inspect <E>` for detailed view (score, field coverage, source tracking)
+   - `omm inspect <E> --links` to show @ref link resolution (cycles, broken refs)
+   - `omm links <E>` to show external documentation links
    - `omm refs <E>` to see incoming references
    - `omm refs --reverse <E>` to see outgoing references
    - `omm diagram-refs <E>` to see resolved @refs and pass/fail
@@ -81,6 +84,8 @@ For the current selected element `<E>`:
    - Constraints (rules)
    - Concerns (risks)
    - TODO (next improvements)
+   - External links (if any)
+   - Link resolution status (if cycles or broken refs)
 3. If there are references:
    - `omm refs <E>` and `omm refs --reverse <E>`
    - summarize incoming/outgoing relationships in plain language

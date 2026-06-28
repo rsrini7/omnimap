@@ -97,11 +97,16 @@ omm wiki                       # Taranabilir markdown wiki oluştur (varsayılan
 omm affected [files...] [--staged] # Değişikliklerden etkilenen test dosyalarını bul
 omm mcp [--port <port>]            # AI ajanları için MCP sunucusu başlat
 omm watch [dir]                    # Dosya değişikliklerinde omm analyze otomatik çalıştır
-omm merge <source>                 # Başka bir .omm/’ü mevcut olana birleştir
+omm merge <source>                 # Başka bir .omm/'ü mevcut olana birleştir
 omm view --share                   # Ağ paylaşımı görüntüleyici aç
+omm treecode                       # Kaynak kod ↔ .omm/ kapsam haritası
+omm signature --check              # Yapısal imza sapma tespiti
+omm reconcile                      # .omm/ ile kaynak kod senkronizasyonu
+omm links <element>                # Harici belge bağlantılarını yönet
+omm inspect <element>              # Detaylı öğe incelemesi
 ```
 
-Tüm komutları görmek için `omm help` çalıştırın.
+Tüm komutları görmek için `omm help` çalıştırın。
 
 ## Yetenekler
 

@@ -99,6 +99,11 @@ omm mcp [--port <port>]            # AI 에이전트용 MCP 서버 시작
 omm watch [dir]                    # 파일 변경 시 omm analyze 자동 실행
 omm merge <source>                 # 다른 .omm/을 현재로 병합
 omm view --share                   # 네트워크 공유 뷰어 열기
+omm treecode                       # 소스 코드 ↔ .omm/ 커버리지 맵
+omm signature --check              # 구조적 시그니처 드리프트 검사
+omm reconcile                      # .omm/과 소스 코드 동기화
+omm links <element>                # 외부 문서 링크 관리
+omm inspect <element>              # 상세 요소 검사
 ```
 
 전체 명령어는 `omm help`를 참고하세요.

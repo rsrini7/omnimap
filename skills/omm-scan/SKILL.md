@@ -56,6 +56,25 @@ Use this as the **deterministic anchor**. Then read key files for semantic conte
 If tree-sitter is not installed (`omm analyze` shows "parser not available"), fall back to
 Glob and Read to understand the project structure manually.
 
+## Step 1.5: Check existing coverage and drift
+
+Before scanning, check the current state of the documentation:
+
+```bash
+# See which source files are covered by .omm/ elements
+omm treecode --stats
+
+# Check if .omm/ structure has drifted since last update
+omm signature --check
+
+# Full reconciliation report (orphaned sources, missing descriptions, broken refs)
+omm reconcile
+```
+
+If `omm signature --check` fails, the .omm/ tree structure has changed (elements added/removed). Run `omm signature --update` after the scan to store the new signature.
+
+If `omm reconcile` reports orphaned source files, run `omm reconcile --fix` to clean them up before scanning.
+
 ## Step 1.5: Plan an incremental update (when updating an existing scan)
 
 If `.omm/` already exists, do not re-scan everything. Use `omm incremental` to find what changed:
@@ -420,6 +439,9 @@ Report what was created/updated and the final quality score from the improvement
 - `omm watch` to auto-rebuild on file changes
 - `omm affected --staged` to find test files impacted by recent changes
 - `omm analyze --routes` to extract framework routes (Express, Django, Spring, etc.)
+- `omm treecode --stats` to check code ↔ docs coverage
+- `omm signature --update` to store the structural signature
+- `omm links <element> --add <url>` to add external documentation links
 
 ## Step 7: Suggest Feedback
 

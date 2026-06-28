@@ -27,6 +27,7 @@ import {
 } from '../lib/store.js';
 import { evaluateProject } from '../lib/eval.js';
 import { planIncrementalUpdate } from '../lib/incremental.js';
+import { resolveLinksForElement, formatResolutions, type LinkResolution } from '../lib/link-resolver.js';
 import type { ClassData, ClassMeta, Field, LinkEntry } from '../types.js';
 import { VALID_FIELDS } from '../types.js';
 
@@ -39,10 +40,12 @@ source tracking status, external links, and children summary.
 Usage:
   omm inspect <element>           Full inspection
   omm inspect <element> --json    JSON output
+  omm inspect <element> --links   Show @ref link resolution (cycles, broken)
   omm inspect <element> --help    Show this help
 
 Examples:
   omm inspect auth-service
+  omm inspect auth-service --links
   omm inspect data-flow/ingestion --json
 `;
 
@@ -77,6 +80,7 @@ export interface InspectReport {
   scoreBreakdown?: Record<string, { earned: number; max: number }>;
   sourceTracking: SourceTracking;
   links: LinkEntry[];
+  linkResolutions?: LinkResolution[];
   children: ChildInfo[];
 }
 
@@ -331,6 +335,7 @@ export function commandInspect(args: string[], cwd?: string): void {
 
   const element = args.find(a => !a.startsWith('--'));
   const json = args.includes('--json');
+  const showLinks = args.includes('--links');
   const help = args.includes('--help') || args.includes('-h');
 
   if (help) {
@@ -352,9 +357,22 @@ export function commandInspect(args: string[], cwd?: string): void {
 
   const report = buildInspectReport(element, cwd);
 
+  // Add link resolutions if --links flag
+  if (showLinks) {
+    report.linkResolutions = resolveLinksForElement(element, cwd);
+  }
+
   if (json) {
     process.stdout.write(JSON.stringify(report, null, 2) + '\n');
   } else {
     printReport(report);
+    if (showLinks && report.linkResolutions && report.linkResolutions.length > 0) {
+      process.stdout.write('\nLink resolution (@refs in diagram):\n');
+      for (const line of formatResolutions(report.linkResolutions)) {
+        process.stdout.write(line + '\n');
+      }
+    } else if (showLinks) {
+      process.stdout.write('\nLink resolution: (no @refs found)\n');
+    }
   }
 }
