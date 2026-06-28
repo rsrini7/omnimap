@@ -42,8 +42,10 @@ import { commandMcp } from './commands/mcp.js';
 import { commandWatch } from './commands/watch.js';
 import { commandWiki2Html } from './commands/wiki2html.js';
 import { commandWiki2Pdf } from './commands/wiki2pdf.js';
+import { commandInspect } from './commands/inspect.js';
+import { commandLinks } from './commands/links.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'inspect', 'links', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -92,6 +94,9 @@ Usage:
   omm ref-syntax                    Document the @class-name convention
   omm diagram-refs <path> [--json]  List @refs in a diagram with pass/fail status
   omm feedback [--format md|json] [--include <msg>]  Generate feedback report in .omm/
+  omm tree --yaml [--compact]          Show element tree as YAML
+  omm inspect <element> [--json]       Detailed element inspection
+  omm links <element> [--add|--remove] Manage external documentation links
 
 Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
@@ -158,9 +163,14 @@ async function main(): Promise<void> {
       commandList(args.slice(1));
       return;
 
-    case 'tree':
-      commandTree(args[1]);
+    case 'tree': {
+      // First arg might be a path or a flag
+      const treeArg = args[1];
+      const treePath = treeArg && !treeArg.startsWith('--') ? treeArg : undefined;
+      const treeArgs = treePath ? args.slice(2) : args.slice(1);
+      commandTree(treePath, treeArgs);
       return;
+    }
 
     case 'config':
       commandConfig(args.slice(1));
@@ -345,6 +355,14 @@ async function main(): Promise<void> {
 
     case 'watch':
       await commandWatch(args.slice(1));
+      return;
+
+    case 'inspect':
+      commandInspect(args.slice(1));
+      return;
+
+    case 'links':
+      commandLinks(args.slice(1));
       return;
 
     default:

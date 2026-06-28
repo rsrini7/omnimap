@@ -13,6 +13,24 @@ export const FIELD_FILES: Record<Field, string> = {
 
 export type NodeKind = 'perspective' | 'nested-class';
 
+/**
+ * External documentation link entry.
+ *
+ * Stored in meta.yaml under `links` to track references to external docs,
+ * ADRs, wikis, READMEs, etc. Separate from diagram @refs which represent
+ * architectural dependencies.
+ */
+export interface LinkEntry {
+  /** URL or relative path to the linked resource. */
+  url: string;
+  /** Type of link: local file, external URL, or source file. */
+  type: 'local' | 'external' | 'source';
+  /** Optional human-readable label for the link. */
+  label?: string;
+  /** ISO date when the link was added. */
+  added?: string;
+}
+
 export interface ClassMeta {
   created: string;
   updated: string;
@@ -42,6 +60,14 @@ export interface ClassMeta {
     git_commit?: string;
     at?: string;
   };
+
+  /**
+   * External documentation links.
+   *
+   * Stored per element to track references to external docs, ADRs, wikis,
+   * READMEs, etc. Managed via `omm links` command.
+   */
+  links?: LinkEntry[];
 }
 
 export interface ClassData {
@@ -60,6 +86,10 @@ export interface OmmConfig {
   version: string;
   theme?: string;
   language?: string;
+  /** Structural signature of .omm/ element tree (SHA-256 hash of element paths). */
+  signature?: string;
+  /** ISO date when the signature was last computed and stored. */
+  signature_updated?: string;
 }
 
 export interface DiffResult {
