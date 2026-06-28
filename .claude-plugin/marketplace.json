@@ -1,16 +1,16 @@
 {
-  "name": "oh-my-mermaid",
+  "name": "omnimap",
   "owner": {
-    "name": "oh-my-mermaid"
+    "name": "rsrini7"
   },
   "plugins": [
     {
-      "name": "oh-my-mermaid",
-      "description": "Turn complex codebases into clear, navigable architecture diagrams with Mermaid",
+      "name": "omnimap",
+      "description": "Architecture visualization toolkit — supports Mermaid, D3, PlantUML, and more",
       "version": "0.3.0",
       "source": "./",
       "category": "development",
-      "homepage": "https://github.com/oh-my-mermaid/oh-my-mermaid"
+      "homepage": "https://github.com/rsrini7/omnimap"
     }
   ]
 }

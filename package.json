@@ -1,7 +1,7 @@
 {
-  "name": "oh-my-mermaid",
+  "name": "omnimap",
   "version": "0.3.0",
-  "description": "Architecture mirror for vibe coding — CLI + Claude Code skills",
+  "description": "Architecture visualization toolkit — supports Mermaid, D3, PlantUML, and more",
   "type": "module",
   "bin": {
     "omm": "dist/cli.js"
@@ -14,20 +14,22 @@
     ".claude-plugin/",
     "LICENSE"
   ],
-  "homepage": "https://github.com/oh-my-mermaid/oh-my-mermaid",
+  "homepage": "https://github.com/rsrini7/omnimap",
   "bugs": {
-    "url": "https://github.com/oh-my-mermaid/oh-my-mermaid/issues"
+    "url": "https://github.com/rsrini7/omnimap/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oh-my-mermaid/oh-my-mermaid.git"
+    "url": "git+https://github.com/rsrini7/omnimap.git"
   },
   "keywords": [
-    "mermaid",
     "architecture",
     "diagram",
-    "claude-code",
-    "vibe-coding"
+    "mermaid",
+    "d3",
+    "visualization",
+    "omnimap",
+    "claude-code"
   ],
   "engines": {
     "node": ">=18"

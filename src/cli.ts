@@ -52,7 +52,7 @@ const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 's
 
 function printHelp(): void {
   const help = `
-oh-my-mermaid (omm) — Architecture mirror for vibe coding
+OmniMap (omm) — Architecture visualization toolkit
 
 Usage:
   omm init [--template <name>]      Initialize .omm/ directory or scaffold from template

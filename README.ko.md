@@ -6,17 +6,18 @@
   <img src="./docs/logo.jpg" alt="omm logo" width="80"/>
 </p>
 
-<h1 align="center">Oh-my-mermaid</h1>
+<h1 align="center">OmniMap</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/oh-my-mermaid"><img src="https://img.shields.io/npm/v/oh-my-mermaid" alt="npm version"/></a>
+  <a href="https://www.npmjs.com/package/omnimap"><img src="https://img.shields.io/npm/v/omnimap" alt="npm version"/></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
 </p>
 
 <p align="center">
   AI는 몇 초 만에 코드를 작성합니다. 사람이 이해하는 데는 몇 시간이 걸립니다.<br/>
   이해를 건너뛰면, 코드베이스는 블랙박스가 됩니다 — 본인에게조차.<br/><br/>
-  <strong>omm이 그 격차를 해소합니다 — AI가 생성한, 사람을 위한 아키텍처 문서.</strong>
+  <strong>omm이 그 격차를 해소합니다 — AI가 생성한, 사람을 위한 아키텍처 문서.</strong><br/>
+  <em>Mermaid, D3, PlantUML 등 다양한 다이어그램 형식을 지원합니다.</em>
 </p>
 
 ---
@@ -26,7 +27,7 @@
 터미널에 붙여넣기:
 
 ```bash
-npm install -g oh-my-mermaid && omm setup
+npm install -g omnimap && omm setup
 ```
 
 AI 코딩 도구를 열고 `/omm-scan` 스킬을 실행:

@@ -125,8 +125,8 @@ Project readme.
     ]);
 
     const indexHtml = fs.readFileSync(path.join(tmpOutDir, 'index.html'), 'utf-8');
-    expect(indexHtml).toContain('<title>Oh My Mermaid - Home Page</title>');
-    expect(indexHtml).toContain('<h2>Oh My Mermaid</h2>');
+    expect(indexHtml).toContain('<title>Omnimap - Home Page</title>');
+    expect(indexHtml).toContain('<h2>Omnimap</h2>');
     expect(indexHtml).toContain('href="index.html" class="sidebar-title-link"');
   });
 });
