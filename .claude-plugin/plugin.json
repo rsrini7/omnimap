@@ -1,17 +1,19 @@
 {
-  "name": "oh-my-mermaid",
-  "description": "Turn complex codebases into clear, navigable architecture diagrams",
+  "name": "omnimap",
+  "description": "Architecture visualization toolkit — supports Mermaid, D3, PlantUML, and more",
   "version": "0.3.0",
   "author": {
-    "name": "oh-my-mermaid"
+    "name": "rsrini7"
   },
-  "homepage": "https://github.com/oh-my-mermaid/oh-my-mermaid",
-  "repository": "https://github.com/oh-my-mermaid/oh-my-mermaid",
+  "homepage": "https://github.com/rsrini7/omnimap",
+  "repository": "https://github.com/rsrini7/omnimap",
   "license": "MIT",
   "keywords": [
     "architecture",
+    "diagram",
     "mermaid",
-    "diagrams",
-    "codebase-visualization"
+    "d3",
+    "visualization",
+    "omnimap"
   ]
 }
