@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadElementIndex, type ElementInfo } from './incremental.js';
 import { getOmmDir } from './store.js';
+import { parseGitignore, shouldIgnore, type GitignoreRules } from './gitignore.js';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -44,43 +45,42 @@ export interface OrphanedElement {
 
 // ── Constants ──────────────────────────────────────────────────────
 
-const IGNORED_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.nuxt',
-  '__pycache__', '.pytest_cache', '.venv', 'venv', 'env',
-  'target', 'bin', 'obj', '.gradle', '.maven',
-  '.omm', '.understand-anything', 'graphify-out',
-  '.wiki', '.fingerprint-cache',
-]);
-
 // ── Source tree walker ─────────────────────────────────────────────
 
 /**
  * Walk source tree and return all file paths relative to rootDir.
- * Respects IGNORED_DIRS and dot-directories.
+ * Respects .gitignore, ALWAYS_IGNORED_DIRS, and dot-directories.
  */
 export function walkSourceTree(dir: string, rootDir: string): string[] {
   const results: string[] = [];
+  const gitignorePath = path.join(rootDir, '.gitignore');
+  const gitignoreRules = parseGitignore(gitignorePath);
 
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return results; // permission error or similar
-  }
+  function walk(currentDir: string): void {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    } catch {
+      return; // permission error or similar
+    }
 
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    const relPath = path.relative(rootDir, fullPath).replace(/\\/g, '/');
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      const relPath = path.relative(rootDir, fullPath).replace(/\\/g, '/');
 
-    if (entry.isDirectory()) {
-      if (!IGNORED_DIRS.has(entry.name) && !entry.name.startsWith('.')) {
-        results.push(...walkSourceTree(fullPath, rootDir));
+      if (entry.isDirectory()) {
+        if (!shouldIgnore(relPath, true, entry.name, gitignoreRules)) {
+          walk(fullPath);
+        }
+      } else if (entry.isFile()) {
+        if (!shouldIgnore(relPath, false, entry.name, gitignoreRules)) {
+          results.push(relPath);
+        }
       }
-    } else if (entry.isFile()) {
-      results.push(relPath);
     }
   }
 
+  walk(dir);
   return results;
 }
 
