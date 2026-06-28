@@ -1019,7 +1019,7 @@ window.__openSb = function(cls) {
 
 const floatControls = document.querySelector('.float-controls');
 
-function openSidebar(cls, origCls) {
+async function openSidebar(cls, origCls) {
   if (!origCls) origCls = cls;
   const ownData = classesData[origCls] || {};
   const diagramData = classesData[cls] || {};
