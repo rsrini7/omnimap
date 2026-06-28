@@ -1,14 +1,29 @@
 import fs from 'node:fs';
+import YAML from 'yaml';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { DIAGRAM_EXTENSIONS, FORMAT_DEFAULT_FILES, type DiagramFormat } from '../types.js';
 
 /**
  * Detect diagram format from files in a directory.
- * Priority: explicit extensions > default mermaid.
+ * Priority: meta.yaml > explicit extensions > default mermaid.
  */
 export function detectDiagramFormat(dir: string): { format: DiagramFormat; file: string | null } {
-  // Check for format-specific diagram files
+  // 1. Check meta.yaml for explicit format
+  const metaPath = path.join(dir, 'meta.yaml');
+  if (fs.existsSync(metaPath)) {
+    try {
+      const meta = YAML.parse(fs.readFileSync(metaPath, 'utf-8'));
+      if (meta?.diagram_format && (meta.diagram_format === 'mermaid' || meta.diagram_format === 'plantuml')) {
+        const expectedFile = FORMAT_DEFAULT_FILES[meta.diagram_format as DiagramFormat];
+        if (fs.existsSync(path.join(dir, expectedFile))) {
+          return { format: meta.diagram_format, file: expectedFile };
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 2. Check for format-specific diagram files
   for (const [ext, format] of Object.entries(DIAGRAM_EXTENSIONS)) {
     const fileName = `diagram${ext}`;
     if (fs.existsSync(path.join(dir, fileName))) {
@@ -16,9 +31,10 @@ export function detectDiagramFormat(dir: string): { format: DiagramFormat; file:
     }
   }
 
-  // Default to mermaid
+  // 3. Default to mermaid
   return { format: 'mermaid', file: null };
 }
+
 
 /**
  * Resolve the diagram file path for an element directory.

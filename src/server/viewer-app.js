@@ -1070,7 +1070,7 @@ async function openSidebar(cls, origCls) {
   // Render diagram SVG in sidebar with code toggle
   sbDiagram.innerHTML = '';
   if (data.diagram) {
-    const diagramFormat = data.meta?.diagram_format || 'mermaid';
+    const diagramFormat = data.format || data.meta?.diagram_format || 'mermaid';
     const formatBadge = diagramFormat === 'plantuml' ? '<span class="sb-format-badge plantuml">PlantUML</span>' : '<span class="sb-format-badge mermaid">Mermaid</span>';
     
     const svg = diagramFormat === 'plantuml'

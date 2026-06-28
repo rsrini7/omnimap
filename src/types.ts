@@ -93,6 +93,7 @@ export interface ClassData {
   name: string;
   description?: string;
   diagram?: string;
+  format?: DiagramFormat;
   constraint?: string;
   concern?: string;
   context?: string;
