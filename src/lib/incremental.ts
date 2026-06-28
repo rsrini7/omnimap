@@ -254,6 +254,8 @@ export function loadElementIndex(ommDir: string): ElementInfo[] {
     }
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       if (e.isDirectory()) {
+        // Skip directories starting with . (e.g., .wiki, .fingerprint-cache)
+        if (e.name.startsWith('.')) continue;
         walk(path.join(dir, e.name), relPath ? `${relPath}/${e.name}` : e.name);
       }
     }

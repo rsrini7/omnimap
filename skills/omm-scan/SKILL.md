@@ -457,16 +457,36 @@ Report what was created/updated and the final quality score from the improvement
 - Coverage stats from `omm treecode --stats`
 - Any remaining reconciliation issues
 
-Suggest:
-- `omm view` to visualize the documentation
-- `omm wiki` to generate a crawlable markdown wiki for sharing with the team
-- `omm tour --limit 20` to generate a guided reading order for onboarding
-- `omm sync` to sync to SQLite for full-text search
-- `omm watch` to auto-rebuild on file changes
-- `omm affected --staged` to find test files impacted by recent changes
-- `omm analyze --routes` to extract framework routes (Express, Django, Spring, etc.)
-- `omm links <element> --add <url>` to add external documentation links
-- `omm hooks install --all` to install git hooks for auto-analysis and signature checks
+### Next Steps
+
+Present these to the user as a numbered list:
+
+```
+### Next Steps
+
+**Visualization & Navigation:**
+1. `omm view` — visualize the architecture in your browser
+2. `omm wiki` — generate a crawlable markdown wiki for sharing
+3. `omm tour --limit 20` — guided reading order for onboarding
+
+**Code ↔ Docs Coverage:**
+4. `omm treecode --stats` — check which source files are covered by .omm/ elements
+5. `omm treecode --uncovered` — find undocumented source files
+6. `omm inspect <element>` — detailed element inspection (score, fields, links)
+
+**Quality & Maintenance:**
+7. `omm signature --update` — store structural signature for drift detection
+8. `omm reconcile` — check for orphaned sources, broken refs, missing descriptions
+9. `omm eval` — run quality evaluation (target: 80+)
+
+**External References:**
+10. `omm links <element> --add <url>` — add links to external docs, ADRs, wikis
+
+**Automation:**
+11. `omm hooks install --all` — install git hooks (auto-analysis + signature check)
+12. `omm watch` — auto-rebuild on file changes
+13. `omm sync` — sync to SQLite for full-text search
+```
 
 ## Step 8: Suggest Feedback
 

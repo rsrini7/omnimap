@@ -258,7 +258,13 @@ export function computeCoverageStats(
   entries: CoverageEntry[],
   ommDir: string
 ): CoverageStats {
-  const elements = loadElementIndex(ommDir);
+  // Use consistent element counting: only count directories with meta.yaml
+  // that are actual elements (not .wiki, .fingerprint-cache, etc.)
+  const elements = loadElementIndex(ommDir).filter(el => {
+    // Filter out generated directories
+    const parts = el.elementPath.split('/');
+    return !parts.some(p => p.startsWith('.'));
+  });
   const coveredPaths = new Set(entries.filter(e => e.elementPath).map(e => e.elementPath));
 
   const trackingMethod = { sourceFiles: 0, sourceGlobs: 0, heuristic: 0 };

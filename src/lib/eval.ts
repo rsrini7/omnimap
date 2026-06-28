@@ -48,6 +48,9 @@ export interface EvalReport {
     leaves: number;
     groups: number;
     overallScore: number;
+    rawScore: number;
+    penaltyPoints: number;
+    penaltyBreakdown: string[];
     fieldCoverage: number;
     diagramCoverage: number;
     flowCoverage: number;
@@ -337,6 +340,47 @@ export function evaluateProject(cwd?: string): EvalReport {
     suggestions.push('Run `omm signature --update` to store the current structural signature');
   }
 
+  // Calculate penalty deductions for project-level issues
+  let penaltyPoints = 0;
+  const penaltyBreakdown: string[] = [];
+
+  // Undocumented diagram nodes penalty: 1 point per 10 undocumented nodes (max 10 points)
+  if (undocumentedDiagramNodes.length > 0) {
+    const undocPenalty = Math.min(10, Math.ceil(undocumentedDiagramNodes.length / 10));
+    penaltyPoints += undocPenalty;
+    penaltyBreakdown.push(`Undocumented diagram nodes: -${undocPenalty} (${undocumentedDiagramNodes.length} nodes)`);
+  }
+
+  // Broken @refs penalty: 2 points per broken ref (max 10 points)
+  try {
+    const ommDir = getOmmDir(cwd);
+    const reconcileReport = buildReconcileReport(ommDir, cwd);
+    if (reconcileReport.brokenRefs.length > 0) {
+      const refPenalty = Math.min(10, reconcileReport.brokenRefs.length * 2);
+      penaltyPoints += refPenalty;
+      penaltyBreakdown.push(`Broken @refs: -${refPenalty} (${reconcileReport.brokenRefs.length} refs)`);
+    }
+    // Orphaned sources penalty: 1 point per 5 orphaned (max 5 points)
+    if (reconcileReport.orphanedSources.length > 0) {
+      const orphanPenalty = Math.min(5, Math.ceil(reconcileReport.orphanedSources.length / 5));
+      penaltyPoints += orphanPenalty;
+      penaltyBreakdown.push(`Orphaned source files: -${orphanPenalty} (${reconcileReport.orphanedSources.length} files)`);
+    }
+  } catch {
+    // reconciliation check failed, skip
+  }
+
+  // Stale signature penalty: 2 points
+  if (signatureStale) {
+    penaltyPoints += 2;
+    penaltyBreakdown.push('Stale signature: -2');
+  }
+
+  // Add penalty info to suggestions if any
+  if (penaltyBreakdown.length > 0) {
+    suggestions.unshift(`Score penalties: ${penaltyBreakdown.join(', ')}`);
+  }
+
   // Summary
   const totalElements = allElements.length;
   const perspCount = allElements.filter(e => e.type === 'perspective').length;
@@ -354,9 +398,10 @@ export function evaluateProject(cwd?: string): EvalReport {
   const refIntegrity = totalElements > 0
     ? allElements.filter(e => e.refCount > 0 || e.isRefTarget).length / totalElements
     : 0;
-  const overallScore = totalElements > 0
+  const rawScore = totalElements > 0
     ? Math.round(allElements.reduce((sum, e) => sum + e.score, 0) / totalElements)
     : 0;
+  const overallScore = Math.max(0, rawScore - penaltyPoints);
 
   return {
     summary: {
@@ -365,6 +410,9 @@ export function evaluateProject(cwd?: string): EvalReport {
       leaves: leafCount,
       groups: groupCount,
       overallScore,
+      rawScore,
+      penaltyPoints,
+      penaltyBreakdown,
       fieldCoverage: Math.round(fieldCoverage * 100),
       diagramCoverage: Math.round(diagramCoverage * 100),
       flowCoverage: Math.round(flowCoverage * 100),

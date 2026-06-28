@@ -384,15 +384,37 @@ Issues: 0 errors, 0 warnings, 12 info
 - **Use `omm reconcile`** to check for orphaned sources and broken refs
 - **Run `omm signature --update`** after completing all improvements
 
-## Step 7: Suggest Feedback
+## Step 7: Suggest Feedback & Next Steps
 
-At the end of the iteration, if the user encountered:
-- Confusing eval output or scoring that doesn't match expectations
-- Missing CLI options that should exist
-- A workflow that felt harder than it should be
-- A successful pattern that should be documented
+At the end of the iteration, present these next steps to the user:
 
-Tell the user:
+```
+### Next Steps
+
+**Visualization & Navigation:**
+1. `omm view` — visualize the architecture in your browser
+2. `omm wiki` — generate a crawlable markdown wiki for sharing
+3. `omm tour --limit 20` — guided reading order for onboarding
+
+**Code ↔ Docs Coverage:**
+4. `omm treecode --stats` — check which source files are covered by .omm/ elements
+5. `omm treecode --uncovered` — find undocumented source files
+6. `omm inspect <element>` — detailed element inspection (score, fields, links)
+
+**Quality & Maintenance:**
+7. `omm signature --update` — store structural signature for drift detection
+8. `omm reconcile` — check for orphaned sources, broken refs, missing descriptions
+
+**External References:**
+9. `omm links <element> --add <url>` — add links to external docs, ADRs, wikis
+
+**Automation:**
+10. `omm hooks install --all` — install git hooks (auto-analysis + signature check)
+11. `omm watch` — auto-rebuild on file changes
+12. `omm sync` — sync to SQLite for full-text search
+```
+
+Then suggest feedback:
 
 > "If you have feedback on the eval system (issues, missing features, scoring questions), run `/omm-feedback` to generate a report in `.omm/feedback.md`. The file will be created with the current eval state and your message — share it with the omm maintainer to improve the tool."
 
@@ -406,7 +428,7 @@ Tell the user:
 
 `/omm-scan` **automatically invokes `/omm-eval`** after initial generation. The loop runs until:
 - Target score (default 80) is reached
-- Max iterations (default 5) is hit
+- Max iterations (default 10) is hit
 - No improvement in 2 consecutive iterations
 
 ### Manual chain
