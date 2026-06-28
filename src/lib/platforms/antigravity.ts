@@ -4,14 +4,14 @@ import os from 'node:os';
 import type { Platform } from './types.js';
 import { getSkillsSource, hasCommand } from './utils.js';
 
-const SKILLS_TARGET = path.join(os.homedir(), '.gemini', 'antigravity', 'skills', 'omnimap');
+const SKILLS_TARGET = path.join(os.homedir(), '.gemini', 'config', 'skills', 'omnimap');
 
 export const antigravity: Platform = {
   name: 'Antigravity',
   id: 'antigravity',
 
   detect(): boolean {
-    return hasCommand('antigravity');
+    return hasCommand('agy') || fs.existsSync(path.join(os.homedir(), '.gemini', 'config'));
   },
 
   isSetup(): boolean {

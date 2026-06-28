@@ -85,6 +85,7 @@ omm search <query>                 # கூறுகள் முழுவது
 omm tour [dir] [--limit n]         # வழிகாட்டப்பட்ட சுற்றுப்பயணம்
 omm wiki                           # எளிதாக வலம்வரக்கூடிய markdown விக்கி
 omm treecode                       # குறியீடு ↔ .omm/ கவரேஜ் மேப்
+omm mcp [--port <port>]             # AI ஏஜென்ட்களுக்கான MCP சேவையகம்
 ```
 
 முழு கட்டளை பட்டியலுக்கு `omm help` இயக்கவும்.

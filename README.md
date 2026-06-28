@@ -318,6 +318,24 @@ omm tour [dir] [--limit n]             Guided tour (read in dependency order)
 omm wiki [--out dir]                    Generate crawlable markdown wiki (default: .omm/.wiki/)
 ```
 
+### MCP Server (AI Agent Integration)
+
+Start an MCP server for AI agents (Claude, Cursor, etc.) to query architecture data:
+
+```bash
+omm mcp                    # Start stdio MCP server
+omm mcp --port 8080        # Start HTTP MCP server
+```
+
+| Tool | Description |
+|------|-------------|
+| `omm_analyze` | Structural analysis (dependency graph, god nodes, fitness score) |
+| `omm_search` | Fuzzy search across elements |
+| `omm_tour` | Generate guided reading tour |
+| `omm_impact` | Change impact analysis for a file |
+
+See [MCP Setup Guide](docs/mcp-setup.md) for Claude Desktop, Cursor, and HTTP integration.
+
 ### Collaboration
 
 ```bash
@@ -328,7 +346,6 @@ omm watch [dir] [--debounce ms]         Auto-run omm analyze on file changes
 omm pr [number|branch] [--staged]       Show PR/module impact
 omm affected [files...] [--staged]      Find test files impacted by changes
 omm merge <source> [--out dir]          Merge another .omm/ into current
-omm mcp [--port <port>]                 Start MCP server for AI agents
 omm view [--port p] [--share]           Open viewer (--share for network access)
 ```
 

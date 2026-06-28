@@ -1,14 +1,34 @@
 # Roadmap
 
-## In Progress
+## Completed
 
-### PlantUML Diagram Support
-Add PlantUML rendering for sequence diagrams and C4 architecture models.
+### PlantUML Diagram Support ✓
+Added PlantUML rendering for sequence diagrams and C4 architecture models.
 - Format detection (`.puml`, `.plantuml` extensions)
 - Kroki proxy for online rendering
 - Local `plantuml.jar` support for offline/air-gapped use
 - C4 templates for enterprise architecture docs
-- See [multi-format-diagram-support-plan.md](./multi-format-diagram-support-plan.md)
+- Auto-download: `omm config plantuml-download`
+- See [plantuml-setup.md](./plantuml-setup.md)
+
+### MCP Server (Full Coverage) ✓
+MCP server with all omm commands exposed as tools for AI agents.
+- `omm_list` — List all elements
+- `omm_show` — Show element details
+- `omm_read` — Read field content
+- `omm_eval` — Quality evaluation
+- `omm_validate` — Diagram validation
+- `omm_refs` — Cross-references
+- `omm_inspect` — Detailed inspection
+- `omm_tree` — Element tree
+- `omm_diff` — Diagram diff
+- `omm_treecode` — Code coverage
+- `omm_analyze` — Structural analysis
+- `omm_search` — Fuzzy search
+- `omm_query` — Graph traversal
+- `omm_tour` — Guided tour
+- `omm_impact` — Change impact
+- See [mcp-setup.md](./mcp-setup.md)
 
 ## Planned
 
