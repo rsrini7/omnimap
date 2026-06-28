@@ -361,9 +361,17 @@ done
 - Target: flow coverage >= 50%
 
 **Iteration 4** — Add @cross-references in diagrams (+10 pts each):
-- For each diagram, add @other-perspective nodes that show cross-perspective connections
+- **IMPORTANT**: Only add @references within the same perspective (parent → child, child → sibling)
+- **DO NOT** add @references between different perspectives (e.g., command-surface → data-flow)
+- Only the hub perspective (overall-architecture) should reference other perspectives
+- For focused perspectives (command-surface, data-flow), use internal @refs only
 - This also enables the relationship graph in the viewer
 - Target: ref integrity >= 50%
+
+**Circular Reference Prevention**:
+- Before adding a @ref, check: "Does this create a loop? (A → B → A)"
+- If perspective A references perspective B, perspective B should NOT reference perspective A
+- Run `omm validate` after changes to check for `perspective-cross-ref` warnings
 
 **Iteration 5** — Improve descriptions:
 - For each element with description < 50 chars, expand it based on source code

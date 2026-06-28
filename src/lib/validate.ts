@@ -227,7 +227,7 @@ export function validateDiagram(text: string, context?: ValidateContext): Valida
     }
   }
 
-  // Rule: ref-exists and ref-self (only when context provided)
+  // Rule: ref-exists and ref-self (only when context provided)  
   if (context) {
     const refs = extractRefs(text);
     for (const ref of refs) {
@@ -242,6 +242,36 @@ export function validateDiagram(text: string, context?: ValidateContext): Valida
           level: 'error',
           rule: 'ref-exists',
           message: `@${ref} does not exist. Available: ${context.allClasses.join(', ')}`,
+        });
+      }
+    }
+
+    // Check for perspective cross-references that create circular dependencies
+    // A perspective should only reference other perspectives if it's the "hub" (overall-architecture)
+    const isPerspective = !context.className.includes('/');
+    const isHubPerspective = context.className === 'overall-architecture' || context.className === 'architecture';
+    
+    if (isPerspective && !isHubPerspective) {
+      const perspectiveRefs = refs.filter(r => !r.includes('/') && context.allClasses.includes(r));
+      if (perspectiveRefs.length > 0) {
+        issues.push({
+          level: 'warning',
+          rule: 'perspective-cross-ref',
+          message: `Perspective @${context.className} references other perspectives: ${perspectiveRefs.map(r => '@' + r).join(', ')}. Consider removing cross-references to avoid circular dependencies. Only hub perspectives (overall-architecture) should reference other perspectives.`,
+        });
+      }
+    }
+
+    // Check for circular references between perspectives
+    if (isPerspective && refs.length > 0) {
+      const perspectiveRefs = refs.filter(r => !r.includes('/') && context.allClasses.includes(r));
+      for (const ref of perspectiveRefs) {
+        // Check if the referenced perspective also references this one
+        // This is a heuristic - we just warn about potential circular deps
+        issues.push({
+          level: 'warning',
+          rule: 'potential-circular-ref',
+          message: `@${context.className} references @${ref}. Verify this doesn't create a circular dependency (A → B → A).`,
         });
       }
     }

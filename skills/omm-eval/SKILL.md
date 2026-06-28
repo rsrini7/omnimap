@@ -74,6 +74,10 @@ omm validate --explain      # full rule docs (rule + fix + example)
 omm validate --rules        # one-liner rule list
 omm validate <element> --fix  # auto-fix fixable issues (classdef-color), writes back
 
+# Check for circular cross-references between perspectives
+# Look for 'perspective-cross-ref' warnings in the output
+omm validate 2>&1 | grep -i "perspective-cross-ref\|circular"
+
 # Document the @class-name cross-reference convention
 omm ref-syntax
 
