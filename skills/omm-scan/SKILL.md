@@ -56,6 +56,25 @@ Use this as the **deterministic anchor**. Then read key files for semantic conte
 If tree-sitter is not installed (`omm analyze` shows "parser not available"), fall back to
 Glob and Read to understand the project structure manually.
 
+## Step 1.5: Check existing coverage and drift
+
+Before scanning, check the current state of the documentation:
+
+```bash
+# See which source files are covered by .omm/ elements
+omm treecode --stats
+
+# Check if .omm/ structure has drifted since last update
+omm signature --check
+
+# Full reconciliation report (orphaned sources, missing descriptions, broken refs)
+omm reconcile
+```
+
+If `omm signature --check` fails, the .omm/ tree structure has changed (elements added/removed). Run `omm signature --update` after the scan to store the new signature.
+
+If `omm reconcile` reports orphaned source files, run `omm reconcile --fix` to clean them up before scanning.
+
 ## Step 1.5: Plan an incremental update (when updating an existing scan)
 
 If `.omm/` already exists, do not re-scan everything. Use `omm incremental` to find what changed:
@@ -287,7 +306,7 @@ omm eval --suggest
 
 # 2. Loop until target or max iterations
 TARGET=80
-MAX_ITER=5
+MAX_ITER=10
 for i in $(seq 1 $MAX_ITER); do
   if [ "$SCORE" -ge "$TARGET" ]; then
     echo "✓ Target reached in iteration $((i-1))"
@@ -342,9 +361,17 @@ done
 - Target: flow coverage >= 50%
 
 **Iteration 4** — Add @cross-references in diagrams (+10 pts each):
-- For each diagram, add @other-perspective nodes that show cross-perspective connections
+- **IMPORTANT**: Only add @references within the same perspective (parent → child, child → sibling)
+- **DO NOT** add @references between different perspectives (e.g., command-surface → data-flow)
+- Only the hub perspective (overall-architecture) should reference other perspectives
+- For focused perspectives (command-surface, data-flow), use internal @refs only
 - This also enables the relationship graph in the viewer
 - Target: ref integrity >= 50%
+
+**Circular Reference Prevention**:
+- Before adding a @ref, check: "Does this create a loop? (A → B → A)"
+- If perspective A references perspective B, perspective B should NOT reference perspective A
+- Run `omm validate` after changes to check for `perspective-cross-ref` warnings
 
 **Iteration 5** — Improve descriptions:
 - For each element with description < 50 chars, expand it based on source code
@@ -378,7 +405,7 @@ ALL of these must be met:
 - **Ref integrity >= 20%**
 
 Plus any of these override stops:
-- **Max iterations** (default 5)
+- **Max iterations** (default 10)
 - **No improvement** in 2 consecutive iterations
 
 ### Usage in Claude Code
@@ -410,18 +437,66 @@ Initial score: 31
 
 The user can disable auto-improvement by passing `--no-improve` to `/omm-scan`. The scan will then only generate initial docs and stop.
 
-## Step 6: Summarize
+## Step 6: Post-Scan Verification
 
-Report what was created/updated and the final quality score from the improvement loop. Suggest:
-- `omm view` to visualize the documentation
-- `omm wiki` to generate a crawlable markdown wiki for sharing with the team
-- `omm tour --limit 20` to generate a guided reading order for onboarding
-- `omm sync` to sync to SQLite for full-text search
-- `omm watch` to auto-rebuild on file changes
-- `omm affected --staged` to find test files impacted by recent changes
-- `omm analyze --routes` to extract framework routes (Express, Django, Spring, etc.)
+After the improvement loop completes, run these verification commands:
 
-## Step 7: Suggest Feedback
+```bash
+# Check code ↔ docs coverage
+tredestats=$(omm treecode --stats)
+echo "$treestats"
+
+# Update structural signature
+omm signature --update
+
+# Run reconciliation to check for remaining issues
+omm reconcile
+```
+
+If `omm reconcile` reports orphaned source files, fix them:
+```bash
+omm reconcile --fix
+```
+
+## Step 7: Summarize
+
+Report what was created/updated and the final quality score from the improvement loop. Include:
+- Initial score → final score
+- Coverage stats from `omm treecode --stats`
+- Any remaining reconciliation issues
+
+### Next Steps
+
+Present these to the user as a numbered list:
+
+```
+### Next Steps
+
+**Visualization & Navigation:**
+1. `omm view` — visualize the architecture in your browser
+2. `omm wiki` — generate a crawlable markdown wiki for sharing
+3. `omm tour --limit 20` — guided reading order for onboarding
+
+**Code ↔ Docs Coverage:**
+4. `omm treecode --stats` — check which source files are covered by .omm/ elements
+5. `omm treecode --uncovered` — find undocumented source files
+6. `omm inspect <element>` — detailed element inspection (score, fields, links)
+
+**Quality & Maintenance:**
+7. `omm signature --update` — store structural signature for drift detection
+8. `omm reconcile` — check for orphaned sources, broken refs, missing descriptions
+9. `omm eval` — run quality evaluation (target: 80+)
+
+**External References:**
+10. `omm links <element> --add <url>` — add links to external docs, ADRs, wikis
+
+**Automation:**
+11. `omm hooks install --all` — install git hooks (auto-analysis + signature check)
+12. `omm watch` — auto-rebuild on file changes
+13. `omm sync` — sync to SQLite for full-text search
+```
+
+## Step 8: Suggest Feedback
 
 If during the scan or auto-improve loop you encountered:
 - Unclear eval output or scoring that doesn't match expectations

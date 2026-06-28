@@ -5,6 +5,8 @@ import { listClasses, listNodes, readField, readNodeField, readMeta, readNodeMet
 import { getIncomingRefs, getOutgoingRefs } from './refs.js';
 import { validateDiagram } from './validate.js';
 import { parseMermaid } from './diff.js';
+import { checkSignature } from './signature.js';
+import { buildReconcileReport } from './reconcile.js';
 
 export interface ScoreBreakdown {
   fields: { earned: number; max: number; present: number; total: number };
@@ -46,6 +48,9 @@ export interface EvalReport {
     leaves: number;
     groups: number;
     overallScore: number;
+    rawScore: number;
+    penaltyPoints: number;
+    penaltyBreakdown: string[];
     fieldCoverage: number;
     diagramCoverage: number;
     flowCoverage: number;
@@ -243,7 +248,21 @@ export function evaluateProject(cwd?: string): EvalReport {
   }
 
   // Detect diagram nodes without .omm elements (undocumented diagram nodes)
-  const existingPaths = new Set(allElements.map(e => e.path));
+  // Recursively collect all element paths (including nested grandchildren)
+  const allElementPaths = new Set<string>();
+  const collectPaths = (persp: string, nodePath: string[]) => {
+    const children = listNodes(persp, nodePath, cwd);
+    for (const child of children) {
+      const childPath = [persp, ...nodePath, child].join('/');
+      allElementPaths.add(childPath);
+      collectPaths(persp, [...nodePath, child]);
+    }
+  };
+  for (const persp of perspectives) {
+    allElementPaths.add(persp);
+    collectPaths(persp, []);
+  }
+  const existingPaths = allElementPaths;
   const undocumentedDiagramNodes: { parent: string; nodeId: string; label: string }[] = [];
 
   for (const el of allElements) {
@@ -283,7 +302,97 @@ export function evaluateProject(cwd?: string): EvalReport {
   }
 
   if (undocumentedDiagramNodes.length > 0) {
-    suggestions.push(`${undocumentedDiagramNodes.length} diagram node(s) lack documentation. Run /omm-scan and ask: "create descriptions for undocumented diagram nodes"`);
+    suggestions.push(`${undocumentedDiagramNodes.length} diagram node(s) lack documentation. Run /omm-scan with --max-iterations 10 to ensure all diagram nodes are documented`);
+  }
+
+  // Check structural signature
+  let signatureStale = false;
+  try {
+    const ommDir = getOmmDir(cwd);
+    const sig = checkSignature(ommDir);
+    signatureStale = !sig.match && sig.stored !== null; // Only report stale if there's a stored signature
+    if (signatureStale) {
+      issues.push({
+        type: 'stale-signature',
+        severity: 'info',
+        message: `Structural signature is stale (stored: ${sig.stored}, current: ${sig.current}). Run 'omm signature --update' after scanning.`,
+        path: undefined,
+      });
+    }
+  } catch {
+    // signature check failed, skip
+  }
+
+  // Check reconciliation issues
+  try {
+    const ommDir = getOmmDir(cwd);
+    const reconcileReport = buildReconcileReport(ommDir, cwd);
+    if (reconcileReport.orphanedSources.length > 0) {
+      issues.push({
+        type: 'orphaned-sources',
+        severity: 'warning',
+        message: `${reconcileReport.orphanedSources.length} source file(s) referenced in meta.yaml no longer exist. Run 'omm reconcile --fix' to clean up.`,
+        path: undefined,
+      });
+    }
+    if (reconcileReport.brokenRefs.length > 0) {
+      issues.push({
+        type: 'broken-refs',
+        severity: 'warning',
+        message: `${reconcileReport.brokenRefs.length} broken @ref(s) found in diagrams. Run 'omm reconcile' for details.`,
+        path: undefined,
+      });
+    }
+  } catch {
+    // reconciliation check failed, skip
+  }
+
+  // Add suggestions for new commands
+  suggestions.push('Use `omm treecode --stats` to check code ↔ docs coverage');
+  suggestions.push('Use `omm inspect <element>` for detailed element inspection');
+  if (signatureStale) {
+    suggestions.push('Run `omm signature --update` to store the current structural signature');
+  }
+
+  // Calculate penalty deductions for project-level issues
+  let penaltyPoints = 0;
+  const penaltyBreakdown: string[] = [];
+
+  // Undocumented diagram nodes penalty: 1 point per 10 undocumented nodes (max 10 points)
+  if (undocumentedDiagramNodes.length > 0) {
+    const undocPenalty = Math.min(10, Math.ceil(undocumentedDiagramNodes.length / 10));
+    penaltyPoints += undocPenalty;
+    penaltyBreakdown.push(`Undocumented diagram nodes: -${undocPenalty} (${undocumentedDiagramNodes.length} nodes)`);
+  }
+
+  // Broken @refs penalty: 2 points per broken ref (max 10 points)
+  try {
+    const ommDir = getOmmDir(cwd);
+    const reconcileReport = buildReconcileReport(ommDir, cwd);
+    if (reconcileReport.brokenRefs.length > 0) {
+      const refPenalty = Math.min(10, reconcileReport.brokenRefs.length * 2);
+      penaltyPoints += refPenalty;
+      penaltyBreakdown.push(`Broken @refs: -${refPenalty} (${reconcileReport.brokenRefs.length} refs)`);
+    }
+    // Orphaned sources penalty: 1 point per 5 orphaned (max 5 points)
+    if (reconcileReport.orphanedSources.length > 0) {
+      const orphanPenalty = Math.min(5, Math.ceil(reconcileReport.orphanedSources.length / 5));
+      penaltyPoints += orphanPenalty;
+      penaltyBreakdown.push(`Orphaned source files: -${orphanPenalty} (${reconcileReport.orphanedSources.length} files)`);
+    }
+  } catch {
+    // reconciliation check failed, skip
+  }
+
+  // Stale signature penalty: 2 points
+  if (signatureStale) {
+    penaltyPoints += 2;
+    penaltyBreakdown.push('Stale signature: -2');
+  }
+
+  // Add penalty info to suggestions if any
+  if (penaltyBreakdown.length > 0) {
+    suggestions.unshift(`Score penalties: ${penaltyBreakdown.join(', ')}`);
   }
 
   // Summary
@@ -303,9 +412,10 @@ export function evaluateProject(cwd?: string): EvalReport {
   const refIntegrity = totalElements > 0
     ? allElements.filter(e => e.refCount > 0 || e.isRefTarget).length / totalElements
     : 0;
-  const overallScore = totalElements > 0
+  const rawScore = totalElements > 0
     ? Math.round(allElements.reduce((sum, e) => sum + e.score, 0) / totalElements)
     : 0;
+  const overallScore = Math.max(0, rawScore - penaltyPoints);
 
   return {
     summary: {
@@ -314,6 +424,9 @@ export function evaluateProject(cwd?: string): EvalReport {
       leaves: leafCount,
       groups: groupCount,
       overallScore,
+      rawScore,
+      penaltyPoints,
+      penaltyBreakdown,
       fieldCoverage: Math.round(fieldCoverage * 100),
       diagramCoverage: Math.round(diagramCoverage * 100),
       flowCoverage: Math.round(flowCoverage * 100),

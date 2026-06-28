@@ -99,6 +99,11 @@ omm mcp [--port <port>]            # 启动 AI 代理的 MCP 服务器
 omm watch [dir]                    # 文件变更时自动运行 omm analyze
 omm merge <source>                 # 将另一个 .omm/ 合并到当前
 omm view --share                   # 打开网络共享查看器
+omm treecode                       # 源代码 ↔ .omm/ 覆盖率映射
+omm signature --check              # 结构签名漂移检测
+omm reconcile                      # .omm/ 与源代码同步
+omm links <element>                # 管理外部文档链接
+omm inspect <element>              # 详细元素检查
 ```
 
 完整命令列表请运行 `omm help`。

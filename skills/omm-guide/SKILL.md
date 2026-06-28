@@ -71,6 +71,9 @@ For the current selected element `<E>`:
 1. Run:
    - `omm show <E>` (add `--project <name>` if arch repo)
    - `omm show <E> --type` to show element type (perspective/leaf/group)
+   - `omm inspect <E>` for detailed view (score, field coverage, source tracking)
+   - `omm inspect <E> --links` to show @ref link resolution (cycles, broken refs)
+   - `omm links <E>` to show external documentation links
    - `omm refs <E>` to see incoming references
    - `omm refs --reverse <E>` to see outgoing references
    - `omm diagram-refs <E>` to see resolved @refs and pass/fail
@@ -81,6 +84,8 @@ For the current selected element `<E>`:
    - Constraints (rules)
    - Concerns (risks)
    - TODO (next improvements)
+   - External links (if any)
+   - Link resolution status (if cycles or broken refs)
 3. If there are references:
    - `omm refs <E>` and `omm refs --reverse <E>`
    - summarize incoming/outgoing relationships in plain language
@@ -105,6 +110,36 @@ When the user selects a referenced element `<R>`:
 - Only describe what exists in `.omm/` files.
 - If something is missing (e.g., no constraint.md), say so plainly and move on.
 - When in an arch repo, always use `--project <name>` for `omm show` calls.
+
+## Next Steps
+
+When the guide session ends, present these next steps:
+
+```
+### Next Steps
+
+**Visualization & Navigation:**
+1. `omm view` — visualize the architecture in your browser
+2. `omm wiki` — generate a crawlable markdown wiki for sharing
+3. `omm tour --limit 20` — guided reading order for onboarding
+
+**Code ↔ Docs Coverage:**
+4. `omm treecode --stats` — check which source files are covered by .omm/ elements
+5. `omm treecode --uncovered` — find undocumented source files
+6. `omm inspect <element>` — detailed element inspection (score, fields, links)
+
+**Quality & Maintenance:**
+7. `omm signature --update` — store structural signature for drift detection
+8. `omm reconcile` — check for orphaned sources, broken refs, missing descriptions
+9. `omm eval` — run quality evaluation (target: 80+)
+
+**External References:**
+10. `omm links <element> --add <url>` — add links to external docs, ADRs, wikis
+
+**Automation:**
+11. `omm hooks install --all` — install git hooks (auto-analysis + signature check)
+12. `omm watch` — auto-rebuild on file changes
+```
 
 ## Suggesting Feedback
 

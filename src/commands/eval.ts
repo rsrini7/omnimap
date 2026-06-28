@@ -85,6 +85,13 @@ function formatReport(report: EvalReport, noColor: boolean): string {
 
   // Summary
   lines.push(`Overall score: ${scoreColor(summary.overallScore, noColor)}/100`);
+  if (summary.penaltyPoints > 0) {
+    lines.push(`Raw score:    ${summary.rawScore}/100`);
+    lines.push(`Penalties:    ${color(`-${summary.penaltyPoints}`, 31, !noColor)}`);
+    for (const penalty of summary.penaltyBreakdown) {
+      lines.push(`  ${color('•', 33, !noColor)} ${penalty}`);
+    }
+  }
   lines.push(`Elements:     ${summary.totalElements} (${summary.perspectives} perspectives, ${summary.groups} groups, ${summary.leaves} leaves)`);
   lines.push(`Field cov:    ${summary.fieldCoverage}%`);
   lines.push(`Diagram cov:  ${summary.diagramCoverage}%`);

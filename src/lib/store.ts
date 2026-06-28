@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
-import { VALID_FIELDS, FIELD_FILES, type Field, type ClassMeta, type ClassData, type OmmConfig, type FlowsFile, type FlowDef } from '../types.js';
+import { VALID_FIELDS, FIELD_FILES, type Field, type ClassMeta, type ClassData, type OmmConfig, type FlowsFile, type FlowDef, type LinkEntry } from '../types.js';
 import { updateMeta } from './meta.js';
 
 const OMM_DIR = '.omm';
@@ -402,4 +402,112 @@ export function writeFlows(elementPath: string, flows: FlowDef[], cwd?: string):
   fs.writeFileSync(filePath, YAML.stringify(data), 'utf-8');
   process.stderr.write(`wrote ${elementPath}/${FLOWS_FILE} (${flows.length} flows)
 `);
+}
+
+// ── External documentation links ───────────────────────────────────
+
+/**
+ * Add an external documentation link to an element's meta.yaml.
+ *
+ * @param elementPath - Element path (e.g., "auth-service" or "data-flow/ingestion")
+ * @param link - Link entry to add
+ * @param cwd - Working directory override
+ */
+export function addLink(elementPath: string, link: LinkEntry, cwd?: string): void {
+  ensureOmmForWrite(cwd);
+  const parts = elementPath.split('/');
+  const perspective = parts[0];
+  const nodePath = parts.slice(1);
+
+  const readMetaFn = nodePath.length > 0
+    ? () => readNodeMeta(perspective, nodePath, cwd)
+    : () => readMeta(perspective, cwd);
+  const writeMetaFn = nodePath.length > 0
+    ? (meta: ClassMeta) => writeNodeMeta(perspective, nodePath, meta, cwd)
+    : (meta: ClassMeta) => writeMeta(perspective, meta, cwd);
+
+  const meta = readMetaFn() ?? {
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+    update_count: 0,
+    last_field: 'description' as Field,
+    kind: (nodePath.length > 0 ? 'nested-class' : 'perspective') as import('../types.js').NodeKind,
+    title: nodePath.length > 0 ? nodePath[nodePath.length - 1] : perspective,
+    children: [],
+    parentPath: nodePath.length > 0 ? nodePath.slice(0, -1) : undefined,
+  };
+
+  if (!meta.links) meta.links = [];
+
+  // Check for duplicate URL
+  const existing = meta.links.find(l => l.url === link.url);
+  if (existing) {
+    process.stderr.write(`link already exists: ${link.url}\n`);
+    return;
+  }
+
+  meta.links.push({
+    ...link,
+    added: link.added ?? new Date().toISOString(),
+  });
+
+  meta.updated = new Date().toISOString();
+  meta.update_count = (meta.update_count ?? 0) + 1;
+  writeMetaFn(meta);
+
+  process.stderr.write(`added link to ${elementPath}: ${link.url}\n`);
+}
+
+/**
+ * Remove an external documentation link from an element's meta.yaml.
+ *
+ * @param elementPath - Element path
+ * @param url - URL of the link to remove
+ * @param cwd - Working directory override
+ * @returns true if the link was found and removed
+ */
+export function removeLink(elementPath: string, url: string, cwd?: string): boolean {
+  const parts = elementPath.split('/');
+  const perspective = parts[0];
+  const nodePath = parts.slice(1);
+
+  const readMetaFn = nodePath.length > 0
+    ? () => readNodeMeta(perspective, nodePath, cwd)
+    : () => readMeta(perspective, cwd);
+  const writeMetaFn = nodePath.length > 0
+    ? (meta: ClassMeta) => writeNodeMeta(perspective, nodePath, meta, cwd)
+    : (meta: ClassMeta) => writeMeta(perspective, meta, cwd);
+
+  const meta = readMetaFn();
+  if (!meta?.links) return false;
+
+  const idx = meta.links.findIndex(l => l.url === url);
+  if (idx === -1) return false;
+
+  meta.links.splice(idx, 1);
+  meta.updated = new Date().toISOString();
+  meta.update_count = (meta.update_count ?? 0) + 1;
+  writeMetaFn(meta);
+
+  process.stderr.write(`removed link from ${elementPath}: ${url}\n`);
+  return true;
+}
+
+/**
+ * Get all links for an element.
+ *
+ * @param elementPath - Element path
+ * @param cwd - Working directory override
+ * @returns Array of link entries (empty if none)
+ */
+export function getLinks(elementPath: string, cwd?: string): LinkEntry[] {
+  const parts = elementPath.split('/');
+  const perspective = parts[0];
+  const nodePath = parts.slice(1);
+
+  const meta = nodePath.length > 0
+    ? readNodeMeta(perspective, nodePath, cwd)
+    : readMeta(perspective, cwd);
+
+  return meta?.links ?? [];
 }

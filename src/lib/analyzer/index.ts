@@ -3,6 +3,7 @@ import path from 'node:path';
 import { getHandlerForFile, getSupportedExtensions } from './registry.js';
 import { extractRoutes } from './routes.js';
 import type { FileAnalysis, DependencyGraph, DependencyNode, DependencyEdge, ModuleBoundary, AnalysisResult } from './types.js';
+import { parseGitignore, shouldIgnore as shouldIgnoreGitignore, type GitignoreRules } from '../gitignore.js';
 
 export type { FileAnalysis, DependencyGraph, DependencyNode, DependencyEdge, ModuleBoundary, AnalysisResult, LanguageStats } from './types.js';
 
@@ -23,13 +24,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const IGNORED_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.nuxt',
-  '__pycache__', '.pytest_cache', '.venv', 'venv', 'env',
-  'target', 'bin', 'obj', '.gradle', '.maven',
-  '.omm', '.understand-anything', 'graphify-out',
-]);
-
 const IGNORED_PATTERNS = [
   /\.min\./,
   /\.bundle\./,
@@ -38,18 +32,32 @@ const IGNORED_PATTERNS = [
   /\.d\.mts$/,
 ];
 
-function shouldIgnore(filePath: string): boolean {
-  const parts = filePath.split('/');
-  for (const part of parts) {
-    if (IGNORED_DIRS.has(part)) return true;
-  }
-  for (const pattern of IGNORED_PATTERNS) {
-    if (pattern.test(filePath)) return true;
-  }
-  return false;
+/**
+ * Check if a file should be ignored.
+ * Uses shared gitignore utility + analyzer-specific patterns.
+ */
+function createIgnoreChecker(rootDir: string): (filePath: string) => boolean {
+  const gitignorePath = path.join(rootDir, '.gitignore');
+  const gitignoreRules = parseGitignore(gitignorePath);
+
+  return (filePath: string): boolean => {
+    const parts = filePath.split('/');
+    const basename = parts[parts.length - 1];
+    const isDir = false; // We're checking files
+
+    // Check gitignore
+    if (shouldIgnoreGitignore(filePath, isDir, basename, gitignoreRules)) return true;
+
+    // Check analyzer-specific patterns
+    for (const pattern of IGNORED_PATTERNS) {
+      if (pattern.test(filePath)) return true;
+    }
+
+    return false;
+  };
 }
 
-function walkFiles(dir: string, rootDir: string, extensions: Set<string>): string[] {
+function walkFiles(dir: string, rootDir: string, extensions: Set<string>, ignoreChecker: (filePath: string) => boolean): string[] {
   const results: string[] = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -58,12 +66,12 @@ function walkFiles(dir: string, rootDir: string, extensions: Set<string>): strin
     const relPath = path.relative(rootDir, fullPath).replace(/\\/g, '/');
 
     if (entry.isDirectory()) {
-      if (!shouldIgnore(relPath)) {
-        results.push(...walkFiles(fullPath, rootDir, extensions));
+      if (!ignoreChecker(relPath)) {
+        results.push(...walkFiles(fullPath, rootDir, extensions, ignoreChecker));
       }
     } else if (entry.isFile()) {
       const ext = path.extname(entry.name);
-      if (extensions.has(ext) && !shouldIgnore(relPath)) {
+      if (extensions.has(ext) && !ignoreChecker(relPath)) {
         results.push(fullPath);
       }
     }
@@ -136,7 +144,8 @@ export async function analyzeFile(filePath: string, rootDir: string): Promise<Fi
 export async function analyzeDirectory(dir: string): Promise<AnalysisResult> {
   const rootDir = path.resolve(dir);
   const extensions = new Set(getSupportedExtensions());
-  const files = walkFiles(rootDir, rootDir, extensions);
+  const ignoreChecker = createIgnoreChecker(rootDir);
+  const files = walkFiles(rootDir, rootDir, extensions, ignoreChecker);
 
   const analyses: FileAnalysis[] = [];
   const errors: { file: string; error: string }[] = [];

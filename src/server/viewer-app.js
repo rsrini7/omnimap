@@ -1132,6 +1132,40 @@ function openSidebar(cls, origCls) {
     html+=`<div class="sb-sec"><div class="sb-sec-title">References</div><div class="sb-refs">${links}</div></div>`;
   }
 
+  // External links section (from omm links)
+  if (!isDiagramOnly && data.meta?.links?.length) {
+    const linkHtml = data.meta.links.map(l => {
+      const icon = l.type === 'external' ? '🔗' : l.type === 'local' ? '📄' : '📁';
+      const label = l.label || l.url;
+      const href = l.type === 'external' ? l.url : '#';
+      const onclick = l.type === 'external' ? '' : `onclick="window.__openSb('${esc(l.url)}')" `;
+      return `<span class="sb-ref" ${onclick}title="${esc(l.url)}">${icon} ${esc(label)}</span>`;
+    }).join('');
+    html += `<div class="sb-sec"><div class="sb-sec-title">External Links</div><div class="sb-refs">${linkHtml}</div></div>`;
+  }
+
+  // Link resolution section (loaded async)
+  if (!isDiagramOnly && data.diagram) {
+    html += `<div class="sb-sec" id="sb-link-resolution"><div class="sb-sec-title">Link Resolution</div><div class="sb-sec-body" style="color:var(--text-muted);font-size:11px">Loading...</div></div>`;
+    const clsPath = origCls;
+    fetch(`/api/class/${encodeURIComponent(clsPath)}/link-resolutions`)
+      .then(r => r.json())
+      .then(data => {
+        const el = document.getElementById('sb-link-resolution');
+        if (!el || data.error) { if (el) el.style.display = 'none'; return; }
+        if (!data.resolutions || data.resolutions.length === 0) {
+          el.querySelector('.sb-sec-body').innerHTML = '<span style="color:var(--text-muted);font-size:11px">No @refs found in diagram</span>';
+        } else {
+          const resHtml = data.formatted.map(line => `<div style="font-size:11px;padding:2px 0;font-family:var(--mono)">${esc(line)}</div>`).join('');
+          el.querySelector('.sb-sec-body').innerHTML = resHtml;
+        }
+      })
+      .catch(() => {
+        const el = document.getElementById('sb-link-resolution');
+        if (el) el.style.display = 'none';
+      });
+  }
+
   // Cross-perspective links: show which perspectives contain this element
   const _shortName = origCls.includes('/') ? origCls.split('/').pop() : origCls;
   const _parents = (parentMap[origCls] || parentMap[_shortName]) || [];

@@ -95,8 +95,11 @@ omm config language <code>             Set content language (en, ko, ja, zh, tr)
 ```bash
 omm list [--project <name>]             List perspectives (auto-detects arch repo)
 omm tree [perspective]                  Print element tree
+omm tree --yaml [--compact]            Print element tree as YAML
 omm show <element>                      Show all fields for an element
 omm show <element> --type               Show element type (perspective/leaf/group)
+omm inspect <element> [--json]          Detailed element inspection (score, fields, links)
+omm inspect <element> --links           Show @ref link resolution (cycles, broken)
 omm read <path> <field>                 Read a field to stdout
 omm write <path> <field> <text|->       Write a field
 omm status                              Show overview of all elements
@@ -178,6 +181,44 @@ omm feedback --print                    Print to stdout
 omm feedback --out <path>               Custom output path
 ```
 
+### Code ↔ docs mapping
+
+```bash
+omm treecode                            Show source code tree with .omm/ coverage annotations
+omm treecode --uncovered                Show only uncovered source files (no .omm/ element)
+omm treecode --orphans                  Show only orphaned .omm/ elements (no matching source)
+omm treecode --stats                    Coverage statistics summary
+omm treecode --json                     JSON output
+```
+
+### Structural signature
+
+```bash
+omm signature                           Show current structural signature (SHA-256 of element paths)
+omm signature --check                   Check for drift (exit 1 if stale, for CI)
+omm signature --update                  Compute and store signature
+omm signature --json                    JSON output
+```
+
+### External links
+
+```bash
+omm links <element>                     Show external documentation links
+omm links <element> --add <url>         Add external link
+omm links <element> --remove <url>      Remove link
+omm links <element> --type <type>       Link type: local, external, source
+omm links <element> --label <text>      Human-readable label
+```
+
+### Reconciliation
+
+```bash
+omm reconcile                           Reconcile .omm/ with source code (report)
+omm reconcile --fix                     Auto-fix orphaned source file references
+omm reconcile --non-interactive         CI mode (exit 1 if issues)
+omm reconcile --json                    JSON output
+```
+
 ### Analysis
 
 ```bash
@@ -222,6 +263,8 @@ omm wiki [--out dir]                    Generate crawlable markdown wiki (defaul
 
 ```bash
 omm hooks [install|uninstall|status]    Manage git hooks for auto-analysis
+omm hooks install --pre-commit          Install pre-commit hook (signature check)
+omm hooks install --all                 Install both hooks (post-commit + pre-commit)
 omm watch [dir] [--debounce ms]         Auto-run omm analyze on file changes
 omm pr [number|branch] [--staged]       Show PR/module impact
 omm affected [files...] [--staged]      Find test files impacted by changes

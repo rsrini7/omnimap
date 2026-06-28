@@ -74,6 +74,10 @@ omm validate --explain      # full rule docs (rule + fix + example)
 omm validate --rules        # one-liner rule list
 omm validate <element> --fix  # auto-fix fixable issues (classdef-color), writes back
 
+# Check for circular cross-references between perspectives
+# Look for 'perspective-cross-ref' warnings in the output
+omm validate 2>&1 | grep -i "perspective-cross-ref\|circular"
+
 # Document the @class-name cross-reference convention
 omm ref-syntax
 
@@ -89,6 +93,18 @@ omm eval --explain <element> --json
 
 # Generate feedback report to share with maintainer
 omm feedback --include "your suggestion"
+
+# Check code ↔ docs coverage (find undocumented source files)
+omm treecode --stats
+
+# Detailed element inspection (score, fields, source tracking, links)
+omm inspect <element>
+
+# Check for structural drift (elements added/removed)
+omm signature --check
+
+# Reconcile .omm/ with source code (orphaned sources, broken refs)
+omm reconcile
 ```
 
 ## Step 2: Run Initial Evaluation
@@ -120,6 +136,28 @@ Parse the report to understand:
   - `elements[i].scoreBreakdown` — how the score was computed (fields/diagram/description/flows/refs/children)
 - `issues` — specific issues to fix
 - `suggestions` — improvement recommendations
+
+### Additional diagnostics with new commands
+
+```bash
+# Check code ↔ docs coverage
+omm treecode --stats
+
+# Check for structural drift
+omm signature --check
+
+# Full reconciliation report
+omm reconcile
+
+# Detailed inspection of worst-scoring element
+omm inspect <worst-element>
+
+# Check link resolution for an element
+omm inspect <element> --links
+
+# Show external links for an element
+omm links <element>
+```
 
 ### Score breakdown (from `scoreBreakdown` in JSON)
 
@@ -249,25 +287,47 @@ omm tag <element> add tag1,tag2
 
 Stop the loop when:
 - **Target score reached**: `score >= 80` (configurable)
-- **Max iterations**: default 5 iterations
+- **Max iterations**: default 10 iterations
 - **No improvement**: score didn't change in last 2 iterations
 - **All critical issues resolved**: no more errors/warnings
 
-## Step 5: Final Report
+## Step 5: Post-Evaluation Verification
 
-After the loop completes, report:
+After the loop completes, run these verification commands:
+
+```bash
+# Check code ↔ docs coverage
+omm treecode --stats
+
+# Update structural signature
+omm signature --update
+
+# Run reconciliation
+omm reconcile
+```
+
+If `omm reconcile` reports issues, fix them:
+```bash
+omm reconcile --fix
+```
+
+## Step 6: Final Report
+
+Report:
 
 - **Initial score** (from Step 2)
 - **Final score** (from last iteration)
 - **Improvement delta** (final - initial)
 - **Issues resolved** (count of fixed issues)
 - **Issues remaining** (count and types)
+- **Code coverage** (from `omm treecode --stats`)
+- **Reconciliation status** (from `omm reconcile`)
 
 ## Loop Configuration
 
 The user can pass arguments to control the loop:
 
-- `--max-iterations <n>` — max iterations (default: 5)
+- `--max-iterations <n>` — max iterations (default: 10)
 - `--target <score>` — target score to reach (default: 80)
 
 ## Stop Conditions
@@ -323,16 +383,42 @@ Issues: 0 errors, 0 warnings, 12 info
 - **Keep iterations focused** — fix a few elements per iteration, not all at once
 - **Re-evaluate after each batch of changes** before deciding the next batch
 - **Write in the configured language** (check `omm config language` first)
+- **Use `omm treecode --stats`** to check code ↔ docs coverage
+- **Use `omm inspect <element>`** for detailed element inspection
+- **Use `omm reconcile`** to check for orphaned sources and broken refs
+- **Run `omm signature --update`** after completing all improvements
 
-## Step 6: Suggest Feedback
+## Step 7: Suggest Feedback & Next Steps
 
-At the end of the iteration, if the user encountered:
-- Confusing eval output or scoring that doesn't match expectations
-- Missing CLI options that should exist
-- A workflow that felt harder than it should be
-- A successful pattern that should be documented
+At the end of the iteration, present these next steps to the user:
 
-Tell the user:
+```
+### Next Steps
+
+**Visualization & Navigation:**
+1. `omm view` — visualize the architecture in your browser
+2. `omm wiki` — generate a crawlable markdown wiki for sharing
+3. `omm tour --limit 20` — guided reading order for onboarding
+
+**Code ↔ Docs Coverage:**
+4. `omm treecode --stats` — check which source files are covered by .omm/ elements
+5. `omm treecode --uncovered` — find undocumented source files
+6. `omm inspect <element>` — detailed element inspection (score, fields, links)
+
+**Quality & Maintenance:**
+7. `omm signature --update` — store structural signature for drift detection
+8. `omm reconcile` — check for orphaned sources, broken refs, missing descriptions
+
+**External References:**
+9. `omm links <element> --add <url>` — add links to external docs, ADRs, wikis
+
+**Automation:**
+10. `omm hooks install --all` — install git hooks (auto-analysis + signature check)
+11. `omm watch` — auto-rebuild on file changes
+12. `omm sync` — sync to SQLite for full-text search
+```
+
+Then suggest feedback:
 
 > "If you have feedback on the eval system (issues, missing features, scoring questions), run `/omm-feedback` to generate a report in `.omm/feedback.md`. The file will be created with the current eval state and your message — share it with the omm maintainer to improve the tool."
 
@@ -346,7 +432,7 @@ Tell the user:
 
 `/omm-scan` **automatically invokes `/omm-eval`** after initial generation. The loop runs until:
 - Target score (default 80) is reached
-- Max iterations (default 5) is hit
+- Max iterations (default 10) is hit
 - No improvement in 2 consecutive iterations
 
 ### Manual chain
