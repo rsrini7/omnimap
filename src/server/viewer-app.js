@@ -130,6 +130,110 @@ function deactivateFlow() {
 // _expandedGlobal prevents same class from expanding in multiple branches
 let _expandedGlobal = new Set();
 
+// Cache for PlantUML SVG renders on main canvas
+const _plantUMLSvgCache = {};
+
+/** Render PlantUML diagram for main canvas display */
+async function renderPlantUMLForCanvas(cls, source) {
+  if (_plantUMLSvgCache[cls]) return _plantUMLSvgCache[cls];
+  try {
+    const svg = await renderPlantUMLDiagram(source);
+    if (svg) _plantUMLSvgCache[cls] = svg;
+    return svg;
+  } catch {
+    return null;
+  }
+}
+
+/** Pre-render all PlantUML diagrams so they're ready for canvas */
+async function preRenderAllPlantUMLDiagrams() {
+  const promises = [];
+  for (const cls of Object.keys(classesData)) {
+    const data = classesData[cls];
+    if (!data?.diagram) continue;
+    const isPlantUML = data.format === 'plantuml' || /@startuml/i.test(data.diagram);
+    if (isPlantUML && !_plantUMLSvgCache[cls]) {
+      promises.push(renderPlantUMLForCanvas(cls, data.diagram));
+    }
+  }
+  await Promise.all(promises);
+}
+
+/** Extract SVG viewBox dimensions from SVG string */
+function extractSvgDimensions(svgString) {
+  const viewBoxMatch = svgString.match(/viewBox=["']([^"']+)["']/);
+  const widthMatch = svgString.match(/width=["']([^"']+)["']/);
+  const heightMatch = svgString.match(/height=["']([^"']+)["']/);
+  
+  if (viewBoxMatch) {
+    const parts = viewBoxMatch[1].split(/\s+/);
+    if (parts.length === 4) {
+      return { width: parseFloat(parts[2]) || 800, height: parseFloat(parts[3]) || 600 };
+    }
+  }
+  if (widthMatch && heightMatch) {
+    return { 
+      width: parseFloat(widthMatch[1]) || 800, 
+      height: parseFloat(heightMatch[1]) || 600 
+    };
+  }
+  return { width: 800, height: 600 };
+}
+
+/** Render a PlantUML diagram directly in the main canvas using foreignObject */
+function renderPlantUMLGroup(cls, data, level, scopedPath) {
+  const PAD = 24;
+  const th = theme();
+  
+  // Get the pre-rendered SVG from cache
+  const cachedSvg = _plantUMLSvgCache[cls];
+  
+  if (cachedSvg) {
+    // Get actual SVG dimensions for proper sizing
+    const svgDims = extractSvgDimensions(cachedSvg);
+    const IMG_W = Math.max(600, svgDims.width + 40);  // Add padding
+    const IMG_H = Math.max(400, svgDims.height + 40); // Add padding
+    const W = IMG_W + PAD * 2;
+    const H = IMG_H + PAD * 2;
+    
+    // Embed the rendered SVG directly using foreignObject - auto-fit to container
+    return {
+      W,
+      H,
+      svgContent: `<foreignObject x="${PAD}" y="${PAD}" width="${IMG_W}" height="${IMG_H}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="plantuml-container" style="width:100%;height:100%;overflow:hidden;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <style>
+            .plantuml-container svg { max-width:100%; max-height:100%; width:auto; height:auto; display:block; }
+            .plantuml-container::-webkit-scrollbar { width:6px; height:6px; }
+            .plantuml-container::-webkit-scrollbar-track { background:transparent; }
+            .plantuml-container::-webkit-scrollbar-thumb { background:var(--border-subtle); border-radius:3px; }
+            .plantuml-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+          </style>
+          <div class="plantuml-diagram">${cachedSvg}</div>
+        </div>
+      </foreignObject>`,
+      labelOverlay: '',
+      isPlantUML: false // Already rendered, no need to hydrate
+    };
+  }
+  
+  // Fallback: show a loading placeholder (will be hydrated)
+  const IMG_W = 600;
+  const IMG_H = 400;
+  const W = IMG_W + PAD * 2;
+  const H = IMG_H + PAD * 2;
+  return {
+    W,
+    H,
+    svgContent: `<rect x="${PAD}" y="${PAD}" width="${IMG_W}" height="${IMG_H}" rx="8" fill="${th.subFill}" stroke="${th.subStroke}" stroke-width="1"/>
+      <text x="${W/2}" y="${H/2}" text-anchor="middle" font-family="Inter,system-ui" font-size="11" fill="${th.edgeLabelText}">Loading PlantUML...</text>`,
+    labelOverlay: '',
+    isPlantUML: true,
+    plantUMLCls: cls,
+    plantUMLScoped: scopedPath || cls
+  };
+}
+
 function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scopedPath) {
   if (seen.has(cls)) return null;
   seen = new Set(seen); seen.add(cls);
@@ -139,6 +243,12 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   // Use full path for data lookup to avoid short-name collision
   const data = scopedPath && scopedPath !== cls ? (classesData[scopedPath] || classesData[cls]) : classesData[cls];
   if (!data?.diagram) return null;
+
+  // For PlantUML diagrams, render as embedded SVG image instead of parsing as flowchart
+  const isPlantUML = data.format === 'plantuml' || /@startuml/i.test(data.diagram);
+  if (isPlantUML) {
+    return renderPlantUMLGroup(cls, data, level, scopedPath);
+  }
 
   const parsed = parseFlowchart(data.diagram);
   const {rankdir, nodes, edges} = parsed;
@@ -390,13 +500,68 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
 }
 
 // ── mermaid syntax highlighting ────────────────────────────
+/** Inject PlantUML dark theme skinparams when dark mode is active */
+function injectPlantUMLTheme(source) {
+  if (!isDark()) return source;
+  
+  // Check if source already has theme/skinparam directives
+  if (/!theme\s+dark/i.test(source) || /skinparam\s+backgroundColor/i.test(source)) {
+    return source;
+  }
+  
+  // Insert dark theme skinparams after @startuml
+  // Using Catppuccin Mocha inspired colors for visibility
+  const darkSkinParams = [
+    'skinparam backgroundColor #1e1e2e',
+    'skinparam defaultBackgroundColor #1e1e2e',
+    'skinparam defaultFontColor #cdd6f4',
+    'skinparam defaultFontName Monospace',
+    'skinparam shadowing false',
+    'skinparam roundCorner 8',
+    'skinparam arrowColor #b4befs',
+    'skinparam arrowFontColor #a6adc8',
+    'skinparam arrowThickness 2',
+    'skinparam participantBackgroundColor #313244',
+    'skinparam participantBorderColor #585b70',
+    'skinparam participantFontColor #cdd6f4',
+    'skinparam participantFontSize 14',
+    'skinparam participantRoundCorner 8',
+    'skinparam sequenceLifeLineBorderColor #585b70',
+    'skinparam sequenceLifeLineBackgroundColor #313244',
+    'skinparam sequenceLifeLineThickness 2',
+    'skinparam sequenceGroupBackgroundColor #181825',
+    'skinparam sequenceGroupBorderColor #45475a',
+    'skinparam sequenceGroupBorderFontColor #cdd6f4',
+    'skinparam sequenceGroupFontSize 13',
+    'skinparam sequenceDividerBackgroundColor #181825',
+    'skinparam sequenceDividerBorderColor #45475a',
+    'skinparam sequenceDividerFontColor #cdd6f4',
+    'skinparam sequenceReferenceBackgroundColor #313244',
+    'skinparam sequenceReferenceBorderColor #585b70',
+    'skinparam sequenceReferenceFontColor #cdd6f4',
+    'skinparam sequenceMessageAlign center',
+    'skinparam sequenceMessageFontSize 13',
+    'skinparam sequenceMessageTextAlignment center',
+    'skinparam noteBackgroundColor #313244',
+    'skinparam noteBorderColor #585b70',
+    'skinparam noteFontColor #cdd6f4',
+    'skinparam noteFontSize 12',
+    'skinparam sequenceBoxBorderColor #45475a',
+    'skinparam sequenceBoxBackgroundColor #181825',
+    'skinparam sequenceBoxFontColor #cdd6f4'
+  ].join('\n');
+  
+  return source.replace(/@startuml/i, `@startuml\n${darkSkinParams}`);
+}
+
 /** Render PlantUML via API proxy */
 async function renderPlantUMLDiagram(source) {
   try {
+    const themedSource = injectPlantUMLTheme(source);
     const res = await fetch("/api/render/plantuml", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source }),
+      body: JSON.stringify({ source: themedSource }),
     });
     if (res.ok) {
       return await res.text();
@@ -416,14 +581,18 @@ function fallbackPlantUMLSvg(text) {
   const lineHeight = 18;
   const height = Math.max(100, lines.length * lineHeight + 60);
   const escH = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const dark = isDark();
+  const bg = dark ? '#1e1e2e' : '#ffffff';
+  const textColor = dark ? '#cdd6f4' : '#333333';
+  const labelColor = dark ? '#6c7086' : '#888888';
   
   const textLines = lines.map((line, i) => {
-    return `<text x="20" y="${40 + i * lineHeight}" font-family="monospace" font-size="13" fill="#cdd6f4">${escH(line)}</text>`;
+    return `<text x="20" y="${40 + i * lineHeight}" font-family="monospace" font-size="13" fill="${textColor}">${escH(line)}</text>`;
   }).join("\n");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    <rect width="${width}" height="${height}" fill="#1e1e2e" rx="8"/>
-    <text x="20" y="20" font-family="sans-serif" font-size="11" fill="#6c7086">PlantUML (offline preview)</text>
+    <rect width="${width}" height="${height}" fill="${bg}" rx="8"/>
+    <text x="20" y="20" font-family="sans-serif" font-size="11" fill="${labelColor}">PlantUML (offline preview)</text>
     ${textLines}
   </svg>`;
 }
@@ -1382,7 +1551,8 @@ function buildCanvas(classes, classesData, refsData) {
   for (const g of groups) {
     const tx = r1(OUTER_PAD + colX[g._col]);
     const ty = r1(OUTER_PAD + rowY[g._row]);
-    innerSVG += `<g class="grp-node" data-cls="${esc(g.cls)}" data-depth="0" transform="translate(${tx},${ty})" onclick="event.stopPropagation();window.__openSb('${esc(g.cls)}')">`;
+    const plantUMLAttr = g.isPlantUML ? ` data-plantuml="${esc(g.cls)}" data-plantuml-scoped="${esc(g.plantUMLScoped || g.cls)}"` : '';
+    innerSVG += `<g class="grp-node" data-cls="${esc(g.cls)}" data-depth="0"${plantUMLAttr} transform="translate(${tx},${ty})" onclick="event.stopPropagation();window.__openSb('${esc(g.cls)}')">`;
     innerSVG += `<rect class="grp-border" width="${g.W}" height="${g.H}" rx="8"
       fill="${th.groupFill}" stroke="${th.groupStroke}" stroke-width="2"/>`;
     const _lblW = Math.min(g.W - 8, tw(fmtLabel(g.cls), '600 10px "Plus Jakarta Sans",Inter,system-ui') + 16);
@@ -1450,7 +1620,10 @@ function postRender() {
 }
 
 // ── rebuild canvas (depth change) ─────────────────────────
-function rebuildCanvas() {
+async function rebuildCanvas() {
+  // Pre-render PlantUML diagrams before building canvas
+  await preRenderAllPlantUMLDiagrams();
+  
   const result = buildCanvas(classes, classesData, refsData);
   if (!result) return;
   canvasEl.innerHTML = result.html;
@@ -1462,6 +1635,8 @@ function rebuildCanvas() {
     document.querySelectorAll(`[data-cls="${CSS.escape(selectedCls)}"]`)
       .forEach(el => el.classList.add('selected'));
   }
+  // Hydrate any remaining PlantUML placeholders with rendered SVGs
+  hydratePlantUMLPlaceholders();
 }
 
 // ── nav sidebar tree ─────────────────────────────────────
@@ -1768,6 +1943,9 @@ async function init() {
   // Load and render language statistics
   loadLanguageStats();
 
+  // Pre-render all PlantUML diagrams before building canvas
+  await preRenderAllPlantUMLDiagrams();
+
   const result = buildCanvas(originalPerspectives, classesData, refsData);
   if (result) {
     canvasEl.innerHTML = result.html;
@@ -2012,12 +2190,18 @@ document.addEventListener('click', (e) => {
 
 
 // ── window globals for inline onclick handlers ────────────
-window.toggleTheme = function() {
+window.toggleTheme = async function() {
   toggleTheme();
+  // Clear PlantUML SVG cache when theme changes (dark/light skinparams differ)
+  Object.keys(_plantUMLSvgCache).forEach(key => delete _plantUMLSvgCache[key]);
   if (_networkMode) {
     renderNetworkGraph();
   } else {
-    rebuildCanvas();
+    await rebuildCanvas();
+  }
+  // Also re-render sidebar diagram if open
+  if (selectedCls) {
+    window.__openSb(selectedCls);
   }
 };
 window.__showDiagramTab = function(tab) {
@@ -2053,11 +2237,20 @@ window.__scrubTimeline = function(idx) {
     if (diffBtn) { diffBtn.textContent = 'Show Diff'; diffBtn.classList.remove('active'); }
   }
   if (diagramView) {
-    const svg = renderFlatSVG(v.diagram);
-    diagramView.innerHTML = svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>';
+    // Check if this is a PlantUML diagram
+    const isPlantUML = /@startuml/i.test(v.diagram);
+    if (isPlantUML) {
+      renderPlantUMLDiagram(v.diagram).then(svg => {
+        diagramView.innerHTML = svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>';
+      });
+    } else {
+      const svg = renderFlatSVG(v.diagram);
+      diagramView.innerHTML = svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>';
+    }
   }
   if (codeView) {
-    codeView.querySelector('pre').innerHTML = highlightMermaid(v.diagram);
+    const isPlantUML = /@startuml/i.test(v.diagram);
+    codeView.querySelector('pre').innerHTML = isPlantUML ? highlightPlantUML(v.diagram) : highlightMermaid(v.diagram);
   }
   if (info) {
     const isLast = idx === versions.length - 1;
@@ -2078,6 +2271,13 @@ function renderRichView() {
   var dataKey = resolveDataKey(cls);
   var data = dataKey ? classesData[dataKey] : null;
   if (!data || !data.diagram) { canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted)">No diagram</div>'; return; }
+
+  // For PlantUML diagrams, show the rendered SVG directly (rich view is for Mermaid flowcharts)
+  var isPlantUML = data.format === 'plantuml' || /@startuml/i.test(data.diagram);
+  if (isPlantUML) {
+    canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:12px;text-align:center"><div style="margin-bottom:8px"><span style="background:var(--accent-soft);color:var(--accent);padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600">PlantUML</span></div><div>Rich view is available for Mermaid flowcharts only.</div><div style="margin-top:4px">Switch to the Diagram tab to view this PlantUML diagram.</div></div>';
+    return;
+  }
 
   // Render SVG using same parser as main canvas
   var parsed = parseFlowchart(data.diagram);
@@ -2233,16 +2433,34 @@ window.toggleMobileNav = function() {
 
 // ── diff toggle ──────────────────────────────────────────
 let _diffActive = false;
+// Helper to render diagram based on format
+async function renderDiagramForView(diagram) {
+  if (!diagram) return '';
+  const isPlantUML = /@startuml/i.test(diagram);
+  if (isPlantUML) {
+    return await renderPlantUMLDiagram(diagram);
+  }
+  return renderFlatSVG(diagram);
+}
+
 window.__toggleDiff = async function(cls) {
   const btn = document.getElementById('sb-diff-btn');
   const diagramView = document.querySelector('#sb-diagram .sb-diagram-view');
   if (!diagramView) return;
 
+  const data = classesData[cls];
+  const isPlantUML = data?.format === 'plantuml' || /@startuml/i.test(data?.diagram || '');
+
   if (_diffActive) {
     _diffActive = false;
     if (btn) { btn.textContent = 'Show Diff'; btn.classList.remove('active'); }
-    const data = classesData[cls];
-    diagramView.innerHTML = data?.diagram ? (renderFlatSVG(data.diagram) || '') : '';
+    if (isPlantUML) {
+      renderPlantUMLDiagram(data?.diagram || '').then(svg => {
+        diagramView.innerHTML = svg || '';
+      });
+    } else {
+      diagramView.innerHTML = data?.diagram ? (renderFlatSVG(data.diagram) || '') : '';
+    }
     return;
   }
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
@@ -2250,12 +2468,32 @@ window.__toggleDiff = async function(cls) {
     const res = await fetch(`/api/class/${encodeURIComponent(cls)}/diff`);
     const diff = await res.json();
     if (!diff.has_changes) {
-      diagramView.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:var(--text-muted);font-size:12px">No changes detected</div>';
+      if (isPlantUML) {
+        renderPlantUMLDiagram(classesData[cls]?.diagram || '').then(svg => {
+          diagramView.innerHTML = (svg || '') + '<div style="padding:8px;text-align:center;color:var(--text-muted);font-size:12px">No changes detected</div>';
+        });
+      } else {
+        diagramView.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:var(--text-muted);font-size:12px">No changes detected</div>';
+      }
       if (btn) { btn.textContent = 'No Changes'; btn.disabled = false; }
       return;
     }
     _diffActive = true;
     if (btn) { btn.textContent = 'Hide Diff'; btn.classList.add('active'); btn.disabled = false; }
+    
+    if (isPlantUML) {
+      // For PlantUML, just show the current version (diff highlighting not supported)
+      const svg = await renderPlantUMLDiagram(diff.current_diagram);
+      if (!svg) return;
+      let html = svg;
+      if (diff.removed_nodes?.length) {
+        const removedHtml = diff.removed_nodes.map(n => `<span style="color:var(--error);text-decoration:line-through">${esc(n)}</span>`).join(', ');
+        html += `<div style="padding:8px 16px;font-size:11px;color:var(--text-dim);border-top:1px solid var(--border-subtle)">Removed: ${removedHtml}</div>`;
+      }
+      diagramView.innerHTML = html;
+      return;
+    }
+    
     let svg = renderFlatSVG(diff.current_diagram);
     if (!svg) return;
     const addedNodes = new Set(diff.added_nodes || []);

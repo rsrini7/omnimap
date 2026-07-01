@@ -824,6 +824,44 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
   }
   .float-controls { display: none; }
 }
+
+/* ── Custom Scrollbar Styles ──────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* PlantUML diagram containers */
+.plantuml-container {
+  overflow: hidden;
+}
+.plantuml-container:hover {
+  overflow: auto;
+}
+.plantuml-container svg {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+}
 </style>
 </head>
 <body>
