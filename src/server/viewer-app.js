@@ -23,6 +23,11 @@ function renderFlowBar(elementPath) {
   const bar = document.getElementById('flow-bar');
   if (!bar) return;
   const flows = _flowsData[elementPath] || [];
+  
+  // Check if diagram is PlantUML (flows don't animate PlantUML)
+  const data = classesData[elementPath];
+  const isPlantUML = data?.format === 'plantuml' || /@startuml/i.test(data?.diagram || '');
+  
   // Clear existing chips (keep label)
   bar.innerHTML = '<span class="flow-bar-label">Flows</span>';
   if (flows.length === 0) {
@@ -31,13 +36,31 @@ function renderFlowBar(elementPath) {
     return;
   }
   bar.classList.add('has-flows');
-  for (const f of flows) {
-    const chip = document.createElement('button');
-    chip.className = 'flow-chip' + (_activeFlow === f.name ? ' active' : '');
-    chip.textContent = f.name;
-    chip.title = f.description || f.name;
-    chip.onclick = () => toggleFlow(elementPath, f.name);
-    bar.appendChild(chip);
+  
+  if (isPlantUML) {
+    // Show flows but with note that animation not supported
+    const note = document.createElement('span');
+    note.style.cssText = 'font-size:10px;color:var(--text-muted);font-style:italic';
+    note.textContent = '(animation not available for PlantUML)';
+    bar.appendChild(note);
+    for (const f of flows) {
+      const chip = document.createElement('button');
+      chip.className = 'flow-chip';
+      chip.textContent = f.name;
+      chip.title = f.description || f.name;
+      chip.style.opacity = '0.5';
+      chip.style.cursor = 'not-allowed';
+      bar.appendChild(chip);
+    }
+  } else {
+    for (const f of flows) {
+      const chip = document.createElement('button');
+      chip.className = 'flow-chip' + (_activeFlow === f.name ? ' active' : '');
+      chip.textContent = f.name;
+      chip.title = f.description || f.name;
+      chip.onclick = () => toggleFlow(elementPath, f.name);
+      bar.appendChild(chip);
+    }
   }
 }
 
@@ -159,6 +182,61 @@ async function preRenderAllPlantUMLDiagrams() {
   await Promise.all(promises);
 }
 
+/** Hydrate PlantUML placeholders progressively (async, non-blocking) */
+async function hydratePlantUMLPlaceholders() {
+  const placeholders = document.querySelectorAll('[data-plantuml]');
+  console.log('[PlantUML] Found', placeholders.length, 'placeholders to hydrate');
+  if (!placeholders.length) return;
+  
+  // Process each placeholder async without blocking
+  for (const el of placeholders) {
+    const cls = el.dataset.plantuml;
+    const scopedPath = el.dataset.plantumlScoped || cls;
+    const dataKey = resolveDataKey(scopedPath);
+    const data = dataKey ? classesData[dataKey] : classesData[cls];
+    if (!data?.diagram) {
+      console.log('[PlantUML] No diagram data for', cls);
+      continue;
+    }
+    
+    console.log('[PlantUML] Rendering', cls);
+    // Render async (don't await - let it load in background)
+    renderPlantUMLForCanvas(cls, data.diagram).then(svg => {
+      if (!svg) {
+        console.log('[PlantUML] Failed to render', cls);
+        return;
+      }
+      
+      console.log('[PlantUML] Rendered', cls, '- updating DOM');
+      // Find the group element and update it
+      const grpInner = el.querySelector('.grp-inner');
+      if (!grpInner) {
+        console.log('[PlantUML] No grp-inner found for', cls);
+        return;
+      }
+      
+      // Use fixed dimensions that match the placeholder size
+      const PAD = 24;
+      const IMG_W = 600;
+      const IMG_H = 500;
+      
+      // Replace placeholder with rendered SVG
+      grpInner.innerHTML = `<foreignObject x="${PAD}" y="${PAD}" width="${IMG_W}" height="${IMG_H}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="plantuml-container" style="width:100%;height:100%;overflow:hidden;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <style>
+            .plantuml-container svg { max-width:100%; max-height:100%; width:auto; height:auto; display:block; }
+            .plantuml-container::-webkit-scrollbar { width:6px; height:6px; }
+            .plantuml-container::-webkit-scrollbar-track { background:transparent; }
+            .plantuml-container::-webkit-scrollbar-thumb { background:var(--border-subtle); border-radius:3px; }
+            .plantuml-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+          </style>
+          <div class="plantuml-diagram">${svg}</div>
+        </div>
+      </foreignObject>`;
+    });
+  }
+}
+
 /** Extract SVG viewBox dimensions from SVG string */
 function extractSvgDimensions(svgString) {
   const viewBoxMatch = svgString.match(/viewBox=["']([^"']+)["']/);
@@ -219,7 +297,7 @@ function renderPlantUMLGroup(cls, data, level, scopedPath) {
   
   // Fallback: show a loading placeholder (will be hydrated)
   const IMG_W = 600;
-  const IMG_H = 400;
+  const IMG_H = 500;
   const W = IMG_W + PAD * 2;
   const H = IMG_H + PAD * 2;
   return {
@@ -1640,10 +1718,7 @@ function postRender() {
 }
 
 // ── rebuild canvas (depth change) ─────────────────────────
-async function rebuildCanvas() {
-  // Pre-render PlantUML diagrams before building canvas
-  await preRenderAllPlantUMLDiagrams();
-  
+function rebuildCanvas() {
   const result = buildCanvas(classes, classesData, refsData);
   if (!result) return;
   canvasEl.innerHTML = result.html;
@@ -1655,7 +1730,7 @@ async function rebuildCanvas() {
     document.querySelectorAll(`[data-cls="${CSS.escape(selectedCls)}"]`)
       .forEach(el => el.classList.add('selected'));
   }
-  // Hydrate any remaining PlantUML placeholders with rendered SVGs
+  // Hydrate PlantUML placeholders async (don't block canvas)
   hydratePlantUMLPlaceholders();
 }
 
@@ -1963,9 +2038,7 @@ async function init() {
   // Load and render language statistics
   loadLanguageStats();
 
-  // Pre-render all PlantUML diagrams before building canvas
-  await preRenderAllPlantUMLDiagrams();
-
+  // Build canvas immediately (Mermaid renders fast)
   const result = buildCanvas(originalPerspectives, classesData, refsData);
   if (result) {
     canvasEl.innerHTML = result.html;
@@ -1973,6 +2046,9 @@ async function init() {
   }
   postRender();
   requestAnimationFrame(centerView);
+  
+  // Hydrate PlantUML placeholders async (after canvas is shown)
+  hydratePlantUMLPlaceholders();
 
   // Cloud mode: notify parent frame of available classes
   if (window.parent !== window) {
@@ -2210,18 +2286,18 @@ document.addEventListener('click', (e) => {
 
 
 // ── window globals for inline onclick handlers ────────────
-window.toggleTheme = async function() {
+window.toggleTheme = function() {
   toggleTheme();
   // Clear PlantUML SVG cache when theme changes (dark/light skinparams differ)
   Object.keys(_plantUMLSvgCache).forEach(key => delete _plantUMLSvgCache[key]);
   if (_networkMode) {
     renderNetworkGraph();
   } else {
-    await rebuildCanvas();
+    rebuildCanvas();
   }
   // Auto-refresh sidebar diagram after theme change
   if (selectedCls) {
-    await window.__refreshDiagram();
+    window.__refreshDiagram();
   }
 };
 window.__showDiagramTab = function(tab) {
@@ -2979,6 +3055,10 @@ window.openDiagramOverlay = function() {
   const flows = _flowsData[selectedCls] || [];
   _overlayActiveFlow = null;
   
+  // Check if diagram is PlantUML
+  const data = classesData[selectedCls];
+  const isPlantUML = data?.format === 'plantuml' || /@startuml/i.test(data?.diagram || '');
+  
   // Remove existing flow bar if any
   const existingFlowBar = overlay.querySelector('.overlay-flow-bar');
   if (existingFlowBar) existingFlowBar.remove();
@@ -2989,12 +3069,26 @@ window.openDiagramOverlay = function() {
     flowBar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap';
     flowBar.innerHTML = '<span style="font-size:11px;color:var(--text-muted);font-weight:600">Flows:</span>';
     
+    if (isPlantUML) {
+      // Show note that animation not available for PlantUML
+      const note = document.createElement('span');
+      note.style.cssText = 'font-size:10px;color:var(--text-muted);font-style:italic';
+      note.textContent = '(animation not available for PlantUML)';
+      flowBar.appendChild(note);
+    }
+    
     flows.forEach(f => {
       const chip = document.createElement('button');
       chip.className = 'flow-chip';
       chip.textContent = f.name;
       chip.title = f.description || f.name;
-      chip.onclick = () => toggleOverlayFlow(f.name, flows);
+      
+      if (isPlantUML) {
+        chip.style.opacity = '0.5';
+        chip.style.cursor = 'not-allowed';
+      } else {
+        chip.onclick = () => toggleOverlayFlow(f.name, flows);
+      }
       flowBar.appendChild(chip);
     });
     

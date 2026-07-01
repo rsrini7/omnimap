@@ -591,8 +591,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 
 .sb-diagram { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
 .sb-diagram svg { display: block; width: 100%; height: auto; overflow: visible; }
-.sb-diagram-view { padding: 8px; max-height: 220px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--border-subtle) transparent; }
-.sb-diagram-view svg { max-height: 200px; width: auto; display: block; margin: 0 auto; }
+.sb-diagram-view { padding: 8px; max-height: 220px; overflow: hidden; scrollbar-width: thin; scrollbar-color: var(--border-subtle) transparent; }
+.sb-diagram-view svg { max-height: 200px; width: 100%; height: auto; display: block; margin: 0 auto; object-fit: contain; }
+.sb-diagram-view:hover { overflow: auto; }
 .sb-diagram-toggle { display: flex; border-bottom: 1px solid var(--border-muted); align-items: center; }
 .sb-diagram-tab { background: none; border: none; color: var(--text-muted); padding: 8px 16px; font-size: 11px; font-family: var(--mono); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
 .sb-format-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; font-weight: 600; }
