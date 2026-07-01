@@ -12,7 +12,7 @@ Push `.omm/` architecture docs to a shared git repository for team collaboration
 ## Prerequisites
 
 ```bash
-command -v omm || npm install -g omnimap
+command -v omm || npm install -g @rsrini/omnimap
 ```
 
 ## Workflow

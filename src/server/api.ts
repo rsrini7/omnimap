@@ -12,6 +12,8 @@ import { buildCoverageMap, computeCoverageStats } from '../lib/treecode.js';
 import { checkSignature, readStoredSignature } from '../lib/signature.js';
 import { buildReconcileReport } from '../lib/reconcile.js';
 import { resolveLinksForElement, formatResolutions } from '../lib/link-resolver.js';
+import { renderPlantUML } from '../lib/format.js';
+import YAML from 'yaml';
 
 function json(res: ServerResponse, data: unknown, status = 200): void {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
@@ -22,6 +24,15 @@ function numParam(v: string | null): number | undefined {
   if (v === null) return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
+}
+
+async function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+    req.on('error', reject);
+  });
 }
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
@@ -353,6 +364,39 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
       const resolutions = resolveLinksForElement(className);
       const formatted = formatResolutions(resolutions);
       json(res, { element: className, resolutions, formatted });
+    } catch (err: any) {
+      json(res, { error: err.message }, 500);
+    }
+    return true;
+  }
+
+  // POST /api/render/plantuml — Render PlantUML to SVG
+  if (req.method === 'POST' && url.pathname === '/api/render/plantuml') {
+    try {
+      const body = await readBody(req);
+      const { source } = JSON.parse(body);
+
+      if (!source) {
+        json(res, { error: 'source is required' }, 400);
+        return true;
+      }
+
+      // Get config for Kroki URL
+      const ommDir = getOmmDir();
+      const configPath = nodePath.join(ommDir, 'config.yaml');
+      let krokiUrl = 'https://kroki.io';
+
+      if (fs.existsSync(configPath)) {
+        try {
+          const config = YAML.parse(fs.readFileSync(configPath, 'utf-8'));
+          krokiUrl = config?.kroki_url || krokiUrl;
+        } catch { /* ignore */ }
+      }
+
+      // renderPlantUML auto-detects plantuml.jar from config or ~/.omnimap/
+      const svg = await renderPlantUML(source, { krokiUrl });
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+      res.end(svg);
     } catch (err: any) {
       json(res, { error: err.message }, 500);
     }

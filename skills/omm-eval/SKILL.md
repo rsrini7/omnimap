@@ -21,10 +21,10 @@ This creates an **iterative improvement loop** that progressively raises documen
 ## Prerequisites
 
 ```bash
-command -v omm || npm install -g omnimap
+command -v omm || npm install -g @rsrini/omnimap
 ```
 
-If the install fails, tell the user: "Please run `npm install -g omnimap` in your terminal, then try again."
+If the install fails, tell the user: "Please run `npm install -g @rsrini/omnimap` in your terminal, then try again."
 
 ---
 
@@ -73,6 +73,12 @@ omm validate <element>
 omm validate --explain      # full rule docs (rule + fix + example)
 omm validate --rules        # one-liner rule list
 omm validate <element> --fix  # auto-fix fixable issues (classdef-color), writes back
+
+# Diagram format support
+# omm eval and omm validate detect format automatically:
+#   .puml files → PlantUML validation (@startuml/@enduml, participants, arrows)
+#   .mmd files  → Mermaid validation (graph declaration, nodes, edges)
+# Set format explicitly: omm format <element> set plantuml
 
 # Check for circular cross-references between perspectives
 # Look for 'perspective-cross-ref' warnings in the output
@@ -166,7 +172,7 @@ The overall score is the sum of 6 components:
 | Component | Max | When earned |
 |-----------|-----|-------------|
 | `fields` | 40 | proportional to fields filled (7 total) |
-| `diagram` | 20 | 20 if valid mermaid, 10 if has but invalid |
+| `diagram` | 20 | 20 if valid (Mermaid or PlantUML), 10 if has but invalid |
 | `description` | 10 | 10 if >50 chars, 5 if >20 chars |
 | `flows` | 10 | 10 if any flow definitions exist |
 | `refs` | 10 | 10 if any @cross-references in diagram |

@@ -83,6 +83,8 @@ Her element en fazla 7 alan taşıyabilir: `description`, `diagram`, `context`, 
 omm setup                          # Yetenekleri AI araçlarına kaydet
 omm view                           # Etkileşimli görüntüleyiciyi aç
 omm config language ko             # İçerik dilini ayarla
+omm format <element>               # Show diagram format (mermaid/plantuml)
+omm config plantuml-status         # Check PlantUML status
 omm incremental                    # git diff'e dayalı kademeli yeniden tarama planla
                                    # stale nedenleri: source_file, source_glob, orphaned_source,
                                    #   glob_coverage_changed, no_source_tracking

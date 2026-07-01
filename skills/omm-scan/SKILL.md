@@ -16,10 +16,75 @@ Analyze the codebase and generate `.omm/` architecture documentation using **per
 ## Prerequisites
 
 ```bash
-command -v omm || npm install -g omnimap
+command -v omm || npm install -g @rsrini/omnimap
 ```
 
-If the install fails, tell the user: "Please run `npm install -g omnimap` in your terminal, then try again."
+If the install fails, tell the user: "Please run `npm install -g @rsrini/omnimap` in your terminal, then try again."
+
+---
+
+## Diagram Format Support
+
+OmniMap supports two diagram formats:
+
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| **Mermaid** | `.mmd` | Default. Architecture overviews, flowcharts, dependency graphs |
+| **PlantUML** | `.puml` | Sequence diagrams, C4 architecture, class diagrams, state diagrams |
+
+### When to use PlantUML
+
+- **Sequence diagrams** — API flows, microservice interactions, authentication flows
+- **C4 diagrams** — System context, container diagrams, enterprise architecture
+- **Class diagrams** — When you need advanced stereotypes or complex relationships
+- **State diagrams** — Concurrent states, nested states
+
+### Format detection
+
+OmniMap auto-detects format by file extension:
+- `diagram.puml` or `diagram.plantuml` → PlantUML
+- `diagram.mmd` → Mermaid (default)
+
+### Setting format explicitly
+
+```bash
+# Check current format
+omm format <element>
+
+# Set format
+omm format <element> set plantuml
+omm format <element> set mermaid
+```
+
+### PlantUML diagram examples
+
+**Sequence diagram:**
+```plantuml
+@startuml
+actor User
+participant "API" as API
+participant "Auth Service" as Auth
+
+User -> API: POST /login
+API -> Auth: validate()
+Auth --> API: JWT token
+API --> User: 200 OK
+@enduml
+```
+
+**C4 System Context:**
+```plantuml
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4/master/C4_Context.puml
+
+Person(user, "User", "Uses the system")
+System(app, "My App", "Main application")
+System_Ext(ext, "External API", "Third party")
+
+Rel(user, app, "Uses")
+Rel(app, ext, "Calls")
+@enduml
+```
 
 ---
 
@@ -536,6 +601,43 @@ Tell the user:
   classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
   classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
   ```
+
+### PlantUML diagram rules (`.puml`)
+
+For sequence diagrams, API flows, and C4 architecture:
+
+1. **Must start with `@startuml` and end with `@enduml`**
+2. **Declare participants before messages:**
+   ```plantuml
+   participant "Service A" as A
+   participant "Service B" as B
+   ```
+3. **Use proper arrow syntax:**
+   - `->` solid arrow
+   - `-->` dashed arrow
+   - `->>` async message
+4. **Use blocks for complex flows:**
+   ```plantuml
+   alt success
+     A -> B: OK
+   else failure
+     A -> B: Error
+   end
+   ```
+5. **For C4 diagrams, include the stdlib:**
+   ```plantuml
+   !include https://raw.githubusercontent.com/plantuml-stdlib/C4/master/C4_Context.puml
+   ```
+
+### When to choose PlantUML vs Mermaid
+
+| Use Case | Recommended Format |
+|----------|-------------------|
+| Sequence diagrams (API flows) | **PlantUML** |
+| C4 architecture (system context) | **PlantUML** |
+| Simple architecture overviews | Mermaid |
+| Dependency graphs | Mermaid |
+| Class diagrams | Either |
 
 ## General Rules
 

@@ -1,0 +1,18 @@
+version: "3"
+
+# Kroki self-hosted setup for OmniMap
+# Usage: docker compose -f docker-compose.kroki.yml up -d
+# Then: omm config kroki-url http://localhost:8000
+
+services:
+  kroki:
+    image: yuzutech/kroki
+    ports:
+      - "8000:8000"
+    environment:
+      - KROKI_MERMAID_HOST=mermaid
+    depends_on:
+      - mermaid
+
+  mermaid:
+    image: yuzutech/kroki-mermaid

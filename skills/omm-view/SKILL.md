@@ -10,16 +10,20 @@ argument-hint: "[--port <port>] [--project <name>]"
 
 Launch the interactive web viewer so the user can explore `.omm/` architecture diagrams in their browser.
 
+The viewer supports both **Mermaid** and **PlantUML** diagrams:
+- **Mermaid** — renders client-side (offline capable)
+- **PlantUML** — renders via Kroki API or local `plantuml.jar` (configurable)
+
 ## Prerequisites
 
 Ensure the `omm` CLI is available:
 
 ```bash
-command -v omm || npm install -g omnimap
+command -v omm || npm install -g @rsrini/omnimap
 ```
 
 If the install command fails (permission denied), tell the user:
-"Please run `npm install -g omnimap` in your terminal, then try again."
+"Please run `npm install -g @rsrini/omnimap` in your terminal, then try again."
 
 ## Steps
 
@@ -61,7 +65,8 @@ Once the viewer is running, the user has access to:
 
 | Feature | Where | What it does |
 |---------|-------|-------------|
-| **Mermaid diagram** | Main canvas | Auto-layout SVG with dagre, click to inspect |
+| **Diagram view** | Main canvas | Auto-layout SVG (Mermaid) or Kroki-rendered SVG (PlantUML) |
+| **Format badge** | Diagram tab | Shows `[Mermaid]` or `[PlantUML]` badge |
 | **Rich view** | Sidebar → Rich tab | Interactive SVG with flow animation (in-tab flow chips) |
 | **Flow chips** | Bottom of canvas | Click to animate paths through the diagram |
 | **D3 network** | ⬡ button | Force-directed view of all elements + relationships |
@@ -73,6 +78,37 @@ Once the viewer is running, the user has access to:
 | **Help tooltips** | Hover any button | Native browser tooltips explain each button |
 
 Tell the user to explore these features and use `/omm-feedback` if anything is confusing or broken.
+
+## PlantUML Configuration
+
+For PlantUML diagrams, the viewer uses one of these rendering methods:
+
+| Method | Setup | Best for |
+|--------|-------|----------|
+| **Kroki API** (default) | None — works out of the box | Most users, online use |
+| **Local plantuml.jar** | `omm config plantuml-jar /path/to/plantuml.jar` | Corporate/air-gapped environments |
+
+### Kroki URL
+
+By default, the viewer uses `https://kroki.io`. To use a self-hosted Kroki instance:
+
+```bash
+omm config kroki-url https://your-kroki-instance.com
+```
+
+### Offline PlantUML
+
+For offline/air-gapped environments:
+
+1. Download plantuml.jar from https://plantuml.com/download
+2. Install Java (required for plantuml.jar)
+3. Configure the jar path:
+
+```bash
+omm config plantuml-jar /path/to/plantuml.jar
+```
+
+If neither Kroki nor plantuml.jar is available, PlantUML diagrams will show as raw source code in a `<pre>` block.
 
 ## Rules
 

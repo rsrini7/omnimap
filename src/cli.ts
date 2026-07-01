@@ -47,8 +47,9 @@ import { commandLinks } from './commands/links.js';
 import { commandTreecode } from './commands/treecode.js';
 import { commandSignature } from './commands/signature.js';
 import { commandReconcile } from './commands/reconcile.js';
+import { commandFormat } from './commands/format.js';
 
-const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'inspect', 'links', 'treecode', 'signature', 'reconcile', 'help'];
+const GLOBAL_COMMANDS = ['init', 'setup', 'update', 'list', 'show', 'delete', 'status', 'diff', 'refs', 'validate', 'view', 'push', 'pull', 'read', 'write', 'tree', 'config', 'incremental', 'export', 'tag', 'arch', 'share', 'org', 'flows', 'eval', 'ref-syntax', 'feedback', 'diagram-refs', 'analyze', 'query', 'hooks', 'pr', 'tour', 'wiki', 'search', 'merge', 'sync', 'affected', 'mcp', 'watch', 'wiki2html', 'wiki2pdf', 'inspect', 'links', 'treecode', 'signature', 'reconcile', 'format', 'help'];
 
 function printHelp(): void {
   const help = `
@@ -104,6 +105,7 @@ Usage:
   omm treecode [dir] [--uncovered|--orphans|--stats]  Code ↔ docs coverage map
   omm signature [--check|--update]     Structural signature for drift detection
   omm reconcile [--fix|--non-interactive]  Sync reconciliation
+  omm format <element> [set <format>]   Show or set diagram format (mermaid/plantuml)
 
 Architecture Repository:
   omm push [--to repo] [--commit] [--commit-push]  Push .omm/ to architecture repository
@@ -382,6 +384,10 @@ async function main(): Promise<void> {
 
     case 'reconcile':
       commandReconcile(args.slice(1));
+      return;
+
+    case 'format':
+      await commandFormat(args.slice(1));
       return;
 
     default:

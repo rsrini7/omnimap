@@ -1,6 +1,6 @@
 import { parseMermaid } from './diff.js';
 import { extractRefs } from './refs.js';
-import type { ValidationIssue, ValidationResult } from '../types.js';
+import type { ValidationIssue, ValidationResult, DiagramFormat } from '../types.js';
 
 // --- Source-of-truth constants ---
 
@@ -298,4 +298,119 @@ export function validateDiagram(text: string, context?: ValidateContext): Valida
     valid: issues.filter(i => i.level === 'error').length === 0,
     issues,
   };
+}
+
+/**
+ * Validate PlantUML diagram syntax.
+ * Checks for basic structural correctness.
+ */
+export function validatePlantUML(text: string, context?: { className?: string }): ValidationResult {
+  const issues: ValidationIssue[] = [];
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    issues.push({
+      level: 'error',
+      rule: 'empty-diagram',
+      message: 'Diagram is empty.',
+    });
+    return { valid: false, issues };
+  }
+
+  // Check for @startuml/@enduml tags
+  const hasStart = /@startuml/i.test(trimmed);
+  const hasEnd = /@enduml/i.test(trimmed);
+
+  if (!hasStart) {
+    issues.push({
+      level: 'error',
+      rule: 'missing-startuml',
+      message: 'Missing @startuml tag.',
+    });
+  }
+
+  if (!hasEnd) {
+    issues.push({
+      level: 'error',
+      rule: 'missing-enduml',
+      message: 'Missing @enduml tag.',
+    });
+  }
+
+  // Check for common PlantUML syntax issues
+  const lines = trimmed.split('\n');
+  let participantCount = 0;
+  let messageCount = 0;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Count participants in sequence diagrams
+    if (/^(participant|actor|boundary|control|entity|database|collections|component)\s+/i.test(trimmedLine)) {
+      participantCount++;
+    }
+    
+    // Count messages (arrows)
+    if (/->|<-|--><|-->|<-->/.test(trimmedLine) && !trimmedLine.startsWith('//') && !trimmedLine.startsWith("'")) {
+      messageCount++;
+    }
+  }
+
+  // Warn if sequence diagram has too few participants
+  if (participantCount > 0 && participantCount < 2) {
+    issues.push({
+      level: 'warning',
+      rule: 'few-participants',
+      message: `Only ${participantCount} participant(s). Sequence diagrams typically need 2+ participants.`,
+    });
+  }
+
+  // Warn if no messages in sequence diagram
+  if (participantCount > 0 && messageCount === 0) {
+    issues.push({
+      level: 'warning',
+      rule: 'no-messages',
+      message: 'No messages found in sequence diagram.',
+    });
+  }
+
+  // Check for unbalanced blocks
+  const blockKeywords = ['if', 'else', 'endif', 'loop', 'end', 'group', 'alt', 'opt', 'break', 'critical'];
+  let blockDepth = 0;
+  for (const line of lines) {
+    const trimmedLine = line.trim().toLowerCase();
+    if (/^(if|loop|group|alt|opt|break|critical|fork)\b/.test(trimmedLine)) {
+      blockDepth++;
+    }
+    if (/^(endif|end|else)\b/.test(trimmedLine)) {
+      blockDepth = Math.max(0, blockDepth - 1);
+    }
+  }
+  if (blockDepth !== 0) {
+    issues.push({
+      level: 'warning',
+      rule: 'unbalanced-blocks',
+      message: `Unbalanced block structure (depth: ${blockDepth}). Check if/loop/end keywords.`,
+    });
+  }
+
+  return {
+    valid: issues.filter(i => i.level === 'error').length === 0,
+    issues,
+  };
+}
+
+/**
+ * Validate diagram with format awareness.
+ */
+export function validateDiagramFormat(
+  text: string,
+  format: DiagramFormat,
+  context?: { className?: string; allClasses?: string[] }
+): ValidationResult {
+  if (format === 'plantuml') {
+    return validatePlantUML(text, context?.className ? { className: context.className } : undefined);
+  }
+  const validateContext = context?.className ? { className: context.className, allClasses: context.allClasses || [] } : undefined;
+  return validateDiagram(text, validateContext);
 }

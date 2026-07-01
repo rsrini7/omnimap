@@ -53,7 +53,37 @@ omm view
 
 ## How It Works
 
-Your AI analyzes the codebase and generates **perspectives** — different lenses on your architecture (structure, data flow, integrations...). Each perspective contains a Mermaid diagram and documentation fields.
+Your AI analyzes the codebase and generates **perspectives** — different lenses on your architecture (structure, data flow, integrations...). Each perspective contains a diagram and documentation fields.
+
+### Diagram Format Support
+
+OmniMap supports two diagram formats:
+
+| Format | Best For | Extension |
+|--------|----------|----------|
+| **Mermaid** | Architecture overviews, dependency graphs, flowcharts | `.mmd` |
+| **PlantUML** | Sequence diagrams, C4 architecture, class diagrams | `.puml` |
+
+**PlantUML rendering options** (in priority order):
+
+| Option | Setup | Best For |
+|--------|-------|----------|
+| **Public Kroki** | None — works out of the box | Personal use, online |
+| **Self-hosted Kroki** | Docker: `docker run -p 8000:8000 yuzutech/kroki` | Corporate, team use |
+| **Local plantuml.jar** | `omm config plantuml-download` | Air-gapped, offline |
+
+```bash
+# Check PlantUML status
+omm config plantuml-status
+
+# Auto-download plantuml.jar (requires Java 11+)
+omm config plantuml-download
+
+# Use self-hosted Kroki
+omm config kroki-url http://localhost:8000
+```
+
+See [PlantUML Configuration](#plantuml-configuration) for details.
 
 `omm analyze` uses tree-sitter AST parsing to extract dependency graphs, public API surfaces, and module boundaries — giving the AI a deterministic structural anchor before semantic analysis.
 
@@ -80,6 +110,31 @@ The viewer auto-detects nesting from the filesystem — elements with children r
 
 Each element carries up to 7 fields: `description`, `diagram`, `context`, `constraint`, `concern`, `todo`, `note`.
 
+## PlantUML Configuration
+
+OmniMap renders PlantUML diagrams via **Kroki API** (default, zero setup) or **local plantuml.jar** (offline).
+
+```bash
+# Check status
+omm config plantuml-status
+
+# Auto-download plantuml.jar (for offline use)
+omm config plantuml-download
+
+# Use self-hosted Kroki (corporate)
+omm config kroki-url http://localhost:8000
+```
+
+| Option | Setup | Best For |
+|--------|-------|----------|
+| **Public Kroki** | None | Personal use, online |
+| **Self-hosted Kroki** | Docker | Corporate, team use |
+| **Local plantuml.jar** | `omm config plantuml-download` | Air-gapped, offline |
+
+See [PlantUML Setup Guide](docs/plantuml-setup.md) for Docker Compose, examples, and troubleshooting.
+
+---
+
 ## CLI
 
 ### Core commands
@@ -89,6 +144,9 @@ omm setup [platform|--list|--teardown]  Register/inspect skills for AI tools
 omm init [--template <name>]            Initialize .omm/ or scaffold from template
 omm update                             Update CLI + plugins to latest version
 omm config language <code>             Set content language (en, ko, ja, zh, tr)
+omm format <element> [set <format>]   Show or set diagram format (mermaid/plantuml)
+omm config plantuml-status            Check PlantUML configuration
+omm config plantuml-download          Auto-download plantuml.jar
 ```
 
 ### Reading & writing
@@ -260,6 +318,24 @@ omm tour [dir] [--limit n]             Guided tour (read in dependency order)
 omm wiki [--out dir]                    Generate crawlable markdown wiki (default: .omm/.wiki/)
 ```
 
+### MCP Server (AI Agent Integration)
+
+Start an MCP server for AI agents (Claude, Cursor, etc.) to query architecture data:
+
+```bash
+omm mcp                    # Start stdio MCP server
+omm mcp --port 8080        # Start HTTP MCP server
+```
+
+| Tool | Description |
+|------|-------------|
+| `omm_analyze` | Structural analysis (dependency graph, god nodes, fitness score) |
+| `omm_search` | Fuzzy search across elements |
+| `omm_tour` | Generate guided reading tour |
+| `omm_impact` | Change impact analysis for a file |
+
+See [MCP Setup Guide](docs/mcp-setup.md) for Claude Desktop, Cursor, and HTTP integration.
+
 ### Collaboration
 
 ```bash
@@ -270,7 +346,6 @@ omm watch [dir] [--debounce ms]         Auto-run omm analyze on file changes
 omm pr [number|branch] [--staged]       Show PR/module impact
 omm affected [files...] [--staged]      Find test files impacted by changes
 omm merge <source> [--out dir]          Merge another .omm/ into current
-omm mcp [--port <port>]                 Start MCP server for AI agents
 omm view [--port p] [--share]           Open viewer (--share for network access)
 ```
 

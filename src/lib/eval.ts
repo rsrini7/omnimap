@@ -3,7 +3,8 @@ import path from 'node:path';
 import { VALID_FIELDS, FIELD_FILES, type Field, type ClassData, type ClassMeta } from '../types.js';
 import { listClasses, listNodes, readField, readNodeField, readMeta, readNodeMeta, readFlows, getOmmDir } from './store.js';
 import { getIncomingRefs, getOutgoingRefs } from './refs.js';
-import { validateDiagram } from './validate.js';
+import { validateDiagramFormat } from './validate.js';
+import { detectDiagramFormat } from './format.js';
 import { parseMermaid } from './diff.js';
 import { checkSignature } from './signature.js';
 import { buildReconcileReport } from './reconcile.js';
@@ -97,7 +98,14 @@ function evaluateElement(elemPath: string, isPerspective: boolean, cwd?: string)
   let diagramIssues: string[] = [];
   if (hasDiagram) {
     const allClasses = listClasses(cwd);
-    const result = validateDiagram(diagram!, { className: elemPath, allClasses });
+    // Detect format from file extension or meta.yaml
+    const ommDir = getOmmDir(cwd);
+    const parts = elemPath.split('/');
+    const elemDir = parts.length === 1 
+      ? path.join(ommDir, elemPath)
+      : path.join(ommDir, parts[0], ...parts.slice(1));
+    const { format } = detectDiagramFormat(elemDir);
+    const result = validateDiagramFormat(diagram!, format, { className: elemPath, allClasses });
     diagramValid = result.valid;
     diagramIssues = result.issues.map(i => `${i.rule}: ${i.message}`);
   }

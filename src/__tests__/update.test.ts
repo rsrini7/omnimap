@@ -22,7 +22,7 @@ describe('commandUpdate', () => {
 
     await commandUpdate();
 
-    expect(execSync).toHaveBeenCalledWith('npm update -g omnimap 2>&1', {
+    expect(execSync).toHaveBeenCalledWith('npm update -g @rsrini/omnimap 2>&1', {
       encoding: 'utf-8',
     });
     expect(execFileSync).toHaveBeenCalledWith('omm', ['setup'], { stdio: 'inherit' });

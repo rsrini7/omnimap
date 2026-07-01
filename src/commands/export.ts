@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ensureOmmForRead, showClass, showNode, getOmmDir, readFlows, listNodes } from '../lib/store.js';
+import YAML from 'yaml';
+import { ensureOmmForRead, showClass, showNode, getOmmDir, readFlows, listNodes, readNodeMeta } from '../lib/store.js';
 import { generateHtmlExport } from '../lib/html-export.js';
-import type { ClassData } from '../types.js';
+import { detectDiagramFormat, renderPlantUML } from '../lib/format.js';
+import type { ClassData, DiagramFormat } from '../types.js';
 
 const HELP = `
 omm export <element> [options]
@@ -169,6 +171,68 @@ async function renderToPng(mermaidText: string, title?: string): Promise<Buffer>
   return Buffer.from(title ? addTitleToSvg(svg, title) : svg, 'utf-8');
 }
 
+/** Render PlantUML to SVG via Kroki or local jar */
+async function renderPlantUMLToSvg(plantumlText: string, title?: string): Promise<string> {
+  try {
+    const svg = await renderPlantUML(plantumlText);
+    if (svg.includes('<svg')) return title ? addTitleToSvg(svg, title) : svg;
+  } catch (err) {
+    process.stderr.write(`warning: PlantUML render failed: ${err}\n`);
+  }
+  
+  // Fallback to raw text SVG
+  const fallback = fallbackSvg(plantumlText);
+  return title ? addTitleToSvg(fallback, title) : fallback;
+}
+
+/** Render PlantUML to PNG via Kroki or local jar */
+async function renderPlantUMLToPng(plantumlText: string, title?: string): Promise<Buffer> {
+  try {
+    // Try local jar first for PNG (better quality)
+    const plantumlJar = getPlantumlJarPath();
+    if (plantumlJar) {
+      const { execSync } = await import('node:child_process');
+      const os = await import('node:os');
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(tmpDir, `plantuml-${Date.now()}.puml`);
+      const tmpPng = tmpFile.replace('.puml', '.png');
+      
+      try {
+        fs.writeFileSync(tmpFile, plantumlText, 'utf-8');
+        execSync(`java -jar "${plantumlJar}" -tpng -o "${tmpDir}" "${tmpFile}"`, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        const buf = fs.readFileSync(tmpPng);
+        if (buf.length > 100) return buf;
+      } finally {
+        try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+        try { fs.unlinkSync(tmpPng); } catch { /* ignore */ }
+      }
+    }
+    
+    // Fallback: render SVG and convert
+    const svg = await renderPlantUMLToSvg(plantumlText, title);
+    return Buffer.from(svg, 'utf-8');
+  } catch (err) {
+    process.stderr.write(`warning: PlantUML PNG render failed: ${err}\n`);
+    const svg = fallbackSvg(plantumlText);
+    return Buffer.from(title ? addTitleToSvg(svg, title) : svg, 'utf-8');
+  }
+}
+
+/** Get configured plantuml.jar path from config */
+function getPlantumlJarPath(): string | null {
+  try {
+    const ommDir = getOmmDir();
+    const configPath = path.join(ommDir, 'config.yaml');
+    if (!fs.existsSync(configPath)) return null;
+    const config = YAML.parse(fs.readFileSync(configPath, 'utf-8'));
+    return config?.plantuml_jar || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Minimal SVG with the raw text, for offline use. */
 function fallbackSvg(text: string): string {
   const lines = text.split('\n');
@@ -209,11 +273,19 @@ export async function commandExport(args: string[]): Promise<void> {
   }
 
   if (!data.diagram) {
-    process.stderr.write(`error: ${parsed.element}/diagram.mmd is empty\n`);
+    process.stderr.write(`error: ${parsed.element}/diagram file is empty\n`);
     process.exit(1);
   }
 
-  process.stderr.write(`Exporting ${parsed.element} as ${parsed.format}...\n`);
+  // Detect diagram format
+  const parts = parsed.element.split('/');
+  const ommDir = getOmmDir(cwd);
+  const elemDir = parts.length === 1
+    ? path.join(ommDir, parsed.element)
+    : path.join(ommDir, parts[0], ...parts.slice(1));
+  const { format: diagramFormat } = fs.existsSync(elemDir) ? detectDiagramFormat(elemDir) : { format: 'mermaid' as const };
+
+  process.stderr.write(`Exporting ${parsed.element} as ${parsed.format} (${diagramFormat})...\n`);
 
   // Build title: projectName — elementShortName
   const projectName = path.basename(cwd);
@@ -250,7 +322,9 @@ export async function commandExport(args: string[]): Promise<void> {
   }
 
   if (parsed.format === 'svg') {
-    const svg = await renderToSvg(data.diagram!, title);
+    const svg = diagramFormat === 'plantuml'
+      ? await renderPlantUMLToSvg(data.diagram!, title)
+      : await renderToSvg(data.diagram!, title);
     if (parsed.output) {
       fs.mkdirSync(path.dirname(path.resolve(parsed.output)), { recursive: true });
       fs.writeFileSync(parsed.output, svg, 'utf-8');
@@ -259,7 +333,9 @@ export async function commandExport(args: string[]): Promise<void> {
       process.stdout.write(svg + '\n');
     }
   } else {
-    const png = await renderToPng(data.diagram!, title);
+    const png = diagramFormat === 'plantuml'
+      ? await renderPlantUMLToPng(data.diagram!, title)
+      : await renderToPng(data.diagram!, title);
     if (parsed.output) {
       fs.mkdirSync(path.dirname(path.resolve(parsed.output)), { recursive: true });
       fs.writeFileSync(parsed.output, png);

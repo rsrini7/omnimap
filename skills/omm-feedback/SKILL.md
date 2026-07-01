@@ -20,10 +20,10 @@ This skill is for:
 ## Prerequisites
 
 ```bash
-command -v omm || npm install -g omnimap
+command -v omm || npm install -g @rsrini/omnimap
 ```
 
-If the install fails, tell the user: "Please run `npm install -g omnimap` in your terminal, then try again."
+If the install fails, tell the user: "Please run `npm install -g @rsrini/omnimap` in your terminal, then try again."
 
 ---
 
@@ -137,7 +137,7 @@ $ cat .omm/feedback.md
 # omm feedback report
 
 Generated: 2026-06-17T18:07:54.143Z
-omm version: 0.1.0
+omm version: 0.3.0
 git commit: 59c437d
 git branch: main
 

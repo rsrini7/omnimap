@@ -23,6 +23,11 @@ function renderFlowBar(elementPath) {
   const bar = document.getElementById('flow-bar');
   if (!bar) return;
   const flows = _flowsData[elementPath] || [];
+  
+  // Check if diagram is PlantUML (flows don't animate PlantUML)
+  const data = classesData[elementPath];
+  const isPlantUML = data?.format === 'plantuml' || /@startuml/i.test(data?.diagram || '');
+  
   // Clear existing chips (keep label)
   bar.innerHTML = '<span class="flow-bar-label">Flows</span>';
   if (flows.length === 0) {
@@ -31,13 +36,31 @@ function renderFlowBar(elementPath) {
     return;
   }
   bar.classList.add('has-flows');
-  for (const f of flows) {
-    const chip = document.createElement('button');
-    chip.className = 'flow-chip' + (_activeFlow === f.name ? ' active' : '');
-    chip.textContent = f.name;
-    chip.title = f.description || f.name;
-    chip.onclick = () => toggleFlow(elementPath, f.name);
-    bar.appendChild(chip);
+  
+  if (isPlantUML) {
+    // Show flows but with note that animation not supported
+    const note = document.createElement('span');
+    note.style.cssText = 'font-size:10px;color:var(--text-muted);font-style:italic';
+    note.textContent = '(animation not available for PlantUML)';
+    bar.appendChild(note);
+    for (const f of flows) {
+      const chip = document.createElement('button');
+      chip.className = 'flow-chip';
+      chip.textContent = f.name;
+      chip.title = f.description || f.name;
+      chip.style.opacity = '0.5';
+      chip.style.cursor = 'not-allowed';
+      bar.appendChild(chip);
+    }
+  } else {
+    for (const f of flows) {
+      const chip = document.createElement('button');
+      chip.className = 'flow-chip' + (_activeFlow === f.name ? ' active' : '');
+      chip.textContent = f.name;
+      chip.title = f.description || f.name;
+      chip.onclick = () => toggleFlow(elementPath, f.name);
+      bar.appendChild(chip);
+    }
   }
 }
 
@@ -130,6 +153,165 @@ function deactivateFlow() {
 // _expandedGlobal prevents same class from expanding in multiple branches
 let _expandedGlobal = new Set();
 
+// Cache for PlantUML SVG renders on main canvas
+const _plantUMLSvgCache = {};
+
+/** Render PlantUML diagram for main canvas display */
+async function renderPlantUMLForCanvas(cls, source) {
+  if (_plantUMLSvgCache[cls]) return _plantUMLSvgCache[cls];
+  try {
+    const svg = await renderPlantUMLDiagram(source);
+    if (svg) _plantUMLSvgCache[cls] = svg;
+    return svg;
+  } catch {
+    return null;
+  }
+}
+
+/** Pre-render all PlantUML diagrams so they're ready for canvas */
+async function preRenderAllPlantUMLDiagrams() {
+  const promises = [];
+  for (const cls of Object.keys(classesData)) {
+    const data = classesData[cls];
+    if (!data?.diagram) continue;
+    const isPlantUML = data.format === 'plantuml' || /@startuml/i.test(data.diagram);
+    if (isPlantUML && !_plantUMLSvgCache[cls]) {
+      promises.push(renderPlantUMLForCanvas(cls, data.diagram));
+    }
+  }
+  await Promise.all(promises);
+}
+
+/** Hydrate PlantUML placeholders progressively (async, non-blocking) */
+async function hydratePlantUMLPlaceholders() {
+  const placeholders = document.querySelectorAll('[data-plantuml]');
+  console.log('[PlantUML] Found', placeholders.length, 'placeholders to hydrate');
+  if (!placeholders.length) return;
+  
+  // Process each placeholder async without blocking
+  for (const el of placeholders) {
+    const cls = el.dataset.plantuml;
+    const scopedPath = el.dataset.plantumlScoped || cls;
+    const dataKey = resolveDataKey(scopedPath);
+    const data = dataKey ? classesData[dataKey] : classesData[cls];
+    if (!data?.diagram) {
+      console.log('[PlantUML] No diagram data for', cls);
+      continue;
+    }
+    
+    console.log('[PlantUML] Rendering', cls);
+    // Render async (don't await - let it load in background)
+    renderPlantUMLForCanvas(cls, data.diagram).then(svg => {
+      if (!svg) {
+        console.log('[PlantUML] Failed to render', cls);
+        return;
+      }
+      
+      console.log('[PlantUML] Rendered', cls, '- updating DOM');
+      // Find the group element and update it
+      const grpInner = el.querySelector('.grp-inner');
+      if (!grpInner) {
+        console.log('[PlantUML] No grp-inner found for', cls);
+        return;
+      }
+      
+      // Use fixed dimensions that match the placeholder size
+      const PAD = 24;
+      const IMG_W = 600;
+      const IMG_H = 500;
+      
+      // Replace placeholder with rendered SVG
+      grpInner.innerHTML = `<foreignObject x="${PAD}" y="${PAD}" width="${IMG_W}" height="${IMG_H}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="plantuml-container" style="width:100%;height:100%;overflow:hidden;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <style>
+            .plantuml-container svg { max-width:100%; max-height:100%; width:auto; height:auto; display:block; }
+            .plantuml-container::-webkit-scrollbar { width:6px; height:6px; }
+            .plantuml-container::-webkit-scrollbar-track { background:transparent; }
+            .plantuml-container::-webkit-scrollbar-thumb { background:var(--border-subtle); border-radius:3px; }
+            .plantuml-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+          </style>
+          <div class="plantuml-diagram">${svg}</div>
+        </div>
+      </foreignObject>`;
+    });
+  }
+}
+
+/** Extract SVG viewBox dimensions from SVG string */
+function extractSvgDimensions(svgString) {
+  const viewBoxMatch = svgString.match(/viewBox=["']([^"']+)["']/);
+  const widthMatch = svgString.match(/width=["']([^"']+)["']/);
+  const heightMatch = svgString.match(/height=["']([^"']+)["']/);
+  
+  if (viewBoxMatch) {
+    const parts = viewBoxMatch[1].split(/\s+/);
+    if (parts.length === 4) {
+      return { width: parseFloat(parts[2]) || 800, height: parseFloat(parts[3]) || 600 };
+    }
+  }
+  if (widthMatch && heightMatch) {
+    return { 
+      width: parseFloat(widthMatch[1]) || 800, 
+      height: parseFloat(heightMatch[1]) || 600 
+    };
+  }
+  return { width: 800, height: 600 };
+}
+
+/** Render a PlantUML diagram directly in the main canvas using foreignObject */
+function renderPlantUMLGroup(cls, data, level, scopedPath) {
+  const PAD = 24;
+  const th = theme();
+  
+  // Get the pre-rendered SVG from cache
+  const cachedSvg = _plantUMLSvgCache[cls];
+  
+  if (cachedSvg) {
+    // Get actual SVG dimensions for proper sizing
+    const svgDims = extractSvgDimensions(cachedSvg);
+    const IMG_W = Math.max(600, svgDims.width + 40);  // Add padding
+    const IMG_H = Math.max(400, svgDims.height + 40); // Add padding
+    const W = IMG_W + PAD * 2;
+    const H = IMG_H + PAD * 2;
+    
+    // Embed the rendered SVG directly using foreignObject - auto-fit to container
+    return {
+      W,
+      H,
+      svgContent: `<foreignObject x="${PAD}" y="${PAD}" width="${IMG_W}" height="${IMG_H}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="plantuml-container" style="width:100%;height:100%;overflow:hidden;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <style>
+            .plantuml-container svg { max-width:100%; max-height:100%; width:auto; height:auto; display:block; }
+            .plantuml-container::-webkit-scrollbar { width:6px; height:6px; }
+            .plantuml-container::-webkit-scrollbar-track { background:transparent; }
+            .plantuml-container::-webkit-scrollbar-thumb { background:var(--border-subtle); border-radius:3px; }
+            .plantuml-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+          </style>
+          <div class="plantuml-diagram">${cachedSvg}</div>
+        </div>
+      </foreignObject>`,
+      labelOverlay: '',
+      isPlantUML: false // Already rendered, no need to hydrate
+    };
+  }
+  
+  // Fallback: show a loading placeholder (will be hydrated)
+  const IMG_W = 600;
+  const IMG_H = 500;
+  const W = IMG_W + PAD * 2;
+  const H = IMG_H + PAD * 2;
+  return {
+    W,
+    H,
+    svgContent: `<rect x="${PAD}" y="${PAD}" width="${IMG_W}" height="${IMG_H}" rx="8" fill="${th.subFill}" stroke="${th.subStroke}" stroke-width="1"/>
+      <text x="${W/2}" y="${H/2}" text-anchor="middle" font-family="Inter,system-ui" font-size="11" fill="${th.edgeLabelText}">Loading PlantUML...</text>`,
+    labelOverlay: '',
+    isPlantUML: true,
+    plantUMLCls: cls,
+    plantUMLScoped: scopedPath || cls
+  };
+}
+
 function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scopedPath) {
   if (seen.has(cls)) return null;
   seen = new Set(seen); seen.add(cls);
@@ -139,6 +321,12 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
   // Use full path for data lookup to avoid short-name collision
   const data = scopedPath && scopedPath !== cls ? (classesData[scopedPath] || classesData[cls]) : classesData[cls];
   if (!data?.diagram) return null;
+
+  // For PlantUML diagrams, render as embedded SVG image instead of parsing as flowchart
+  const isPlantUML = data.format === 'plantuml' || /@startuml/i.test(data.diagram);
+  if (isPlantUML) {
+    return renderPlantUMLGroup(cls, data, level, scopedPath);
+  }
 
   const parsed = parseFlowchart(data.diagram);
   const {rankdir, nodes, edges} = parsed;
@@ -390,6 +578,134 @@ function renderGroup(cls, classesData, allClasses, level, seen = new Set(), scop
 }
 
 // ── mermaid syntax highlighting ────────────────────────────
+/** Inject PlantUML dark theme skinparams when dark mode is active */
+function injectPlantUMLTheme(source) {
+  // Check if source already has theme/skinparam directives
+  if (/!theme\s+/i.test(source) || /skinparam\s+backgroundColor/i.test(source)) {
+    return source;
+  }
+  
+  const dark = isDark();
+  
+  // Strong contrast colors for both themes
+  const skinParams = [
+    'skinparam defaultFontName SansSerif',
+    'skinparam shadowing false',
+    'skinparam roundCorner 4',
+    'skinparam arrowThickness 2',
+    'skinparam participantFontSize 13',
+    'skinparam participantRoundCorner 4',
+    'skinparam sequenceLifeLineThickness 2',
+    'skinparam sequenceGroupFontSize 12',
+    'skinparam sequenceMessageAlign center',
+    'skinparam sequenceMessageFontSize 12',
+    'skinparam noteFontSize 11',
+    // Colors
+    `skinparam backgroundColor ${dark ? '#1e1e2e' : '#ffffff'}`,
+    `skinparam defaultBackgroundColor ${dark ? '#1e1e2e' : '#ffffff'}`,
+    `skinparam defaultFontColor ${dark ? '#cdd6f4' : '#1a1a1a'}`,
+    `skinparam arrowColor ${dark ? '#89b4fa' : '#2563eb'}`,
+    `skinparam arrowFontColor ${dark ? '#bac2de' : '#374151'}`,
+    // Participant boxes
+    `skinparam participantBackgroundColor ${dark ? '#313244' : '#e2e8f0'}`,
+    `skinparam participantBorderColor ${dark ? '#585b70' : '#64748b'}`,
+    `skinparam participantFontColor ${dark ? '#cdd6f4' : '#1e293b'}`,
+    // Actor
+    `skinparam actorBackgroundColor ${dark ? '#313244' : '#e2e8f0'}`,
+    `skinparam actorBorderColor ${dark ? '#585b70' : '#64748b'}`,
+    `skinparam actorFontColor ${dark ? '#cdd6f4' : '#1e293b'}`,
+    // Database
+    `skinparam databaseBackgroundColor ${dark ? '#313244' : '#dbeafe'}`,
+    `skinparam databaseBorderColor ${dark ? '#585b70' : '#3b82f6'}`,
+    `skinparam databaseFontColor ${dark ? '#cdd6f4' : '#1e40af'}`,
+    // Lifelines
+    `skinparam sequenceLifeLineBorderColor ${dark ? '#585b70' : '#94a3b8'}`,
+    `skinparam sequenceLifeLineBackgroundColor ${dark ? '#313244' : '#f1f5f9'}`,
+    // Groups/dividers
+    `skinparam sequenceGroupBackgroundColor ${dark ? '#181825' : '#f8fafc'}`,
+    `skinparam sequenceGroupBorderColor ${dark ? '#45475a' : '#cbd5e1'}`,
+    `skinparam sequenceGroupBorderFontColor ${dark ? '#cdd6f4' : '#334155'}`,
+    `skinparam sequenceDividerBackgroundColor ${dark ? '#181825' : '#f8fafc'}`,
+    `skinparam sequenceDividerBorderColor ${dark ? '#45475a' : '#cbd5e1'}`,
+    `skinparam sequenceDividerFontColor ${dark ? '#cdd6f4' : '#334155'}`,
+    // References
+    `skinparam sequenceReferenceBackgroundColor ${dark ? '#313244' : '#e2e8f0'}`,
+    `skinparam sequenceReferenceBorderColor ${dark ? '#585b70' : '#64748b'}`,
+    `skinparam sequenceReferenceFontColor ${dark ? '#cdd6f4' : '#1e293b'}`,
+    // Notes
+    `skinparam noteBackgroundColor ${dark ? '#313244' : '#fef3c7'}`,
+    `skinparam noteBorderColor ${dark ? '#585b70' : '#f59e0b'}`,
+    `skinparam noteFontColor ${dark ? '#cdd6f4' : '#92400e'}`,
+    // Box
+    `skinparam sequenceBoxBorderColor ${dark ? '#45475a' : '#94a3b8'}`,
+    `skinparam sequenceBoxBackgroundColor ${dark ? '#181825' : '#f1f5f9'}`,
+    `skinparam sequenceBoxFontColor ${dark ? '#cdd6f4' : '#334155'}`,
+    // Title
+    `skinparam titleFontColor ${dark ? '#cdd6f4' : '#111827'}`,
+    // Stereotype
+    `skinparam stereotypeFontColor ${dark ? '#a6adc8' : '#6b7280'}`
+  ].join('\n');
+  
+  return source.replace(/@startuml/i, `@startuml\n${skinParams}`);
+}
+
+/** Render PlantUML via API proxy */
+async function renderPlantUMLDiagram(source) {
+  try {
+    const themedSource = injectPlantUMLTheme(source);
+    const res = await fetch("/api/render/plantuml", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: themedSource }),
+    });
+    if (res.ok) {
+      return await res.text();
+    }
+    console.error("PlantUML render failed:", res.status);
+    return fallbackPlantUMLSvg(source);
+  } catch (err) {
+    console.error("PlantUML render error:", err);
+    return fallbackPlantUMLSvg(source);
+  }
+}
+
+/** Fallback SVG for PlantUML when renderer unavailable */
+function fallbackPlantUMLSvg(text) {
+  const lines = text.split("\n");
+  const width = 600;
+  const lineHeight = 18;
+  const height = Math.max(100, lines.length * lineHeight + 60);
+  const escH = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const dark = isDark();
+  const bg = dark ? '#1e1e2e' : '#ffffff';
+  const textColor = dark ? '#cdd6f4' : '#333333';
+  const labelColor = dark ? '#6c7086' : '#888888';
+  
+  const textLines = lines.map((line, i) => {
+    return `<text x="20" y="${40 + i * lineHeight}" font-family="monospace" font-size="13" fill="${textColor}">${escH(line)}</text>`;
+  }).join("\n");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <rect width="${width}" height="${height}" fill="${bg}" rx="8"/>
+    <text x="20" y="20" font-family="sans-serif" font-size="11" fill="${labelColor}">PlantUML (offline preview)</text>
+    ${textLines}
+  </svg>`;
+}
+
+/** Basic PlantUML syntax highlighting */
+function highlightPlantUML(text) {
+  if (!text) return "";
+  const escH = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return text.split("\n").map(line => {
+    if (/^\s'/.test(line)) return `<span class="mk-comment">${escH(line)}</span>`;
+    if (/^@startuml|^@enduml/i.test(line)) return `<span class="mk-keyword">${escH(line)}</span>`;
+    if (/^(participant|actor|boundary|control|entity|database|collections|component)\s/i.test(line)) return `<span class="mk-keyword">${escH(line)}</span>`;
+    if (/^\s*(if|else|endif|loop|end|group|alt|opt|break|critical|fork|endfork)\b/i.test(line)) return `<span class="mk-keyword">${escH(line)}</span>`;
+    if (/->|<-|--><|-->|<-->/.test(line)) return `<span class="mk-edge">${escH(line)}</span>`;
+    return escH(line);
+  }).join("\n");
+}
+
 function highlightMermaid(text) {
   if (!text) return '';
   const escH = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -906,13 +1222,13 @@ function resolveDataKeyExact(cls) {
   return null;
 }
 
-window.__openSb = function(cls) {
+window.__openSb = async function(cls) {
   // If in graph view, exit graph mode first
   if (_graphMode) {
     _graphMode = false;
     const btn = document.getElementById('graph-btn');
     if (btn) btn.classList.remove('active');
-    rebuildCanvas();
+    await rebuildCanvas();
     if (_savedViewport) {
       vpX = _savedViewport.vpX;
       vpY = _savedViewport.vpY;
@@ -928,7 +1244,7 @@ window.__openSb = function(cls) {
     if (btn) btn.classList.remove('active');
     canvasWrap.classList.remove('network-mode');
     if (_networkSimulation) { _networkSimulation.stop(); _networkSimulation = null; }
-    rebuildCanvas();
+    await rebuildCanvas();
     if (_savedViewport) {
       vpX = _savedViewport.vpX;
       vpY = _savedViewport.vpY;
@@ -951,7 +1267,7 @@ window.__openSb = function(cls) {
   var activeNav = document.querySelector('.nav-item.active');
   if (activeNav) activeNav.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   var sidebarAlreadyOpen = sidebar.classList.contains('open');
-  openSidebar(dataKey, cls);
+  await openSidebar(dataKey, cls);
   // Load and render flows for this element
   loadFlows(cls).then(() => renderFlowBar(cls));
   if (sidebarAlreadyOpen) {
@@ -967,7 +1283,7 @@ window.__openSb = function(cls) {
 
 const floatControls = document.querySelector('.float-controls');
 
-function openSidebar(cls, origCls) {
+async function openSidebar(cls, origCls) {
   if (!origCls) origCls = cls;
   const ownData = classesData[origCls] || {};
   const diagramData = classesData[cls] || {};
@@ -1018,14 +1334,24 @@ function openSidebar(cls, origCls) {
   // Render diagram SVG in sidebar with code toggle
   sbDiagram.innerHTML = '';
   if (data.diagram) {
-    const svg = renderFlatSVG(data.diagram);
-    const codeHtml = highlightMermaid(data.diagram);
+    const diagramFormat = data.format || data.meta?.diagram_format || 'mermaid';
+    const formatBadge = diagramFormat === 'plantuml' ? '<span class="sb-format-badge plantuml">PlantUML</span>' : '<span class="sb-format-badge mermaid">Mermaid</span>';
+    
+    const svg = diagramFormat === 'plantuml'
+      ? await renderPlantUMLDiagram(data.diagram)
+      : renderFlatSVG(data.diagram);
+    const codeHtml = diagramFormat === 'plantuml'
+      ? highlightPlantUML(data.diagram)
+      : highlightMermaid(data.diagram);
     sbDiagram.innerHTML = `
       <div class="sb-diagram-toggle">
-        <button class="sb-diagram-tab active" onclick="window.__showDiagramTab('diagram')">Diagram</button>
+        <button class="sb-diagram-tab active" onclick="window.__showDiagramTab('diagram')">Diagram ${formatBadge}</button>
         <button class="sb-diagram-tab" onclick="window.__showDiagramTab('code')">Code</button>
         <button class="sb-diagram-tab" onclick="window.__showDiagramTab('rich')">Rich</button>
-        <button class="sb-diagram-expand" onclick="openDiagramOverlay()" title="Expand diagram (fullscreen, zoom)">⛶</button>
+        <span class="sb-diagram-actions">
+          <button class="sb-diagram-expand" onclick="window.__refreshDiagram()" title="Refresh diagram (apply theme)">↻</button>
+          <button class="sb-diagram-expand" onclick="openDiagramOverlay()" title="Expand diagram (fullscreen, zoom)">⛶</button>
+        </span>
       </div>
       <div class="sb-diagram-view">${svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>'}</div>
       <div class="sb-code-view" style="display:none"><pre class="sb-code-pre">${codeHtml}</pre></div>
@@ -1323,7 +1649,8 @@ function buildCanvas(classes, classesData, refsData) {
   for (const g of groups) {
     const tx = r1(OUTER_PAD + colX[g._col]);
     const ty = r1(OUTER_PAD + rowY[g._row]);
-    innerSVG += `<g class="grp-node" data-cls="${esc(g.cls)}" data-depth="0" transform="translate(${tx},${ty})" onclick="event.stopPropagation();window.__openSb('${esc(g.cls)}')">`;
+    const plantUMLAttr = g.isPlantUML ? ` data-plantuml="${esc(g.cls)}" data-plantuml-scoped="${esc(g.plantUMLScoped || g.cls)}"` : '';
+    innerSVG += `<g class="grp-node" data-cls="${esc(g.cls)}" data-depth="0"${plantUMLAttr} transform="translate(${tx},${ty})" onclick="event.stopPropagation();window.__openSb('${esc(g.cls)}')">`;
     innerSVG += `<rect class="grp-border" width="${g.W}" height="${g.H}" rx="8"
       fill="${th.groupFill}" stroke="${th.groupStroke}" stroke-width="2"/>`;
     const _lblW = Math.min(g.W - 8, tw(fmtLabel(g.cls), '600 10px "Plus Jakarta Sans",Inter,system-ui') + 16);
@@ -1403,6 +1730,8 @@ function rebuildCanvas() {
     document.querySelectorAll(`[data-cls="${CSS.escape(selectedCls)}"]`)
       .forEach(el => el.classList.add('selected'));
   }
+  // Hydrate PlantUML placeholders async (don't block canvas)
+  hydratePlantUMLPlaceholders();
 }
 
 // ── nav sidebar tree ─────────────────────────────────────
@@ -1709,6 +2038,7 @@ async function init() {
   // Load and render language statistics
   loadLanguageStats();
 
+  // Build canvas immediately (Mermaid renders fast)
   const result = buildCanvas(originalPerspectives, classesData, refsData);
   if (result) {
     canvasEl.innerHTML = result.html;
@@ -1716,6 +2046,9 @@ async function init() {
   }
   postRender();
   requestAnimationFrame(centerView);
+  
+  // Hydrate PlantUML placeholders async (after canvas is shown)
+  hydratePlantUMLPlaceholders();
 
   // Cloud mode: notify parent frame of available classes
   if (window.parent !== window) {
@@ -1955,10 +2288,16 @@ document.addEventListener('click', (e) => {
 // ── window globals for inline onclick handlers ────────────
 window.toggleTheme = function() {
   toggleTheme();
+  // Clear PlantUML SVG cache when theme changes (dark/light skinparams differ)
+  Object.keys(_plantUMLSvgCache).forEach(key => delete _plantUMLSvgCache[key]);
   if (_networkMode) {
     renderNetworkGraph();
   } else {
     rebuildCanvas();
+  }
+  // Auto-refresh sidebar diagram after theme change
+  if (selectedCls) {
+    window.__refreshDiagram();
   }
 };
 window.__showDiagramTab = function(tab) {
@@ -1977,6 +2316,14 @@ window.__showDiagramTab = function(tab) {
     if (tab === 'rich') renderRichView();
   }
 };
+window.__refreshDiagram = async function() {
+  if (selectedCls) {
+    // Clear PlantUML cache to force re-render with current theme
+    Object.keys(_plantUMLSvgCache).forEach(key => delete _plantUMLSvgCache[key]);
+    await window.__openSb(selectedCls);
+  }
+};
+
 window.__scrubTimeline = function(idx) {
   const versions = window.__timelineVersions;
   if (!versions) return;
@@ -1994,11 +2341,20 @@ window.__scrubTimeline = function(idx) {
     if (diffBtn) { diffBtn.textContent = 'Show Diff'; diffBtn.classList.remove('active'); }
   }
   if (diagramView) {
-    const svg = renderFlatSVG(v.diagram);
-    diagramView.innerHTML = svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>';
+    // Check if this is a PlantUML diagram
+    const isPlantUML = /@startuml/i.test(v.diagram);
+    if (isPlantUML) {
+      renderPlantUMLDiagram(v.diagram).then(svg => {
+        diagramView.innerHTML = svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>';
+      });
+    } else {
+      const svg = renderFlatSVG(v.diagram);
+      diagramView.innerHTML = svg || '<div style="padding:16px;color:var(--text-muted)">Could not render diagram</div>';
+    }
   }
   if (codeView) {
-    codeView.querySelector('pre').innerHTML = highlightMermaid(v.diagram);
+    const isPlantUML = /@startuml/i.test(v.diagram);
+    codeView.querySelector('pre').innerHTML = isPlantUML ? highlightPlantUML(v.diagram) : highlightMermaid(v.diagram);
   }
   if (info) {
     const isLast = idx === versions.length - 1;
@@ -2019,6 +2375,13 @@ function renderRichView() {
   var dataKey = resolveDataKey(cls);
   var data = dataKey ? classesData[dataKey] : null;
   if (!data || !data.diagram) { canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted)">No diagram</div>'; return; }
+
+  // For PlantUML diagrams, show the rendered SVG directly (rich view is for Mermaid flowcharts)
+  var isPlantUML = data.format === 'plantuml' || /@startuml/i.test(data.diagram);
+  if (isPlantUML) {
+    canvas.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:12px;text-align:center"><div style="margin-bottom:8px"><span style="background:var(--accent-soft);color:var(--accent);padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600">PlantUML</span></div><div>Rich view is available for Mermaid flowcharts only.</div><div style="margin-top:4px">Switch to the Diagram tab to view this PlantUML diagram.</div></div>';
+    return;
+  }
 
   // Render SVG using same parser as main canvas
   var parsed = parseFlowchart(data.diagram);
@@ -2174,16 +2537,34 @@ window.toggleMobileNav = function() {
 
 // ── diff toggle ──────────────────────────────────────────
 let _diffActive = false;
+// Helper to render diagram based on format
+async function renderDiagramForView(diagram) {
+  if (!diagram) return '';
+  const isPlantUML = /@startuml/i.test(diagram);
+  if (isPlantUML) {
+    return await renderPlantUMLDiagram(diagram);
+  }
+  return renderFlatSVG(diagram);
+}
+
 window.__toggleDiff = async function(cls) {
   const btn = document.getElementById('sb-diff-btn');
   const diagramView = document.querySelector('#sb-diagram .sb-diagram-view');
   if (!diagramView) return;
 
+  const data = classesData[cls];
+  const isPlantUML = data?.format === 'plantuml' || /@startuml/i.test(data?.diagram || '');
+
   if (_diffActive) {
     _diffActive = false;
     if (btn) { btn.textContent = 'Show Diff'; btn.classList.remove('active'); }
-    const data = classesData[cls];
-    diagramView.innerHTML = data?.diagram ? (renderFlatSVG(data.diagram) || '') : '';
+    if (isPlantUML) {
+      renderPlantUMLDiagram(data?.diagram || '').then(svg => {
+        diagramView.innerHTML = svg || '';
+      });
+    } else {
+      diagramView.innerHTML = data?.diagram ? (renderFlatSVG(data.diagram) || '') : '';
+    }
     return;
   }
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
@@ -2191,12 +2572,32 @@ window.__toggleDiff = async function(cls) {
     const res = await fetch(`/api/class/${encodeURIComponent(cls)}/diff`);
     const diff = await res.json();
     if (!diff.has_changes) {
-      diagramView.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:var(--text-muted);font-size:12px">No changes detected</div>';
+      if (isPlantUML) {
+        renderPlantUMLDiagram(classesData[cls]?.diagram || '').then(svg => {
+          diagramView.innerHTML = (svg || '') + '<div style="padding:8px;text-align:center;color:var(--text-muted);font-size:12px">No changes detected</div>';
+        });
+      } else {
+        diagramView.innerHTML = (renderFlatSVG(classesData[cls]?.diagram) || '') + '<div style="padding:8px;text-align:center;color:var(--text-muted);font-size:12px">No changes detected</div>';
+      }
       if (btn) { btn.textContent = 'No Changes'; btn.disabled = false; }
       return;
     }
     _diffActive = true;
     if (btn) { btn.textContent = 'Hide Diff'; btn.classList.add('active'); btn.disabled = false; }
+    
+    if (isPlantUML) {
+      // For PlantUML, just show the current version (diff highlighting not supported)
+      const svg = await renderPlantUMLDiagram(diff.current_diagram);
+      if (!svg) return;
+      let html = svg;
+      if (diff.removed_nodes?.length) {
+        const removedHtml = diff.removed_nodes.map(n => `<span style="color:var(--error);text-decoration:line-through">${esc(n)}</span>`).join(', ');
+        html += `<div style="padding:8px 16px;font-size:11px;color:var(--text-dim);border-top:1px solid var(--border-subtle)">Removed: ${removedHtml}</div>`;
+      }
+      diagramView.innerHTML = html;
+      return;
+    }
+    
     let svg = renderFlatSVG(diff.current_diagram);
     if (!svg) return;
     const addedNodes = new Set(diff.added_nodes || []);
@@ -2629,6 +3030,8 @@ let _overlayScale = 1;
 let _overlayPanX = 0, _overlayPanY = 0;
 let _overlayPanning = false, _overlayPanStart = { x: 0, y: 0 };
 
+let _overlayActiveFlow = null;
+
 window.openDiagramOverlay = function() {
   const sbView = document.querySelector('#sb-diagram .sb-diagram-view');
   if (!sbView) return;
@@ -2638,6 +3041,7 @@ window.openDiagramOverlay = function() {
   const overlay = document.getElementById('diagram-overlay');
   const body = document.getElementById('diagram-overlay-body');
   const title = document.getElementById('diagram-overlay-title');
+  const controls = document.getElementById('diagram-overlay-controls');
   title.textContent = sbTitle.textContent + ' — Diagram';
 
   // Clone SVG into overlay
@@ -2647,6 +3051,52 @@ window.openDiagramOverlay = function() {
   clone.style.transformOrigin = '0 0';
   body.appendChild(clone);
 
+  // Add flow chips if flows exist
+  const flows = _flowsData[selectedCls] || [];
+  _overlayActiveFlow = null;
+  
+  // Check if diagram is PlantUML
+  const data = classesData[selectedCls];
+  const isPlantUML = data?.format === 'plantuml' || /@startuml/i.test(data?.diagram || '');
+  
+  // Remove existing flow bar if any
+  const existingFlowBar = overlay.querySelector('.overlay-flow-bar');
+  if (existingFlowBar) existingFlowBar.remove();
+  
+  if (flows.length > 0) {
+    const flowBar = document.createElement('div');
+    flowBar.className = 'overlay-flow-bar';
+    flowBar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap';
+    flowBar.innerHTML = '<span style="font-size:11px;color:var(--text-muted);font-weight:600">Flows:</span>';
+    
+    if (isPlantUML) {
+      // Show note that animation not available for PlantUML
+      const note = document.createElement('span');
+      note.style.cssText = 'font-size:10px;color:var(--text-muted);font-style:italic';
+      note.textContent = '(animation not available for PlantUML)';
+      flowBar.appendChild(note);
+    }
+    
+    flows.forEach(f => {
+      const chip = document.createElement('button');
+      chip.className = 'flow-chip';
+      chip.textContent = f.name;
+      chip.title = f.description || f.name;
+      
+      if (isPlantUML) {
+        chip.style.opacity = '0.5';
+        chip.style.cursor = 'not-allowed';
+      } else {
+        chip.onclick = () => toggleOverlayFlow(f.name, flows);
+      }
+      flowBar.appendChild(chip);
+    });
+    
+    // Insert after header
+    const header = overlay.querySelector('#diagram-overlay-header');
+    header.after(flowBar);
+  }
+
   _overlayScale = 1;
   _overlayPanX = 0;
   _overlayPanY = 0;
@@ -2655,6 +3105,72 @@ window.openDiagramOverlay = function() {
 
   // Fit to window after a tick
   requestAnimationFrame(() => diagramOverlayFit());
+}
+
+function toggleOverlayFlow(flowName, flows) {
+  const overlay = document.getElementById('diagram-overlay');
+  const svg = overlay.querySelector('svg');
+  if (!svg) return;
+  
+  // Deactivate if clicking same flow
+  if (_overlayActiveFlow === flowName) {
+    _overlayActiveFlow = null;
+    svg.classList.remove('flowing');
+    svg.querySelectorAll('.flow-lit').forEach(el => el.classList.remove('flow-lit'));
+    overlay.querySelectorAll('.flow-chip').forEach(c => c.classList.remove('active'));
+    return;
+  }
+  
+  _overlayActiveFlow = flowName;
+  const flow = flows.find(f => f.name === flowName);
+  if (!flow) return;
+  
+  svg.classList.add('flowing');
+  
+  // Collect nodes and edges to highlight
+  const litNodes = new Set();
+  const litEdges = new Set();
+  for (const step of flow.steps) {
+    if (step.node) litNodes.add(step.node);
+    if (step.edge) {
+      const [from, to] = step.edge.split('->');
+      if (from && to) litEdges.add(`${from}->${to}`);
+    }
+  }
+  
+  // Highlight nodes
+  svg.querySelectorAll('.reg-node, .grp-node').forEach(el => {
+    const cls = el.getAttribute('data-cls');
+    const shortName = cls ? cls.split('/').pop() : '';
+    if (litNodes.has(cls) || litNodes.has(shortName)) {
+      el.classList.add('flow-lit');
+    } else {
+      el.classList.remove('flow-lit');
+    }
+  });
+  
+  // Highlight edges
+  svg.querySelectorAll('.edge-path').forEach(el => {
+    const from = el.getAttribute('data-from');
+    const to = el.getAttribute('data-to');
+    const key = `${from}->${to}`;
+    const fromShort = from ? from.split('/').pop() : '';
+    const toShort = to ? to.split('/').pop() : '';
+    const keyShort = `${fromShort}->${toShort}`;
+    const isLit = litEdges.has(key) || litEdges.has(keyShort) ||
+      (litNodes.has(from) && litNodes.has(to)) ||
+      (litNodes.has(fromShort) && litNodes.has(toShort));
+    if (isLit) {
+      el.classList.add('flow-lit');
+    } else {
+      el.classList.remove('flow-lit');
+    }
+  });
+  
+  // Update active chip
+  overlay.querySelectorAll('.flow-chip').forEach(c => {
+    c.classList.toggle('active', c.textContent === flowName);
+  });
 }
 
 window.closeDiagramOverlay = function() {

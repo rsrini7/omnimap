@@ -591,12 +591,20 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 
 .sb-diagram { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
 .sb-diagram svg { display: block; width: 100%; height: auto; overflow: visible; }
-.sb-diagram-view { padding: 16px; }
+.sb-diagram-view { padding: 8px; max-height: 220px; overflow: hidden; scrollbar-width: thin; scrollbar-color: var(--border-subtle) transparent; }
+.sb-diagram-view svg { max-height: 200px; width: 100%; height: auto; display: block; margin: 0 auto; object-fit: contain; }
+.sb-diagram-view:hover { overflow: auto; }
 .sb-diagram-toggle { display: flex; border-bottom: 1px solid var(--border-muted); align-items: center; }
 .sb-diagram-tab { background: none; border: none; color: var(--text-muted); padding: 8px 16px; font-size: 11px; font-family: var(--mono); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+.sb-format-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; font-weight: 600; }
+.sb-format-badge.mermaid { background: rgba(99, 102, 241, 0.15); color: #4f46e5; }
+.sb-format-badge.plantuml { background: rgba(16, 185, 129, 0.15); color: #059669; }
+html.light .sb-format-badge.mermaid { background: rgba(99, 102, 241, 0.1); color: #4338ca; }
+html.light .sb-format-badge.plantuml { background: rgba(16, 185, 129, 0.1); color: #047857; }
 .sb-diagram-tab:hover { color: var(--text-mid); }
 .sb-diagram-tab.active { color: var(--text-body); border-bottom-color: var(--accent); }
-.sb-diagram-expand { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px 10px; font-size: 14px; transition: all .15s; border-left: 1px solid var(--border-muted); }
+.sb-diagram-actions { margin-left: auto; display: flex; align-items: center; }
+.sb-diagram-expand { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px 8px; font-size: 14px; transition: all .15s; border-left: 1px solid var(--border-muted); }
 .sb-diagram-expand:hover { color: var(--text); background: var(--surface3); }
 
 /* Fullscreen diagram overlay */
@@ -613,6 +621,16 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
 #diagram-overlay-body { flex: 1; overflow: hidden; position: relative; cursor: grab; }
 #diagram-overlay-body.grabbing { cursor: grabbing; }
 #diagram-overlay-body svg { position: absolute; transform-origin: 0 0; }
+/* Flow animation for overlay */
+#diagram-overlay-body svg.flowing .edge-path { stroke-width: 1px; stroke-opacity: 0.2; transition: all .3s; }
+#diagram-overlay-body svg.flowing .edge-label { opacity: 0.2; transition: opacity .2s; }
+#diagram-overlay-body svg.flowing .reg-node .nshape { fill-opacity: 0.15; stroke-opacity: 0.15; transition: all .3s; }
+#diagram-overlay-body svg.flowing .grp-node > .grp-border { fill-opacity: 0.15; stroke-opacity: 0.15; transition: all .3s; }
+#diagram-overlay-body svg.flowing .edge-path.flow-lit { stroke: var(--accent) !important; stroke-width: 3px; stroke-opacity: 1; stroke-dasharray: 6 3; animation: flow-march 0.8s linear infinite; }
+#diagram-overlay-body svg.flowing .edge-label.flow-lit { opacity: 1 !important; }
+#diagram-overlay-body svg.flowing .reg-node.flow-lit .nshape { fill-opacity: 1 !important; stroke-opacity: 1 !important; stroke: var(--accent) !important; stroke-width: 2.5px; filter: drop-shadow(0 0 6px var(--accent-glow)); }
+#diagram-overlay-body svg.flowing .grp-node.flow-lit > .grp-border { fill-opacity: 1 !important; stroke-opacity: 1 !important; stroke: var(--accent) !important; stroke-width: 2.5px; filter: drop-shadow(0 0 6px var(--accent-glow)); }
+.overlay-flow-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .sb-code-view { padding: 0; max-height: 300px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--surface4) transparent; }
 .sb-rich-view { padding: 0; max-height: 400px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--surface4) transparent; }
 .sb-rich-canvas { padding: 0; }
@@ -820,6 +838,44 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); disp
     background: var(--sb-head-handle); border-radius: 2px;
   }
   .float-controls { display: none; }
+}
+
+/* ── Custom Scrollbar Styles ──────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* PlantUML diagram containers */
+.plantuml-container {
+  overflow: hidden;
+}
+.plantuml-container:hover {
+  overflow: auto;
+}
+.plantuml-container svg {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
 }
 </style>
 </head>

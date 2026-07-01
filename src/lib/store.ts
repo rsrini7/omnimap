@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
-import { VALID_FIELDS, FIELD_FILES, type Field, type ClassMeta, type ClassData, type OmmConfig, type FlowsFile, type FlowDef, type LinkEntry } from '../types.js';
+import { VALID_FIELDS, FIELD_FILES, type Field, type ClassMeta, type ClassData, type OmmConfig, type FlowsFile, type FlowDef, type LinkEntry, FORMAT_DEFAULT_FILES } from '../types.js';
+import { detectDiagramFormat } from './format.js';
 import { updateMeta } from './meta.js';
 
 const OMM_DIR = '.omm';
@@ -179,6 +180,19 @@ export function listNodes(perspective: string, nodePath: string[] = [], cwd?: st
 /** Read a field from a nested element */
 export function readNodeField(perspective: string, nodePath: string[], field: Field, cwd?: string): string | null {
   const dir = nodeDir(perspective, nodePath, cwd);
+  
+  // For diagram field, use format-aware resolution
+  if (field === 'diagram') {
+    const { format } = detectDiagramFormat(dir);
+    const diagramFile = FORMAT_DEFAULT_FILES[format];
+    const filePath = path.join(dir, diagramFile);
+    if (fs.existsSync(filePath)) return fs.readFileSync(filePath, 'utf-8');
+    // Fallback to default mermaid
+    const fallbackPath = path.join(dir, FIELD_FILES[field]);
+    if (fs.existsSync(fallbackPath)) return fs.readFileSync(fallbackPath, 'utf-8');
+    return null;
+  }
+  
   const filePath = path.join(dir, FIELD_FILES[field]);
   if (!fs.existsSync(filePath)) return null;
   return fs.readFileSync(filePath, 'utf-8');
@@ -195,17 +209,35 @@ export function writeNodeField(
   ensureOmmForWrite(cwd);
   ensureClassDir(perspective, cwd);
   const dir = ensureNodeDir(perspective, nodePath, cwd);
-  const filePath = path.join(dir, FIELD_FILES[field]);
+  
+  // For diagram field, use format-aware file path
+  let filePath: string;
+  if (field === 'diagram') {
+    const { format } = detectDiagramFormat(dir);
+    const diagramFile = FORMAT_DEFAULT_FILES[format];
+    filePath = path.join(dir, diagramFile);
+  } else {
+    filePath = path.join(dir, FIELD_FILES[field]);
+  }
 
   if (field === 'diagram') {
     const prev = readNodeField(perspective, nodePath, 'diagram', cwd);
+    const { format } = detectDiagramFormat(dir);
     if (prev !== null) {
       const meta = readNodeMeta(perspective, nodePath, cwd);
       if (meta) {
         meta.prev_diagram = prev;
+        meta.diagram_format = format;
         if (!meta.diagram_history) meta.diagram_history = [];
         meta.diagram_history.push({ diagram: prev, at: new Date().toISOString(), commit: meta.git_commit });
         if (meta.diagram_history.length > 20) meta.diagram_history = meta.diagram_history.slice(-20);
+        writeNodeMeta(perspective, nodePath, meta, cwd);
+      }
+    } else {
+      // Store format for new diagrams
+      const meta = readNodeMeta(perspective, nodePath, cwd);
+      if (meta) {
+        meta.diagram_format = format;
         writeNodeMeta(perspective, nodePath, meta, cwd);
       }
     }
@@ -289,6 +321,7 @@ export function showNode(perspective: string, nodePath: string[], cwd?: string):
     name,
     description: readNodeField(perspective, nodePath, 'description', cwd) ?? undefined,
     diagram: readNodeField(perspective, nodePath, 'diagram', cwd) ?? undefined,
+    format: detectDiagramFormat(dir).format,
     constraint: readNodeField(perspective, nodePath, 'constraint', cwd) ?? undefined,
     concern: readNodeField(perspective, nodePath, 'concern', cwd) ?? undefined,
     context: readNodeField(perspective, nodePath, 'context', cwd) ?? undefined,
@@ -308,7 +341,21 @@ export function deleteClass(className: string, cwd?: string): boolean {
 // --- Field read/write ---
 
 export function readField(className: string, field: Field, cwd?: string): string | null {
-  const filePath = path.join(classDir(className, cwd), FIELD_FILES[field]);
+  const dir = classDir(className, cwd);
+  
+  // For diagram field, use format-aware resolution
+  if (field === 'diagram') {
+    const { format } = detectDiagramFormat(dir);
+    const diagramFile = FORMAT_DEFAULT_FILES[format];
+    const filePath = path.join(dir, diagramFile);
+    if (fs.existsSync(filePath)) return fs.readFileSync(filePath, 'utf-8');
+    // Fallback to default mermaid
+    const fallbackPath = path.join(dir, FIELD_FILES[field]);
+    if (fs.existsSync(fallbackPath)) return fs.readFileSync(fallbackPath, 'utf-8');
+    return null;
+  }
+  
+  const filePath = path.join(dir, FIELD_FILES[field]);
   if (!fs.existsSync(filePath)) return null;
   return fs.readFileSync(filePath, 'utf-8');
 }
@@ -316,19 +363,37 @@ export function readField(className: string, field: Field, cwd?: string): string
 export function writeField(className: string, field: Field, content: string, cwd?: string): number {
   ensureOmmForWrite(cwd);
   const dir = ensureClassDir(className, cwd);
-  const filePath = path.join(dir, FIELD_FILES[field]);
+  
+  // For diagram field, use format-aware file path
+  let filePath: string;
+  if (field === 'diagram') {
+    const { format } = detectDiagramFormat(dir);
+    const diagramFile = FORMAT_DEFAULT_FILES[format];
+    filePath = path.join(dir, diagramFile);
+  } else {
+    filePath = path.join(dir, FIELD_FILES[field]);
+  }
 
   // If writing diagram, save previous version to meta
   if (field === 'diagram') {
     const prev = readField(className, 'diagram', cwd);
+    const { format } = detectDiagramFormat(dir);
     if (prev !== null) {
       const meta = readMeta(className, cwd);
       if (meta) {
         meta.prev_diagram = prev;
+        meta.diagram_format = format;
         // Push to history (keep last 20 versions)
         if (!meta.diagram_history) meta.diagram_history = [];
         meta.diagram_history.push({ diagram: prev, at: new Date().toISOString(), commit: meta.git_commit });
         if (meta.diagram_history.length > 20) meta.diagram_history = meta.diagram_history.slice(-20);
+        writeMeta(className, meta, cwd);
+      }
+    } else {
+      // Store format for new diagrams
+      const meta = readMeta(className, cwd);
+      if (meta) {
+        meta.diagram_format = format;
         writeMeta(className, meta, cwd);
       }
     }
@@ -338,7 +403,7 @@ export function writeField(className: string, field: Field, content: string, cwd
   updateMeta(className, field, cwd);
 
   const bytes = Buffer.byteLength(content, 'utf-8');
-  process.stderr.write(`wrote ${className}/${FIELD_FILES[field]} (${bytes} bytes)\n`);
+  process.stderr.write(`wrote ${className}/${path.basename(filePath)} (${bytes} bytes)\n`);
   return bytes;
 }
 
@@ -365,6 +430,7 @@ export function showClass(className: string, cwd?: string): ClassData | null {
     name: className,
     description: readField(className, 'description', cwd) ?? undefined,
     diagram: readField(className, 'diagram', cwd) ?? undefined,
+    format: detectDiagramFormat(classDir(className, cwd)).format,
     constraint: readField(className, 'constraint', cwd) ?? undefined,
     concern: readField(className, 'concern', cwd) ?? undefined,
     context: readField(className, 'context', cwd) ?? undefined,

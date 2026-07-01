@@ -1,5 +1,8 @@
-import { ensureOmmForRead, listClasses, listNodes, readField, classExists, writeField, writeNodeField, readNodeField } from '../lib/store.js';
-import { validateDiagram } from '../lib/validate.js';
+import { ensureOmmForRead, listClasses, listNodes, readField, classExists, writeField, writeNodeField, readNodeField, readNodeMeta } from '../lib/store.js';
+import { validateDiagram, validateDiagramFormat } from '../lib/validate.js';
+import { detectDiagramFormat } from '../lib/format.js';
+import path from 'node:path';
+import fs from 'node:fs';
 import { fixDiagram, type FixResult } from '../lib/fix-diagram.js';
 import { planIncrementalUpdate } from '../lib/incremental.js';
 import { getOmmDir } from '../lib/store.js';
@@ -11,7 +14,15 @@ function validateClass(className: string, allClasses: string[]): { errors: numbe
     return { errors: 0, warnings: 0 };
   }
 
-  const result = validateDiagram(diagram, { className, allClasses });
+  // Detect format from element directory
+  const parts = className.split('/');
+  const ommDir = getOmmDir();
+  const elemDir = parts.length === 1 
+    ? path.join(ommDir, className)
+    : path.join(ommDir, parts[0], ...parts.slice(1));
+  const { format } = fs.existsSync(elemDir) ? detectDiagramFormat(elemDir) : { format: 'mermaid' as const };
+  
+  const result = validateDiagramFormat(diagram, format, { className, allClasses });
   const errors = result.issues.filter(i => i.level === 'error').length;
   const warnings = result.issues.filter(i => i.level === 'warning').length;
 

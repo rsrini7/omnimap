@@ -1,6 +1,23 @@
 export const VALID_FIELDS = ['description', 'diagram', 'constraint', 'concern', 'context', 'todo', 'note'] as const;
 export type Field = (typeof VALID_FIELDS)[number];
 
+/** Supported diagram formats. */
+export type DiagramFormat = 'mermaid' | 'plantuml';
+
+/** File extensions mapped to diagram formats. */
+export const DIAGRAM_EXTENSIONS: Record<string, DiagramFormat> = {
+  '.mmd': 'mermaid',
+  '.mermaid': 'mermaid',
+  '.puml': 'plantuml',
+  '.plantuml': 'plantuml',
+};
+
+/** Default file names per diagram format. */
+export const FORMAT_DEFAULT_FILES: Record<DiagramFormat, string> = {
+  mermaid: 'diagram.mmd',
+  plantuml: 'diagram.puml',
+};
+
 export const FIELD_FILES: Record<Field, string> = {
   description: 'description.md',
   diagram: 'diagram.mmd',
@@ -44,6 +61,8 @@ export interface ClassMeta {
   children?: string[];
   parentPath?: string[];
   tags?: string[];
+  /** Diagram format for this element. */
+  diagram_format?: DiagramFormat;
   diagram_history?: Array<{ diagram: string; at: string; commit?: string }>;
   change_log?: Array<{ field: string; at: string; commit?: string }>;
 
@@ -74,6 +93,7 @@ export interface ClassData {
   name: string;
   description?: string;
   diagram?: string;
+  format?: DiagramFormat;
   constraint?: string;
   concern?: string;
   context?: string;

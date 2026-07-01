@@ -16,7 +16,7 @@ Walk new developers through the architecture interactively using the existing `.
 ## Prerequisites
 
 ```bash
-command -v omm || npm install -g omnimap
+command -v omm || npm install -g @rsrini/omnimap
 omm list
 ```
 
